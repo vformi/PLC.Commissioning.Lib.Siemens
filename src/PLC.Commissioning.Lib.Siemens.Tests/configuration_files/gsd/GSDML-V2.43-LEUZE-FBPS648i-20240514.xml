@@ -1,0 +1,975 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!--  $Id: GSDML-V2.43-LEUZE-FBPS648i-20240514.xml 64886 2024-06-18 15:19:42Z rlehl $ -->
+<!-- Revision history -->
+<!-- 02092022 Converted from BPS348i GSDML, thaas -->
+<!-- 02092022 Update to V2.42, thaas              -->
+<!-- 02092022 Initial FBPS648i GSDML file, thaas  -->
+<!-- 10072023 F_Module 50 according to product spec, rlehl  -->
+<!-- 01092023 removed unimplemented modules, rlehl  -->
+<!-- 06092023 F_Module 52 according to product spec, rlehl  -->
+<!-- 26092023 Removed I&M4 support, upgraded to GSDML V 2.43, thaas  -->
+<!-- 14052024 Added new non-safe modules, deleted unused elements, opok -->
+
+<ISO15745Profile xmlns="http://www.profibus.com/GSDML/2003/11/DeviceProfile" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.profibus.com/GSDML/2003/11/DeviceProfile ..\xsd\GSDML-DeviceProfile-V2.43.xsd">
+  <ProfileHeader>
+    <ProfileIdentification>PROFINET Device Profile</ProfileIdentification>
+    <ProfileRevision>1.00</ProfileRevision>
+    <ProfileName>Device Profile for PROFINET Devices</ProfileName>
+    <ProfileSource>PROFIBUS Nutzerorganisation e. V. (PNO)</ProfileSource>
+    <ProfileClassID>Device</ProfileClassID>
+    <ISO15745Reference>
+      <ISO15745Part>4</ISO15745Part>
+      <ISO15745Edition>1</ISO15745Edition>
+      <ProfileTechnology>GSDML</ProfileTechnology>
+    </ISO15745Reference>
+  </ProfileHeader>
+  <ProfileBody>
+    <DeviceIdentity VendorID="0x0152" DeviceID="0x0018">
+      <InfoText TextId="DeviceDescription"/>
+      <VendorName Value="Leuze electronic GmbH + Co. KG"/>
+    </DeviceIdentity>
+    <DeviceFunction>
+      <Family MainFamily="Encoders" ProductFamily="Leuze"/>
+    </DeviceFunction>
+    <ApplicationProcess>
+      <DeviceAccessPointList>
+        <DeviceAccessPointItem ID="DAP" PhysicalSlots="0..25" ModuleIdentNumber="0x00000001" MinDeviceInterval="32"
+                               ImplementationType="netX" DNS_CompatibleName="FBPS648i" AddressAssignment="DCP;LOCAL" 
+                               CheckDeviceID_Allowed="true" FixedInSlots="0" ObjectUUID_LocalIndex="1" 
+                               NameOfStationNotTransferable="true" MultipleWriteSupported="true" 
+                               DeviceAccessSupported="true" NumberOfDeviceAccessAR="1" 
+                               SharedDeviceSupported="false" SharedInputSupported="false" 
+                               ResetToFactoryModes="2" LLDP_NoD_Supported="true" WebServer="http://:80/" AdaptsRealIdentification="true"
+                               PNIO_Version="V2.42">                                                
+          <ModuleInfo>
+            <Name TextId="DeviceName"/>
+            <InfoText TextId="DeviceDescription"/>
+            <VendorName Value="Leuze electronic GmbH + Co. KG"/>
+            <OrderNumber Value="501xxxxx"/>
+            <HardwareRelease Value="2"/>
+            <SoftwareRelease Value="V1.1.*"/>
+          </ModuleInfo>
+          <CertificationInfo ConformanceClass="B" ApplicationClass="" NetloadClass="III"/>            
+          <SubslotList>
+            <SubslotItem SubslotNumber="1" TextId="IDT_MODULE_NAME_DAP"/>
+            <SubslotItem SubslotNumber="32768" TextId="X1"/>
+            <SubslotItem SubslotNumber="32769" TextId="X1P1"/>
+            <SubslotItem SubslotNumber="32770" TextId="X1P2"/>
+          </SubslotList>
+          <IOConfigData MaxInputLength="100" MaxOutputLength="100" MaxDataLength="200"/>
+          <UseableModules>
+            <!--These references point to the modules in the module list -->
+            <ModuleItemRef ModuleItemTarget="ID_MOD_M1_PositionValue" AllowedInSlots="1..24"/>
+            <ModuleItemRef ModuleItemTarget="ID_MOD_M2_StatusAndControl" AllowedInSlots="1..24"/>
+            <ModuleItemRef ModuleItemTarget="ID_MOD_M3_Speed" AllowedInSlots="1..24"/>
+            <ModuleItemRef ModuleItemTarget="ID_MOD_M4_SpeedStatus" AllowedInSlots="1..24"/>
+            <ModuleItemRef ModuleItemTarget="ID_MOD_M5_ReadingQuality" AllowedInSlots="1..24"/>
+            <ModuleItemRef ModuleItemTarget="ID_MOD_M6_SSI_Interface" AllowedInSlots="1..24"/>
+            <ModuleItemRef ModuleItemTarget="ID_MOD_M7_DeviceStatus" AllowedInSlots="1..24"/>
+            <ModuleItemRef ModuleItemTarget="ID_MOD_M50_SafePosition32Bit" AllowedInSlots="25"/>
+            <ModuleItemRef ModuleItemTarget="ID_MOD_M51_SafePosition32BitBP" AllowedInSlots="25"/>
+            <ModuleItemRef ModuleItemTarget="ID_MOD_M52_SafePosition32BitVelocity16Bit" AllowedInSlots="25"/>
+            <ModuleItemRef ModuleItemTarget="ID_MOD_M53_SafePosition32BitVelocity16BitBP" AllowedInSlots="25"/>
+          </UseableModules>
+          <VirtualSubmoduleList>
+            <VirtualSubmoduleItem ID="DAP" SubmoduleIdentNumber="0x00000001" Writeable_IM_Records="1 2 3" MayIssueProcessAlarm="false">
+              <IOData/>
+              <RecordDataList>
+                <ParameterRecordDataItem Index="0" Length="1" TransferSequence="0">
+                  <Name TextId="DAP_RECORD_NAME_DAP_Parameter"/>
+                  <Ref ValueItemTarget="DAP_PARAM_REF_VALUE_Profile" DataType="Unsigned8" ByteOffset="0" DefaultValue="1" AllowedValues="1" TextId="DAP_PARAM_REF_NAME_Profile" Changeable="false"/>
+                </ParameterRecordDataItem>
+              </RecordDataList>
+              <ModuleInfo>
+                <Name TextId="IDT_MODULE_NAME_DAP"/>
+                <InfoText TextId="IDT_INFO_DAP"/>
+              </ModuleInfo>
+            </VirtualSubmoduleItem>
+          </VirtualSubmoduleList>
+          <SystemDefinedSubmoduleList>
+            <InterfaceSubmoduleItem ID="IDS_DAPI" DCP_HelloSupported="false" SupportedRT_Classes="RT_CLASS_1" SupportedProtocols="SNMP;LLDP" 
+                                    NetworkComponentDiagnosisSupported="true" DelayMeasurementSupported="true" SupportedDelayMeasurements = "PTCP" PTP_BoundarySupported="true" 
+                                    DCP_BoundarySupported="true" SubslotNumber="32768" TextId="PN-IO" SubmoduleIdentNumber="0x00000002">
+              <ApplicationRelations 
+                StartupMode="Advanced;Legacy"  
+                NumberOfAR ="1" >
+                <TimingProperties SendClock="32 64 128" ReductionRatio="1 2 4 8 16 32 64 128 256 512"/>
+              </ApplicationRelations>
+              <MediaRedundancy SupportedRole="Client"/>
+            </InterfaceSubmoduleItem>
+            <PortSubmoduleItem CheckMAUTypeSupported="true" ID="IDS_DAPP1" SubslotNumber="32769" TextId="Port1" SubmoduleIdentNumber="0x00000003" MAUTypes="16" LinkStateDiagnosisCapability="Up+Down" 
+                               SupportsRingportConfig="false" IsDefaultRingport="true" PortDeactivationSupported="true"> 
+                <MAUTypeList>
+                 <MAUTypeItem Value="16" AdjustSupported="true"/>
+                </MAUTypeList>
+              </PortSubmoduleItem>
+            <PortSubmoduleItem CheckMAUTypeSupported="true" ID="IDS_DAPP2" SubslotNumber="32770" TextId="Port2" SubmoduleIdentNumber="0x00000004" MAUTypes="16" LinkStateDiagnosisCapability="Up+Down" 
+                               SupportsRingportConfig="false" IsDefaultRingport="true" PortDeactivationSupported="true">                
+                <MAUTypeList>
+                 <MAUTypeItem Value="16" AdjustSupported="true"/>
+                </MAUTypeList>
+              </PortSubmoduleItem>
+          </SystemDefinedSubmoduleList>
+          <Graphics>
+            <GraphicItemRef Type="DeviceSymbol" GraphicItemTarget="ID_Graph_1"/>
+          </Graphics>
+        </DeviceAccessPointItem>
+      </DeviceAccessPointList>
+      <ModuleList>
+        <!-- ============================================================== -->
+        <!-- [M1] Position value                                            -->
+        <!-- ============================================================== -->
+        <ModuleItem ID="ID_MOD_M1_PositionValue" ModuleIdentNumber="0x000003E9">
+          <ModuleInfo>
+            <Name TextId="IDT_MODULE_NAME_M1_PositionValue"/>
+            <InfoText TextId="IDT_INFO_M1_PositionValue"/>
+          </ModuleInfo>
+          <VirtualSubmoduleList>
+            <VirtualSubmoduleItem ID="ID_SUB_M1_PositionValue" SubmoduleIdentNumber="0x00000001" MayIssueProcessAlarm="false">
+              <IOData>
+                <Input Consistency="Item consistency">
+                  <DataItem DataType="Integer32" TextId="IDT_DATAITEM_PositionValue"/>
+                </Input>
+              </IOData>
+              <RecordDataList>
+                <ParameterRecordDataItem Index="0" Length="1">
+                  <Name TextId="IDT_RECORD_NAME_GeneralParameter"/>
+                  <Ref ValueItemTarget="PARAM_REF_VALUE_PositionResolution" DataType="BitArea" ByteOffset="0" BitOffset="0" BitLength="2" DefaultValue="1" AllowedValues="0..2" TextId="PARAM_REF_NAME_PositionResolution"/>
+                </ParameterRecordDataItem>
+              </RecordDataList>
+              <ModuleInfo>
+                <Name TextId="IDT_MODULE_NAME_M1_PositionValue"/>
+                <InfoText TextId="IDT_INFO_M1_PositionValue"/>
+              </ModuleInfo>
+            </VirtualSubmoduleItem>
+          </VirtualSubmoduleList>
+        </ModuleItem>
+        <!-- ============================================================== -->
+        <!-- [M2] Status and Control                                            -->
+        <!-- ============================================================== -->
+        <ModuleItem ID="ID_MOD_M2_StatusAndControl" ModuleIdentNumber="0x000003EA">
+          <ModuleInfo>
+            <Name TextId="IDT_MODULE_NAME_M2_StatusAndControl"/>
+            <InfoText TextId="IDT_INFO_M2_StatusAndControl"/>
+          </ModuleInfo>
+          <VirtualSubmoduleList>
+            <VirtualSubmoduleItem ID="ID_SUB_M2_StatusAndControl" SubmoduleIdentNumber="0x00000001" MayIssueProcessAlarm="false">
+              <IOData>
+                <Input Consistency="Item consistency">
+                  <DataItem DataType="Unsigned8" UseAsBits="true" TextId="IDT_DATAITEM_StatusAndControlIn">
+                    <BitDataItem BitOffset="0" TextId="IDT_DATAITEM_PosValid"/>
+                    <BitDataItem BitOffset="1" TextId="IDT_DATAITEM_CtrlLabelDetected"/>
+                    <BitDataItem BitOffset="2" TextId="IDT_DATAITEM_QualityWarning"/>
+                    <BitDataItem BitOffset="3" TextId="IDT_DATAITEM_QualityError"/>
+                    <BitDataItem BitOffset="4" TextId="IDT_DATAITEM_StandbyActive"/>
+                    <BitDataItem BitOffset="5" TextId="IDT_DATAITEM_BcbDirection_ascending"/>
+                    <BitDataItem BitOffset="6" TextId="IDT_DATAITEM_BcbDirection_descending"/>
+                    <BitDataItem BitOffset="7" TextId="IDT_DATAITEM_MeasureActive"/>
+                  </DataItem>
+                </Input>
+                <Output Consistency="Item consistency">
+                  <DataItem DataType="Unsigned8" UseAsBits="true" TextId="IDT_DATAITEM_StatusAndControlOut">
+                    <BitDataItem BitOffset="0" TextId="IDT_DATAITEM_MeasureStopStart"/>
+                  </DataItem>
+                </Output>
+              </IOData>
+              <ModuleInfo>
+                <Name TextId="IDT_MODULE_NAME_M2_StatusAndControl"/>
+                <InfoText TextId="IDT_INFO_M2_StatusAndControl"/>
+              </ModuleInfo>
+            </VirtualSubmoduleItem>
+          </VirtualSubmoduleList>
+        </ModuleItem>
+        <!-- ============================================================== -->
+        <!-- [M3] Speed                                                     -->
+        <!-- ============================================================== -->
+        <ModuleItem ID="ID_MOD_M3_Speed" ModuleIdentNumber="0x000003EB">
+          <ModuleInfo>
+            <Name TextId="IDT_MODULE_NAME_M3_Speed"/>
+            <InfoText TextId="IDT_INFO_M3_Speed"/>
+          </ModuleInfo>
+          <VirtualSubmoduleList>
+            <VirtualSubmoduleItem ID="ID_SUB_M3_Speed" SubmoduleIdentNumber="0x00000001" MayIssueProcessAlarm="false">
+              <IOData>
+                <Input Consistency="Item consistency">
+                  <DataItem DataType="Integer16" TextId="IDT_DATAITEM_NonSafeSpeed"/>
+                </Input>
+              </IOData>
+              <RecordDataList>
+                <ParameterRecordDataItem Index="0" Length="1">
+                  <Name TextId="IDT_RECORD_NAME_GeneralParameter"/>
+                  <Ref ValueItemTarget="PARAM_REF_VALUE_SpeedResolution" DataType="BitArea" ByteOffset="0" BitOffset="0" BitLength="2" DefaultValue="1" AllowedValues="0..3" TextId="PARAM_REF_NAME_SpeedResolution"/>
+                </ParameterRecordDataItem>
+              </RecordDataList>
+              <ModuleInfo>
+                <Name TextId="IDT_MODULE_NAME_M3_Speed"/>
+                <InfoText TextId="IDT_INFO_M3_Speed"/>
+              </ModuleInfo>
+            </VirtualSubmoduleItem>
+          </VirtualSubmoduleList>
+        </ModuleItem>
+        <!-- ============================================================== -->
+        <!-- [M4] Speed Status                                              -->
+        <!-- ============================================================== -->
+        <ModuleItem ID="ID_MOD_M4_SpeedStatus" ModuleIdentNumber="0x000003EC">
+          <ModuleInfo>
+            <Name TextId="IDT_MODULE_NAME_M4_SpeedStatus"/>
+            <InfoText TextId="IDT_INFO_M4_SpeedStatus"/>
+          </ModuleInfo>
+          <VirtualSubmoduleList>
+            <VirtualSubmoduleItem ID="ID_SUB_M4_SpeedStatus" SubmoduleIdentNumber="0x00000001" MayIssueProcessAlarm="false">
+              <IOData>
+                <Input Consistency="Item consistency">
+                  <DataItem DataType="Unsigned8" UseAsBits="true" TextId="IDT_DATAITEM_SpeedStatusIn">
+                    <BitDataItem BitOffset="0" TextId="IDT_DATAITEM_NonSafeSpeed_Value_Valid"/>
+                    <BitDataItem BitOffset="1" TextId="IDT_DATAITEM_Movement_Status"/>
+                    <BitDataItem BitOffset="2" TextId="IDT_DATAITEM_Movement_Direction"/>
+                  </DataItem>
+                </Input>
+              </IOData>
+              <ModuleInfo>
+                <Name TextId="IDT_MODULE_NAME_M4_SpeedStatus"/>
+                <InfoText TextId="IDT_INFO_M4_SpeedStatus"/>
+              </ModuleInfo>
+            </VirtualSubmoduleItem>
+          </VirtualSubmoduleList>
+        </ModuleItem>
+        <!-- ============================================================== -->
+        <!-- [M5] Reading quality                                           -->
+        <!-- ============================================================== -->
+        <ModuleItem ID="ID_MOD_M5_ReadingQuality" ModuleIdentNumber="0x000003ED">
+          <ModuleInfo>
+            <Name TextId="IDT_MODULE_NAME_M5_ReadingQuality"/>
+            <InfoText TextId="IDT_INFO_M5_ReadingQuality"/>
+          </ModuleInfo>
+          <VirtualSubmoduleList>
+            <VirtualSubmoduleItem ID="ID_SUB_M5_ReadingQuality" SubmoduleIdentNumber="0x00000001" MayIssueProcessAlarm="false">
+              <IOData>
+                <Input Consistency="Item consistency">
+                  <DataItem DataType="Unsigned8" TextId="IDT_DATAITEM_Quality"/>
+                </Input>
+              </IOData>
+              <RecordDataList>
+                <ParameterRecordDataItem Index="0" Length="3">
+                  <Name TextId="IDT_RECORD_NAME_GeneralParameter"/>
+                  <Ref DataType="Unsigned8" ByteOffset="0" DefaultValue="60" AllowedValues="30..90" TextId="PARAM_REF_NAME_QualityWarningThreshold"/>
+                  <Ref DataType="Unsigned8" ByteOffset="1" DefaultValue="30" AllowedValues="10..70" TextId="PARAM_REF_NAME_QualityErrorThreshold"/>
+                  <Ref DataType="Unsigned8" ByteOffset="2" DefaultValue="5" AllowedValues="0..100" TextId="PARAM_REF_NAME_QualitySmoothingFactor"/>
+                </ParameterRecordDataItem>
+              </RecordDataList>
+              <ModuleInfo>
+                <Name TextId="IDT_MODULE_NAME_M5_ReadingQuality"/>
+                <InfoText TextId="IDT_INFO_M5_ReadingQuality"/>
+              </ModuleInfo>
+            </VirtualSubmoduleItem>
+          </VirtualSubmoduleList>
+        </ModuleItem>
+        <!-- ============================================================== -->
+        <!-- [M6] SSI Interface                                             -->
+        <!-- ============================================================== -->
+        <ModuleItem ID="ID_MOD_M6_SSI_Interface" ModuleIdentNumber="0x000003EE">
+          <ModuleInfo>
+            <Name TextId="IDT_MODULE_NAME_M6_SSI_Interface"/>
+            <InfoText TextId="IDT_INFO_M6_SSI_Interface"/>
+          </ModuleInfo>
+          <VirtualSubmoduleList>
+            <VirtualSubmoduleItem ID="ID_SUB_M6_SSI_Interface" SubmoduleIdentNumber="0x00000001" MayIssueProcessAlarm="false">
+              <IOData></IOData>
+              <RecordDataList>
+                <ParameterRecordDataItem Index="0" Length="1">
+                  <Name TextId="IDT_RECORD_NAME_GeneralParameter"/>
+                  <Ref ValueItemTarget="PARAM_REF_VALUE_SSI_Encoding" DataType="Bit" ByteOffset="0" BitOffset="0" DefaultValue="1" AllowedValues="0..1" TextId="PARAM_REF_NAME_SSI_Encoding"/>
+                  <Ref ValueItemTarget="PARAM_REF_VALUE_SSI_PositionResolution" DataType="BitArea" ByteOffset="0" BitOffset="1" BitLength="2" DefaultValue="1" AllowedValues="0..2" TextId="PARAM_REF_NAME_SSI_PositionResolution"/>
+                  <Ref ValueItemTarget="PARAM_REF_VALUE_SSI_DataMode" DataType="BitArea" ByteOffset="0" BitOffset="3" BitLength="2" DefaultValue="0" AllowedValues="0..3" TextId="PARAM_REF_NAME_SSI_DataMode"/>
+                  <Ref ValueItemTarget="PARAM_REF_VALUE_SSI_ErrorBit" DataType="Bit" ByteOffset="0" BitOffset="6" DefaultValue="1" AllowedValues="0..1" TextId="PARAM_REF_NAME_SSI_ErrorBit"/>
+                  <Ref ValueItemTarget="PARAM_REF_VALUE_SSI_MasterClock" DataType="Bit" ByteOffset="0" BitOffset="7" DefaultValue="0" AllowedValues="0..1" TextId="PARAM_REF_NAME_SSI_MasterClock"/>
+                </ParameterRecordDataItem>
+              </RecordDataList>
+              <ModuleInfo>
+                <Name TextId="IDT_MODULE_NAME_M6_SSI_Interface"/>
+                <InfoText TextId="IDT_INFO_M6_SSI_Interface"/>
+              </ModuleInfo>
+            </VirtualSubmoduleItem>
+          </VirtualSubmoduleList>
+        </ModuleItem>
+        <!-- ============================================================== -->
+        <!-- [M7] Device Status                                             -->
+        <!-- ============================================================== -->
+        <ModuleItem ID="ID_MOD_M7_DeviceStatus" ModuleIdentNumber="0x00000424">
+          <ModuleInfo>
+            <Name TextId="IDT_MODULE_NAME_M7_DeviceStatus"/>
+            <InfoText TextId="IDT_INFO_M7_DeviceStatus"/>
+          </ModuleInfo>
+          <VirtualSubmoduleList>
+            <VirtualSubmoduleItem ID="ID_SUB_M7_DeviceStatus" SubmoduleIdentNumber="0x00000001" MayIssueProcessAlarm="false">
+              <IOData>
+                <Input Consistency="Item consistency">
+                  <DataItem DataType="Unsigned8" TextId="IDT_DATAITEM_DeviceStatus"/>
+                </Input>
+                <Output Consistency="Item consistency">
+                  <DataItem DataType="Unsigned8" UseAsBits="true" TextId="IDT_DATAITEM_DevStatusOut">
+                    <BitDataItem BitOffset="0" TextId="IDT_DATAITEM_Clear_Event_Buffer"/>
+                    <BitDataItem BitOffset="6" TextId="IDT_DATAITEM_System_Reset"/>
+                    <BitDataItem BitOffset="7" TextId="IDT_DATAITEM_Standby"/>
+                  </DataItem>
+                </Output>
+              </IOData>
+              <ModuleInfo>
+                <Name TextId="IDT_MODULE_NAME_M7_DeviceStatus"/>
+                <InfoText TextId="IDT_INFO_M7_DeviceStatus"/>
+              </ModuleInfo>
+            </VirtualSubmoduleItem>
+          </VirtualSubmoduleList>
+        </ModuleItem>               
+        <!-- ============================================================== -->
+        <!-- [M50] Safe position                                            -->
+        <!-- ============================================================== -->
+        <ModuleItem ID="ID_MOD_M50_SafePosition32Bit" ModuleIdentNumber="0x0000041A" RequiredSchemaVersion="V2.2">
+          <ModuleInfo>
+            <Name TextId="IDT_MODULE_NAME_M50_SafePosition32Bit"/>
+            <InfoText TextId="IDT_INFO_M50_SafePosition32Bit"/>
+          </ModuleInfo>
+          <VirtualSubmoduleList>
+            <VirtualSubmoduleItem ID="ID_SUB_M50_SafePosition32Bit" SubmoduleIdentNumber="0x1" PROFIsafeSupported="true" MayIssueProcessAlarm="false">
+              <IOData F_IO_StructureDescVersion="2" F_IO_StructureDescCRC="1640793299">
+                <Input Consistency="All items consistency">
+                  <DataItem DataType="Unsigned8" UseAsBits="true" TextId="IDT_DATAITEM_SafeStatus">
+                    <BitDataItem BitOffset="0" TextId="IDT_DATAITEM_PosValid"/>
+                    <BitDataItem BitOffset="1" TextId="IDT_DATAITEM_CtrlLabelDetected"/>
+                    <BitDataItem BitOffset="2" TextId="IDT_StateReservedSafe"/>
+                    <BitDataItem BitOffset="3" TextId="IDT_StateReservedSafe"/>
+                    <BitDataItem BitOffset="4" TextId="IDT_StateReservedSafe"/>
+                    <BitDataItem BitOffset="5" TextId="IDT_StateReservedSafe"/>
+                    <BitDataItem BitOffset="6" TextId="IDT_StateReservedSafe"/>
+                    <BitDataItem BitOffset="7" TextId="IDT_StateReservedSafe"/>
+                  </DataItem>
+                  <DataItem DataType="Integer32" TextId="IDT_DATAITEM_SafePosition"/>
+                  <DataItem DataType="F_MessageTrailer5Byte" TextId="IDT_DATAITEM_I_PS_Safety_5"/>
+                </Input>
+                <Output Consistency="All items consistency">
+                  <DataItem DataType="F_MessageTrailer5Byte" TextId="IDT_DATAITEM_O_PS_Safety_5"/>
+                </Output>
+              </IOData>
+              <RecordDataList>
+                <ParameterRecordDataItem Index="0" Length="9">
+                  <Name TextId="IDT_RECORD_NAME_SafePosition32Bit"/>
+                  <Ref DataType="Unsigned32" TextId="PARAM_REF_NAME_SafeDataLayout" ByteOffset="0" DefaultValue="1050" Visible="true" Changeable="false"/>
+                  <Ref DataType="BitArea" TextId="PARAM_REF_NAME_ErrorReactionTimePROFIsafe" ValueItemTarget="PARAM_REF_VALUE_ErrorReactionTimePROFIsafe" ByteOffset="4" BitOffset="0" BitLength="4" DefaultValue="0" AllowedValues="0..5" />
+                  <Ref DataType="BitArea" TextId="PARAM_REF_NAME_PositionResolutionPROFIsafe" ValueItemTarget="PARAM_REF_VALUE_PositionResolutionPROFIsafe" ByteOffset="4" BitOffset="4" BitLength="2" DefaultValue="1" AllowedValues="0..2"/>
+                  <Ref DataType="Bit" TextId="PARAM_REF_NAME_CountingDirectionPROFIsafe" ValueItemTarget="PARAM_REF_VALUE_CountingDirectionPROFIsafe" ByteOffset="4" BitOffset="6" DefaultValue="0" AllowedValues="0..1"/>
+                  <Ref DataType="Bit" TextId="PARAM_REF_NAME_TapeSwitchTolerancePROFIsafe" ValueItemTarget="PARAM_REF_VALUE_TapeSwitchTolerancePROFIsafe" ByteOffset="4" BitOffset="7" DefaultValue="1" AllowedValues="0..1"/>
+                  <Ref DataType="Integer32" TextId="PARAM_REF_NAME_PositionOffsetValuePROFIsafe" ByteOffset="5" DefaultValue="0"/>
+                </ParameterRecordDataItem>
+                <F_ParameterRecordDataItem Index="2" F_ParamDescCRC="44669">
+                  <F_Check_iPar DefaultValue="NoCheck" Visible="false" Changeable="false"/>
+                  <F_SIL DefaultValue="SIL3" AllowedValues="SIL1 SIL2 SIL3 NoSIL" Changeable="true"/>
+                  <F_CRC_Length DefaultValue="4-Byte-CRC" AllowedValues="4-Byte-CRC" Visible="true"/>
+                  <F_CRC_Seed/>
+                  <F_Passivation DefaultValue="Device/Module" AllowedValues="Device/Module"/>  
+                  <F_Block_ID DefaultValue="1" AllowedValues="1" Changeable="false"/>
+                  <F_Par_Version/>
+                  <F_Source_Add AllowedValues="1..65534"/>
+                  <F_Dest_Add AllowedValues="1..65534"/>
+                  <F_WD_Time DefaultValue="125" AllowedValues="50..10000"/>
+                  <F_Par_CRC DefaultValue="63630"/>
+                  <F_iPar_CRC DefaultValue="1761318422"/>
+                </F_ParameterRecordDataItem>
+              </RecordDataList>
+              <ModuleInfo>
+                <Name TextId="IDT_MODULE_NAME_M50_SafePosition32Bit"/>
+                <InfoText TextId="IDT_INFO_M50_SafePosition32Bit"/>
+              </ModuleInfo>
+            </VirtualSubmoduleItem>
+          </VirtualSubmoduleList>    
+        </ModuleItem>
+        <!-- ============================================================== -->
+        <!-- [M51] Safe position BP                                            -->
+        <!-- ============================================================== -->
+        <ModuleItem ID="ID_MOD_M51_SafePosition32BitBP" ModuleIdentNumber="0x0000041B" RequiredSchemaVersion="V2.2">
+          <ModuleInfo>
+            <Name TextId="IDT_MODULE_NAME_M51_SafePosition32BitBP"/>
+            <InfoText TextId="IDT_INFO_M51_SafePosition32BitBP"/>
+          </ModuleInfo>
+          <VirtualSubmoduleList>
+            <VirtualSubmoduleItem ID="ID_SUB_M51_SafePosition32BitBP" SubmoduleIdentNumber="0x1" PROFIsafeSupported="true" MayIssueProcessAlarm="false">
+              <IOData F_IO_StructureDescVersion="2" F_IO_StructureDescCRC="3376720436">
+                <Input Consistency="All items consistency">
+                  <DataItem DataType="Unsigned8" UseAsBits="true" TextId="IDT_DATAITEM_SafeStatus">
+                    <BitDataItem BitOffset="0" TextId="IDT_DATAITEM_PosValid"/>
+                    <BitDataItem BitOffset="1" TextId="IDT_DATAITEM_CtrlLabelDetected"/>
+                    <BitDataItem BitOffset="2" TextId="IDT_StateReservedSafe"/>
+                    <BitDataItem BitOffset="3" TextId="IDT_StateReservedSafe"/>
+                    <BitDataItem BitOffset="4" TextId="IDT_StateReservedSafe"/>
+                    <BitDataItem BitOffset="5" TextId="IDT_StateReservedSafe"/>
+                    <BitDataItem BitOffset="6" TextId="IDT_StateReservedSafe"/>
+                    <BitDataItem BitOffset="7" TextId="IDT_StateReservedSafe"/>
+                  </DataItem>
+                  <DataItem DataType="Integer32" TextId="IDT_DATAITEM_SafePosition"/>
+                  <DataItem DataType="F_MessageTrailer4Byte" TextId="IDT_DATAITEM_I_PS_Safety_4"/>
+                </Input>
+                <Output Consistency="All items consistency">
+                  <DataItem DataType="F_MessageTrailer4Byte" TextId="IDT_DATAITEM_O_PS_Safety_4"/>
+                </Output>
+              </IOData>
+              <RecordDataList>
+                <ParameterRecordDataItem Index="0" Length="9">
+                  <Name TextId="IDT_RECORD_NAME_SafePosition32BitBP"/>
+                  <Ref DataType="Unsigned32" TextId="PARAM_REF_NAME_SafeDataLayout" ByteOffset="0" DefaultValue="1051" Visible="true" Changeable="false"/>
+                  <Ref DataType="BitArea" TextId="PARAM_REF_NAME_ErrorReactionTimePROFIsafe" ValueItemTarget="PARAM_REF_VALUE_ErrorReactionTimePROFIsafe" ByteOffset="4" BitOffset="0" BitLength="4" DefaultValue="0" AllowedValues="0..5" />
+                  <Ref DataType="BitArea" TextId="PARAM_REF_NAME_PositionResolutionPROFIsafe" ValueItemTarget="PARAM_REF_VALUE_PositionResolutionPROFIsafe" ByteOffset="4" BitOffset="4" BitLength="2" DefaultValue="1" AllowedValues="0..2"/>
+                  <Ref DataType="Bit" TextId="PARAM_REF_NAME_CountingDirectionPROFIsafe" ValueItemTarget="PARAM_REF_VALUE_CountingDirectionPROFIsafe" ByteOffset="4" BitOffset="6" DefaultValue="0" AllowedValues="0..1"/>
+                  <Ref DataType="Bit" TextId="PARAM_REF_NAME_TapeSwitchTolerancePROFIsafe" ValueItemTarget="PARAM_REF_VALUE_TapeSwitchTolerancePROFIsafe" ByteOffset="4" BitOffset="7" DefaultValue="1" AllowedValues="0..1"/>
+                  <Ref DataType="Integer32" TextId="PARAM_REF_NAME_PositionOffsetValuePROFIsafe" ByteOffset="5" DefaultValue="0"/>
+                </ParameterRecordDataItem>
+                <F_ParameterRecordDataItem Index="2" F_ParamDescCRC="37041">
+                  <F_Check_iPar DefaultValue="NoCheck" Visible="false" Changeable="false"/>
+                  <F_SIL DefaultValue="SIL3" AllowedValues="SIL1 SIL2 SIL3 NoSIL" Changeable="true"/>
+                  <F_CRC_Length DefaultValue="3-Byte-CRC" AllowedValues="3-Byte-CRC" Visible="true"/>
+                  <F_Block_ID DefaultValue="1" AllowedValues="1" Changeable="false"/>
+                  <F_Par_Version/>
+                  <F_Source_Add AllowedValues="1..65534"/>
+                  <F_Dest_Add AllowedValues="1..65534"/>
+                  <F_WD_Time DefaultValue="125" AllowedValues="50..10000"/>
+                  <F_Par_CRC DefaultValue="64863"/>
+                  <F_iPar_CRC DefaultValue="978910836"/>
+                </F_ParameterRecordDataItem>
+              </RecordDataList>
+              <ModuleInfo>
+                <Name TextId="IDT_MODULE_NAME_M51_SafePosition32BitBP"/>
+                <InfoText TextId="IDT_INFO_M51_SafePosition32BitBP"/>
+              </ModuleInfo>
+            </VirtualSubmoduleItem>
+          </VirtualSubmoduleList>    
+        </ModuleItem>
+        <!-- ============================================================== -->
+        <!-- [M52] Safe position and velocity                               -->
+        <!-- ============================================================== -->
+        <ModuleItem ID="ID_MOD_M52_SafePosition32BitVelocity16Bit" ModuleIdentNumber="0x0000041C" RequiredSchemaVersion="V2.2">
+          <ModuleInfo>
+            <Name TextId="IDT_MODULE_NAME_M52_SafePosition32BitVelocity16Bit"/>
+            <InfoText TextId="IDT_INFO_M52_SafePosition32BitVelocity16Bit"/>
+          </ModuleInfo>
+          <VirtualSubmoduleList>
+            <VirtualSubmoduleItem ID="ID_SUB_M52_SafePosition32BitVelocity16Bit" SubmoduleIdentNumber="0x1" PROFIsafeSupported="true" MayIssueProcessAlarm="false">
+              <IOData F_IO_StructureDescVersion="2" F_IO_StructureDescCRC="4004094146">
+                <Input Consistency="All items consistency">
+                  <DataItem DataType="Unsigned8" UseAsBits="true" TextId="IDT_DATAITEM_SafeStatus">
+                    <BitDataItem BitOffset="0" TextId="IDT_DATAITEM_PosValid"/>
+                    <BitDataItem BitOffset="1" TextId="IDT_DATAITEM_CtrlLabelDetected"/>
+                    <BitDataItem BitOffset="2" TextId="IDT_DATAITEM_Velocity_valid"/>
+                    <BitDataItem BitOffset="3" TextId="IDT_StateReservedSafe"/>
+                    <BitDataItem BitOffset="4" TextId="IDT_StateReservedSafe"/>
+                    <BitDataItem BitOffset="5" TextId="IDT_StateReservedSafe"/>
+                    <BitDataItem BitOffset="6" TextId="IDT_StateReservedSafe"/>
+                    <BitDataItem BitOffset="7" TextId="IDT_StateReservedSafe"/>
+                  </DataItem>
+                  <DataItem DataType="Integer16" TextId="IDT_DATAITEM_SafeVelocity"/>
+                  <DataItem DataType="Integer32" TextId="IDT_DATAITEM_SafePosition"/>
+                  <DataItem DataType="F_MessageTrailer5Byte" TextId="IDT_DATAITEM_I_PS_Safety_5"/>
+                </Input>
+                <Output Consistency="All items consistency">
+                  <DataItem DataType="F_MessageTrailer5Byte" TextId="IDT_DATAITEM_O_PS_Safety_5"/>
+                </Output>
+              </IOData>
+              <RecordDataList>
+                <ParameterRecordDataItem Index="0" Length="10">
+                  <Name TextId="IDT_RECORD_NAME_SafePosition32BitAndVelocity16Bit"/>
+                  <Ref DataType="Unsigned32" TextId="PARAM_REF_NAME_SafeDataLayout" ByteOffset="0" DefaultValue="1052" Visible="true" Changeable="false"/>
+                  <Ref DataType="BitArea" TextId="PARAM_REF_NAME_ErrorReactionTimePROFIsafe" ValueItemTarget="PARAM_REF_VALUE_ErrorReactionTimePROFIsafe" ByteOffset="4" BitOffset="0" BitLength="4" DefaultValue="0" AllowedValues="0..5" />
+                  <Ref DataType="BitArea" TextId="PARAM_REF_NAME_PositionResolutionPROFIsafe" ValueItemTarget="PARAM_REF_VALUE_PositionResolutionPROFIsafe" ByteOffset="4" BitOffset="4" BitLength="2" DefaultValue="1" AllowedValues="0..2"/>
+                  <Ref DataType="Bit" TextId="PARAM_REF_NAME_CountingDirectionPROFIsafe" ValueItemTarget="PARAM_REF_VALUE_CountingDirectionPROFIsafe" ByteOffset="4" BitOffset="6" DefaultValue="0" AllowedValues="0..1"/>
+                  <Ref DataType="Bit" TextId="PARAM_REF_NAME_TapeSwitchTolerancePROFIsafe" ValueItemTarget="PARAM_REF_VALUE_TapeSwitchTolerancePROFIsafe" ByteOffset="4" BitOffset="7" DefaultValue="1" AllowedValues="0..1"/>
+                  <Ref DataType="Integer32" TextId="PARAM_REF_NAME_PositionOffsetValuePROFIsafe" ByteOffset="5" DefaultValue="0"/>
+                  <Ref DataType="BitArea" TextId="PARAM_REF_NAME_VelocityResolutionPROFIsafe" ValueItemTarget="PARAM_REF_VALUE_VelocityResolutionPROFIsafe" ByteOffset="9" BitOffset="0" BitLength="3" DefaultValue="1" AllowedValues="1..3"/>
+                  <Ref DataType="BitArea" TextId="PARAM_REF_NAME_VelocityAveragingPROFIsafe" ValueItemTarget="PARAM_REF_VALUE_VelocityAveragingPROFIsafe" ByteOffset="9" BitOffset="3" BitLength="3" DefaultValue="2" AllowedValues="0..5"/>
+                </ParameterRecordDataItem>
+                <F_ParameterRecordDataItem Index="2" F_ParamDescCRC="52575">
+                  <F_Check_iPar DefaultValue="NoCheck" Visible="false" Changeable="false"/>
+                  <F_SIL DefaultValue="SIL3" AllowedValues="SIL1 SIL2 SIL3 NoSIL" Changeable="true"/>
+                  <F_CRC_Length DefaultValue="4-Byte-CRC" AllowedValues="4-Byte-CRC" Visible="true"/>
+                  <F_CRC_Seed/>
+                  <F_Passivation DefaultValue="Device/Module" AllowedValues="Device/Module"/>  
+                  <F_Block_ID DefaultValue="1" AllowedValues="1" Changeable="false"/>
+                  <F_Par_Version/>
+                  <F_Source_Add AllowedValues="1..65534"/>
+                  <F_Dest_Add AllowedValues="1..65534"/>
+                  <F_WD_Time DefaultValue="125" AllowedValues="50..10000"/>
+                  <F_Par_CRC DefaultValue="6580"/>
+                  <F_iPar_CRC DefaultValue="816959117"/>
+                </F_ParameterRecordDataItem>
+              </RecordDataList>
+              <ModuleInfo>
+                <Name TextId="IDT_MODULE_NAME_M52_SafePosition32BitVelocity16Bit"/>
+                <InfoText TextId="IDT_INFO_M52_SafePosition32BitVelocity16Bit"/>
+              </ModuleInfo>
+            </VirtualSubmoduleItem>
+          </VirtualSubmoduleList>    
+        </ModuleItem>
+        
+        <!-- ============================================================== -->
+        <!-- [M53] Safe position and velocity BP                            -->
+        <!-- ============================================================== -->
+        <ModuleItem ID="ID_MOD_M53_SafePosition32BitVelocity16BitBP" ModuleIdentNumber="0x0000041D" RequiredSchemaVersion="V2.2">
+          <ModuleInfo>
+            <Name TextId="IDT_MODULE_NAME_M53_SafePosition32BitVelocity16BitBP"/>
+            <InfoText TextId="IDT_INFO_M53_SafePosition32BitVelocity16BitBP"/>
+          </ModuleInfo>
+          <VirtualSubmoduleList>
+            <VirtualSubmoduleItem ID="ID_SUB_M53_SafePosition32BitVelocity16BitBP" SubmoduleIdentNumber="0x1" PROFIsafeSupported="true" MayIssueProcessAlarm="false">
+              <IOData F_IO_StructureDescVersion="2" F_IO_StructureDescCRC="1700368491">
+                <Input Consistency="All items consistency">
+                  <DataItem DataType="Unsigned8" UseAsBits="true" TextId="IDT_DATAITEM_SafeStatus">
+                    <BitDataItem BitOffset="0" TextId="IDT_DATAITEM_PosValid"/>
+                    <BitDataItem BitOffset="1" TextId="IDT_DATAITEM_CtrlLabelDetected"/>
+                    <BitDataItem BitOffset="2" TextId="IDT_DATAITEM_Velocity_valid"/>
+                    <BitDataItem BitOffset="3" TextId="IDT_StateReservedSafe"/>
+                    <BitDataItem BitOffset="4" TextId="IDT_StateReservedSafe"/>
+                    <BitDataItem BitOffset="5" TextId="IDT_StateReservedSafe"/>
+                    <BitDataItem BitOffset="6" TextId="IDT_StateReservedSafe"/>
+                    <BitDataItem BitOffset="7" TextId="IDT_StateReservedSafe"/>
+                  </DataItem>
+                  <DataItem DataType="Integer16" TextId="IDT_DATAITEM_SafeVelocity"/>
+                  <DataItem DataType="Integer32" TextId="IDT_DATAITEM_SafePosition"/>
+                  <DataItem DataType="F_MessageTrailer4Byte" TextId="IDT_DATAITEM_I_PS_Safety_4"/>
+                </Input>
+                <Output Consistency="All items consistency">
+                  <DataItem DataType="F_MessageTrailer4Byte" TextId="IDT_DATAITEM_O_PS_Safety_4"/>
+                </Output>
+              </IOData>
+              <RecordDataList>
+                <ParameterRecordDataItem Index="0" Length="10">
+                  <Name TextId="IDT_RECORD_NAME_SafePosition32BitAndVelocity16BitBP"/>
+                  <Ref DataType="Unsigned32" TextId="PARAM_REF_NAME_SafeDataLayout" ByteOffset="0" DefaultValue="1053" Visible="true" Changeable="false"/>
+                  <Ref DataType="BitArea" TextId="PARAM_REF_NAME_ErrorReactionTimePROFIsafe" ValueItemTarget="PARAM_REF_VALUE_ErrorReactionTimePROFIsafe" ByteOffset="4" BitOffset="0" BitLength="4" DefaultValue="0" AllowedValues="0..5" />
+                  <Ref DataType="BitArea" TextId="PARAM_REF_NAME_PositionResolutionPROFIsafe" ValueItemTarget="PARAM_REF_VALUE_PositionResolutionPROFIsafe" ByteOffset="4" BitOffset="4" BitLength="2" DefaultValue="1" AllowedValues="0..2"/>
+                  <Ref DataType="Bit" TextId="PARAM_REF_NAME_CountingDirectionPROFIsafe" ValueItemTarget="PARAM_REF_VALUE_CountingDirectionPROFIsafe" ByteOffset="4" BitOffset="6" DefaultValue="0" AllowedValues="0..1"/>
+                  <Ref DataType="Bit" TextId="PARAM_REF_NAME_TapeSwitchTolerancePROFIsafe" ValueItemTarget="PARAM_REF_VALUE_TapeSwitchTolerancePROFIsafe" ByteOffset="4" BitOffset="7" DefaultValue="1" AllowedValues="0..1"/>
+                  <Ref DataType="Integer32" TextId="PARAM_REF_NAME_PositionOffsetValuePROFIsafe" ByteOffset="5" DefaultValue="0"/>
+                  <Ref DataType="BitArea" TextId="PARAM_REF_NAME_VelocityResolutionPROFIsafe" ValueItemTarget="PARAM_REF_VALUE_VelocityResolutionPROFIsafe" ByteOffset="9" BitOffset="0" BitLength="3" DefaultValue="1" AllowedValues="1..3"/>
+                  <Ref DataType="BitArea" TextId="PARAM_REF_NAME_VelocityAveragingPROFIsafe" ValueItemTarget="PARAM_REF_VALUE_VelocityAveragingPROFIsafe" ByteOffset="9" BitOffset="3" BitLength="3" DefaultValue="2" AllowedValues="0..5"/>
+                </ParameterRecordDataItem>
+                <F_ParameterRecordDataItem Index="2" F_ParamDescCRC="62355">
+                  <F_Check_iPar DefaultValue="NoCheck" Visible="false" Changeable="false"/>
+                  <F_SIL DefaultValue="SIL3" AllowedValues="SIL1 SIL2 SIL3 NoSIL" Changeable="true"/>
+                  <F_CRC_Length DefaultValue="3-Byte-CRC" AllowedValues="3-Byte-CRC" Visible="true"/>
+                  <F_Block_ID DefaultValue="1" AllowedValues="1" Changeable="false"/>
+                  <F_Par_Version/>
+                  <F_Source_Add AllowedValues="1..65534"/>
+                  <F_Dest_Add AllowedValues="1..65534"/>
+                  <F_WD_Time DefaultValue="125" AllowedValues="50..10000"/>
+                  <F_Par_CRC DefaultValue="7269"/>
+                  <F_iPar_CRC DefaultValue="1645389551"/>
+                </F_ParameterRecordDataItem>
+              </RecordDataList>
+              <ModuleInfo>
+                <Name TextId="IDT_MODULE_NAME_M53_SafePosition32BitVelocity16BitBP"/>
+                <InfoText TextId="IDT_INFO_M53_SafePosition32BitVelocity16BitBP"/>
+              </ModuleInfo>
+            </VirtualSubmoduleItem>
+          </VirtualSubmoduleList>    
+        </ModuleItem>                      
+        <!-- End of module definitions -->
+      </ModuleList>
+      <!-- ####################################################################### -->
+      <!-- Value List                                                              -->
+      <!-- ####################################################################### -->
+      <ValueList>
+        <ValueItem ID="DAP_PARAM_REF_VALUE_Profile"> <!-- TODO OPO: Check following value items-->
+          <Assignments>
+            <Assign Content="1" TextId="IDV_PROFILE_FBPS"/>
+          </Assignments>
+        </ValueItem>
+        <ValueItem ID="DAP_PARAM_REF_VALUE_BcbSelection">
+          <Assignments>
+            <Assign Content="1" TextId="IDV_BCB_SELECTION_3CM"/>
+            <Assign Content="2" TextId="IDV_BCB_SELECTION_4CM"/>
+          </Assignments>
+        </ValueItem>
+        <!-- Position and measure related parameters -->
+        <ValueItem ID="PARAM_REF_VALUE_PositionResolution">
+          <Assignments>
+            <Assign Content="0" TextId="IDV_POSITION_RESOLUTION_1_10"/>
+            <Assign Content="1" TextId="IDV_POSITION_RESOLUTION_1"/>
+            <Assign Content="2" TextId="IDV_POSITION_RESOLUTION_10"/>
+          </Assignments>
+        </ValueItem>
+        <!-- Velocity related parameters -->
+        <ValueItem ID="PARAM_REF_VALUE_SpeedResolution">
+          <Assignments>
+            <Assign Content="0" TextId="IDV_SPEED_RESOLUTION_1_10"/>
+            <Assign Content="1" TextId="IDV_SPEED_RESOLUTION_1"/>
+            <Assign Content="2" TextId="IDV_SPEED_RESOLUTION_10"/>
+            <Assign Content="3" TextId="IDV_SPEED_RESOLUTION_100"/>
+          </Assignments>
+        </ValueItem>
+        <!-- SSI Interface related parameters -->
+        <ValueItem ID="PARAM_REF_VALUE_SSI_Encoding">
+          <Assignments>
+            <Assign Content="0" TextId="IDV_SSI_ENCODING_BINARY"/>
+            <Assign Content="1" TextId="IDV_SSI_ENCODING_GRAY"/>
+          </Assignments>
+        </ValueItem>
+        <ValueItem ID="PARAM_REF_VALUE_SSI_PositionResolution">
+          <Assignments>
+            <Assign Content="0" TextId="IDV_SSI_POSITION_RESOLUTION_1_100"/>
+            <Assign Content="1" TextId="IDV_SSI_POSITION_RESOLUTION_1_10"/>
+            <Assign Content="2" TextId="IDV_SSI_POSITION_RESOLUTION_1"/>
+          </Assignments>
+        </ValueItem>
+        <ValueItem ID="PARAM_REF_VALUE_SSI_DataMode">
+          <Assignments>
+            <Assign Content="0" TextId="IDV_SSI_DATA_MODE_24_BIT"/>
+            <Assign Content="1" TextId="IDV_SSI_DATA_MODE_25_BIT"/>
+            <Assign Content="2" TextId="IDV_SSI_DATA_MODE_26_BIT"/>
+            <Assign Content="3" TextId="IDV_SSI_DATA_MODE_27_BIT"/>
+          </Assignments>
+        </ValueItem>
+        <ValueItem ID="PARAM_REF_VALUE_SSI_ErrorBit">
+          <Assignments>
+            <Assign Content="0" TextId="IDV_SSI_ERROR_BIT_OFF"/>
+            <Assign Content="1" TextId="IDV_SSI_ERROR_BIT_ON"/>
+          </Assignments>
+        </ValueItem>
+        <ValueItem ID="PARAM_REF_VALUE_SSI_MasterClock">
+          <Assignments>
+            <Assign Content="0" TextId="IDV_SSI_MASTER_CLOCK_HIGH"/>
+            <Assign Content="1" TextId="IDV_SSI_MASTER_CLOCK_LOW"/>
+          </Assignments>
+        </ValueItem>
+        <!-- Control label related parameters -->
+        <ValueItem ID="PARAM_REF_VALUE_ErrorReactionTimePROFIsafe">
+          <Assignments>
+            <Assign Content="0" TextId="IDV_ErrorReactionTimePROFIsafe_10"/>
+            <Assign Content="1" TextId="IDV_ErrorReactionTimePROFIsafe_20"/>
+            <Assign Content="2" TextId="IDV_ErrorReactionTimePROFIsafe_50"/>
+            <Assign Content="3" TextId="IDV_ErrorReactionTimePROFIsafe_100"/>
+            <Assign Content="4" TextId="IDV_ErrorReactionTimePROFIsafe_200"/>
+            <Assign Content="5" TextId="IDV_ErrorReactionTimePROFIsafe_400"/>
+          </Assignments>
+        </ValueItem>       
+        <ValueItem ID="PARAM_REF_VALUE_PositionResolutionPROFIsafe">
+          <Assignments>
+            <Assign Content="0" TextId="IDV_POSITION_RESOLUTIONPROFIsafe_1_10"/>
+            <Assign Content="1" TextId="IDV_POSITION_RESOLUTIONPROFIsafe_1"/>
+            <Assign Content="2" TextId="IDV_POSITION_RESOLUTIONPROFIsafe_10"/>
+          </Assignments>
+        </ValueItem>           
+        <ValueItem ID="PARAM_REF_VALUE_CountingDirectionPROFIsafe">
+          <Assignments>
+            <Assign Content="0" TextId="IDV_CountingDirectionPROFIsafe_Positive"/>
+            <Assign Content="1" TextId="IDV_CountingDirectionPROFIsafe_Negative"/>
+          </Assignments>
+        </ValueItem>           
+        <ValueItem ID="PARAM_REF_VALUE_TapeSwitchTolerancePROFIsafe">
+          <Assignments>
+            <Assign Content="0" TextId="IDV_TapeSwitchTolerancePROFIsafe_0"/>
+            <Assign Content="1" TextId="IDV_TapeSwitchTolerancePROFIsafe_15"/>
+          </Assignments>
+        </ValueItem>
+        <ValueItem ID="PARAM_REF_VALUE_VelocityResolutionPROFIsafe">
+          <Assignments>
+            <Assign Content="1" TextId="IDV_VELOCITY_RESOLUTIONPROFIsafe_1"/>
+            <Assign Content="2" TextId="IDV_VELOCITY_RESOLUTIONPROFIsafe_10"/>
+            <Assign Content="3" TextId="IDV_VELOCITY_RESOLUTIONPROFIsafe_100"/>
+          </Assignments>
+        </ValueItem>   
+        <ValueItem ID="PARAM_REF_VALUE_VelocityAveragingPROFIsafe">
+          <Assignments>
+            <Assign Content="0" TextId="IDV_VELOCITY_AVERAGINGPROFIsafe_none"/>
+            <Assign Content="1" TextId="IDV_VELOCITY_AVERAGINGPROFIsafe_2"/>
+            <Assign Content="2" TextId="IDV_VELOCITY_AVERAGINGPROFIsafe_4"/>
+            <Assign Content="3" TextId="IDV_VELOCITY_AVERAGINGPROFIsafe_8"/>
+            <Assign Content="4" TextId="IDV_VELOCITY_AVERAGINGPROFIsafe_16"/>
+            <Assign Content="5" TextId="IDV_VELOCITY_AVERAGINGPROFIsafe_32"/>
+          </Assignments>
+        </ValueItem>                    
+      </ValueList>
+      <!-- ####################################################################### -->
+      <!-- Diagnosis strings                                                                                                                                                            -->
+      <!-- ####################################################################### -->
+      <ChannelDiagList>
+        <!-- Error 0x0040    -->
+        <ChannelDiagItem ErrorType="0064" MaintenanceAlarmState="D;MR;MD">
+          <Name TextId="IDT_DIAG_NAME_0x0040"/>
+          <Help TextId="IDT_DIAG_HELP_0x0040"/>
+        </ChannelDiagItem>
+        <!-- Error 0x0041    -->
+        <ChannelDiagItem ErrorType="0065" MaintenanceAlarmState="D;MR;MD">
+          <Name TextId="IDT_DIAG_NAME_0x0041"/>
+          <Help TextId="IDT_DIAG_HELP_0x0041"/>
+        </ChannelDiagItem>
+        <!-- Error 0x0042    -->
+        <ChannelDiagItem ErrorType="0066" MaintenanceAlarmState="D;MR;MD">
+          <Name TextId="IDT_DIAG_NAME_0x0042"/>
+          <Help TextId="IDT_DIAG_HELP_0x0042"/>
+        </ChannelDiagItem>
+        <!-- Error 0x0043    -->
+        <ChannelDiagItem ErrorType="0067" MaintenanceAlarmState="D;MR;MD">
+          <Name TextId="IDT_DIAG_NAME_0x0043"/>
+          <Help TextId="IDT_DIAG_HELP_0x0043"/>
+        </ChannelDiagItem>
+        <!-- Error 0x0044    -->
+        <ChannelDiagItem ErrorType="0068" MaintenanceAlarmState="D;MR;MD">
+          <Name TextId="IDT_DIAG_NAME_0x0044"/>
+          <Help TextId="IDT_DIAG_HELP_0x0044"/>
+        </ChannelDiagItem>
+        <!-- Error 0x0045    -->
+        <ChannelDiagItem ErrorType="0069" MaintenanceAlarmState="D;MR;MD">
+          <Name TextId="IDT_DIAG_NAME_0x0045"/>
+          <Help TextId="IDT_DIAG_HELP_0x0045"/>
+        </ChannelDiagItem>
+        <!-- Error 0x0046    -->
+        <ChannelDiagItem ErrorType="0070" MaintenanceAlarmState="D;MR;MD">
+          <Name TextId="IDT_DIAG_NAME_0x0046"/>
+          <Help TextId="IDT_DIAG_HELP_0x0046"/>
+        </ChannelDiagItem>
+        <!-- Error 0x0047    -->
+        <ChannelDiagItem ErrorType="0071" MaintenanceAlarmState="D;MR;MD">
+          <Name TextId="IDT_DIAG_NAME_0x0047"/>
+          <Help TextId="IDT_DIAG_HELP_0x0047"/>
+        </ChannelDiagItem>
+        <!-- Error 0x0048    -->
+        <ChannelDiagItem ErrorType="0072" MaintenanceAlarmState="D;MR;MD">
+          <Name TextId="IDT_DIAG_NAME_0x0048"/>
+          <Help TextId="IDT_DIAG_HELP_0x0048"/>
+        </ChannelDiagItem>
+        <!-- Error 0x0049    -->
+        <ChannelDiagItem ErrorType="0073" MaintenanceAlarmState="D;MR;MD">
+          <Name TextId="IDT_DIAG_NAME_0x0049"/>
+          <Help TextId="IDT_DIAG_HELP_0x0049"/>
+        </ChannelDiagItem>
+        <!-- Error 0x004A    -->
+        <ChannelDiagItem ErrorType="0074" MaintenanceAlarmState="D;MR;MD">
+          <Name TextId="IDT_DIAG_NAME_0x004A"/>
+          <Help TextId="IDT_DIAG_HELP_0x004A"/>
+        </ChannelDiagItem>
+        <!-- Error 0x004B    -->
+        <ChannelDiagItem ErrorType="0075" MaintenanceAlarmState="D;MR;MD">
+          <Name TextId="IDT_DIAG_NAME_0x004B"/>
+          <Help TextId="IDT_DIAG_HELP_0x004B"/>
+        </ChannelDiagItem>
+        <!-- Error 0x004C    -->
+        <ChannelDiagItem ErrorType="0076" MaintenanceAlarmState="D;MR;MD">
+          <Name TextId="IDT_DIAG_NAME_0x004C"/>
+          <Help TextId="IDT_DIAG_HELP_0x004C"/>
+        </ChannelDiagItem>
+        <!-- Error 0x004D    -->
+        <ChannelDiagItem ErrorType="0077" MaintenanceAlarmState="D;MR;MD">
+          <Name TextId="IDT_DIAG_NAME_0x004D"/>
+          <Help TextId="IDT_DIAG_HELP_0x004D"/>
+        </ChannelDiagItem>
+        <!-- Error 0x004E    -->
+        <ChannelDiagItem ErrorType="0078" MaintenanceAlarmState="D;MR;MD">
+          <Name TextId="IDT_DIAG_NAME_0x004E"/>
+          <Help TextId="IDT_DIAG_HELP_0x004E"/>
+        </ChannelDiagItem>
+        <!-- Error 0x004F    -->
+        <ChannelDiagItem ErrorType="0079" MaintenanceAlarmState="D;MR;MD">
+          <Name TextId="IDT_DIAG_NAME_0x004F"/>
+          <Help TextId="IDT_DIAG_HELP_0x004F"/>
+        </ChannelDiagItem>
+        <ChannelDiagItem ErrorType="16">
+          <Name TextId="ID_DIAG_ParameterizationError"/>
+        </ChannelDiagItem>
+      </ChannelDiagList>
+      <!-- ####################################################################### -->
+      <!-- Graphic items                                                           -->
+      <!-- ####################################################################### -->
+      <GraphicsList>
+        <GraphicItem ID="ID_Graph_1" GraphicFile="GSDML-0152-0018-FBPS648i"/>
+      </GraphicsList>
+      <ExternalTextList>
+        <!-- ####################################################################### -->
+        <!-- Language                                                                -->
+        <!-- ####################################################################### -->
+        <PrimaryLanguage>
+          <!-- Misc definitions  -->
+          <Text TextId="ID_DIAG_ParameterizationError" Value="Configuration error"/>
+          <Text TextId="DeviceName" Value="FBPS 648i"/>
+          <Text TextId="DeviceDescription" Value="PROFINET IO Safety Encoder Device"/>
+          <!-- Modul Info -->
+          <Text TextId="IDT_INFO_DAP" Value="Definition of the device parameters"/>
+          <Text TextId="IDT_INFO_M1_PositionValue" Value="Parameters and input data of the position value"/>
+          <Text TextId="IDT_INFO_M2_StatusAndControl" Value="Status information as input data and control functions via output data"/>
+          <Text TextId="IDT_INFO_M3_Speed" Value="Parameter and input data of the speed value"/>
+          <Text TextId="IDT_INFO_M4_SpeedStatus" Value="Input data of the Speed Status"/>
+          <Text TextId="IDT_INFO_M5_ReadingQuality" Value="Parameters and input data of the Reading Quality"/>
+          <Text TextId="IDT_INFO_M6_SSI_Interface" Value="Parameters of the SSI interface"/>
+          <Text TextId="IDT_INFO_M7_DeviceStatus" Value="IO-Data of the Device Status"/>
+          <Text TextId="IDT_INFO_M50_SafePosition32Bit" Value="Safe Position 32 Bit"/>
+          <Text TextId="IDT_INFO_M51_SafePosition32BitBP" Value="Safe Position 2x16 Bit"/>
+          <Text TextId="IDT_INFO_M52_SafePosition32BitVelocity16Bit" Value="Safe Position 32 Bit and Velocity 16 Bit"/>
+          <Text TextId="IDT_INFO_M53_SafePosition32BitVelocity16BitBP" Value="Safe Position 32 Bit and Velocity 16 Bit BP"/>
+          <!-- Module -->
+          <Text TextId="IDT_MODULE_NAME_DAP" Value="Device parameter"/>
+          <Text TextId="IDT_MODULE_NAME_M1_PositionValue" Value="[M01] Position value"/>
+          <Text TextId="IDT_MODULE_NAME_M2_StatusAndControl" Value="[M02] Status and control"/>
+          <Text TextId="IDT_MODULE_NAME_M3_Speed" Value="[M03] Speed"/>
+          <Text TextId="IDT_MODULE_NAME_M4_SpeedStatus" Value="[M04] Speed status"/>
+          <Text TextId="IDT_MODULE_NAME_M5_ReadingQuality" Value="[M05] Reading Quality"/>
+          <Text TextId="IDT_MODULE_NAME_M6_SSI_Interface" Value="[M06] SSI Interface"/>
+          <Text TextId="IDT_MODULE_NAME_M7_DeviceStatus" Value="[M07] Device Status"/>
+          <Text TextId="IDT_MODULE_NAME_M50_SafePosition32Bit" Value="[M50] Safe Position 32 Bit"/>
+          <Text TextId="IDT_MODULE_NAME_M51_SafePosition32BitBP" Value="[M51] Safe Position 32 Bit BP"/>
+          <Text TextId="IDT_MODULE_NAME_M52_SafePosition32BitVelocity16Bit" Value="[M52] Safe Position 32 Bit and Velocity 16 Bit"/>
+          <Text TextId="IDT_MODULE_NAME_M53_SafePosition32BitVelocity16BitBP" Value="[M53] Safe Position 32 Bit and Velocity 16 Bit BP"/>
+          <!-- Data Items -->
+          <Text TextId="IDT_DATAITEM_PositionValue" Value="Position value"/>
+          <Text TextId="IDT_DATAITEM_NonSafeSpeed" Value="Speed value [mm/s]"/>
+          <Text TextId="IDT_DATAITEM_NonSafeSpeed_Value_Valid" Value="Non safe Velocity value valid"/>
+          <Text TextId="IDT_DATAITEM_Movement_Status" Value="Movement status"/>
+          <Text TextId="IDT_DATAITEM_Movement_Direction" Value="Direction of movement"/>
+          <Text TextId="IDT_DATAITEM_PosValid" Value="Position value valid"/>
+          <Text TextId="IDT_DATAITEM_MeasureActive" Value="Measurement active"/>
+          <Text TextId="IDT_DATAITEM_CtrlLabelDetected" Value="Control or marker bar code detected"/>
+          <Text TextId="IDT_DATAITEM_StandbyActive" Value="Standby active"/>
+          <Text TextId="IDT_DATAITEM_MeasureStopStart" Value="Stop/start measurement"/>
+          <Text TextId="IDT_DATAITEM_Velocity_valid" Value="Status: Velocity valid"/>
+          <Text TextId="IDT_DATAITEM_Quality" Value="Read quality [%]"/>
+          <Text TextId="IDT_DATAITEM_DeviceStatus" Value="Device status"/>
+          <Text TextId="IDT_DATAITEM_BcbDirection_ascending" Value="Ascending reading of bar code tape"/>
+          <Text TextId="IDT_DATAITEM_BcbDirection_descending" Value="Descending reading of bar code tape"/>
+          <Text TextId="IDT_DATAITEM_SafePosition" Value="Safe position"/>
+          <Text TextId="IDT_DATAITEM_SafeStatus" Value="Safe status"/>
+          <Text TextId="IDT_DATAITEM_SafeVelocity" Value="Safe velocity"/>
+          <Text TextId="IDT_DATAITEM_QualityWarning" Value="Quality warning level reached"/>
+          <Text TextId="IDT_DATAITEM_QualityError" Value="Quality warning level reached"/>         
+          <Text TextId="IDT_DATAITEM_Clear_Event_Buffer" Value="Reset all Errors"/>
+          <Text TextId="IDT_DATAITEM_System_Reset" Value="System Reset Activation"/>
+          <Text TextId="IDT_DATAITEM_Standby" Value="Standby Mode Activation"/>
+          <Text TextId="IDT_DATAITEM_StatusAndControlIn" Value="Input Data for the Status And Control Modul"/>
+          <Text TextId="IDT_DATAITEM_StatusAndControlOut" Value="Output Data for the Status And Control Modul"/>
+          <Text TextId="IDT_DATAITEM_SpeedStatusIn" Value="Input Data for the Speed Status Modul"/>
+          <Text TextId="IDT_DATAITEM_DevStatusOut" Value="Output Data for the Device Status Modul"/>
+          <!-- Parameter -->
+          <Text TextId="DAP_RECORD_NAME_DAP_Parameter" Value="Device parameters"/>
+          <Text TextId="IDT_RECORD_NAME_GeneralParameter" Value="General parameters"/>
+          <Text TextId="IDT_RECORD_NAME_SafePosition32Bit" Value="iParameter for safe position"/>
+          <Text TextId="IDT_RECORD_NAME_SafePosition32BitBP" Value="iParameter for safe position BP"/>
+          <Text TextId="IDT_RECORD_NAME_SafePosition32BitAndVelocity16Bit" Value="iParameter for safe position and velocity"/>
+          <Text TextId="IDT_RECORD_NAME_SafePosition32BitAndVelocity16BitBP" Value="iParameter for safe position and velocity BP"/>
+          <!-- DAB parameters -->
+          <Text TextId="DAP_PARAM_REF_NAME_Profile" Value="Profile"/>
+          <!-- Module 1 parameters -->
+          <Text TextId="PARAM_REF_NAME_PositionResolution" Value="Position resolution"/>
+          <!-- Position resolutions -->
+          <Text TextId="IDV_POSITION_RESOLUTION_1_10" Value="0.1 mm"/>
+          <Text TextId="IDV_POSITION_RESOLUTION_1" Value="1 mm"/>
+          <Text TextId="IDV_POSITION_RESOLUTION_10" Value="10 mm"/>
+          <!-- Module 3 parameters -->
+          <Text TextId="PARAM_REF_NAME_SpeedResolution" Value="Preset [mm/s]"/>
+          <!-- Speed resolutions -->
+          <Text TextId="IDV_SPEED_RESOLUTION_1_10" Value="0.1 mm/s (only 1mm/s * 10)"/>
+          <Text TextId="IDV_SPEED_RESOLUTION_1" Value="1 mm/s"/>
+          <Text TextId="IDV_SPEED_RESOLUTION_10" Value="10 mm/s"/>
+          <Text TextId="IDV_SPEED_RESOLUTION_100" Value="100 mm/s"/>
+          <!-- Module 5 parameters -->
+          <Text TextId="PARAM_REF_NAME_QualityWarningThreshold" Value="Warning threshold [%]"/>
+          <Text TextId="PARAM_REF_NAME_QualityErrorThreshold" Value="Error threshold [%]"/>
+          <Text TextId="PARAM_REF_NAME_QualitySmoothingFactor" Value="Smoothing factor"/>
+          <!-- Module 6 SSI Interface parameters-->
+          <Text TextId="PARAM_REF_NAME_SSI_Encoding" Value="Encoding"/>
+          <Text TextId="PARAM_REF_NAME_SSI_PositionResolution" Value="SSI position resolution"/>
+          <Text TextId="PARAM_REF_NAME_SSI_DataMode" Value="Data mode"/>
+          <Text TextId="PARAM_REF_NAME_SSI_ErrorBit" Value="Error bit"/>
+          <Text TextId="PARAM_REF_NAME_SSI_MasterClock" Value="Master Clock"/>
+          <!-- SSI Interface settings -->
+          <Text TextId="IDV_SSI_ENCODING_BINARY" Value="Binary coding"/>
+          <Text TextId="IDV_SSI_ENCODING_GRAY" Value="Gray coding"/>
+          <Text TextId="IDV_SSI_POSITION_RESOLUTION_1_100" Value="0.01 mm"/>
+          <Text TextId="IDV_SSI_POSITION_RESOLUTION_1_10" Value="0.1 mm"/>
+          <Text TextId="IDV_SSI_POSITION_RESOLUTION_1" Value="1 mm"/>
+          <Text TextId="IDV_SSI_DATA_MODE_24_BIT" Value="24 bit"/>
+          <Text TextId="IDV_SSI_DATA_MODE_25_BIT" Value="25 bit"/>
+          <Text TextId="IDV_SSI_DATA_MODE_26_BIT" Value="26 bit"/>
+          <Text TextId="IDV_SSI_DATA_MODE_27_BIT" Value="27 bit"/>
+          <Text TextId="IDV_SSI_ERROR_BIT_OFF" Value="No error bit"/>
+          <Text TextId="IDV_SSI_ERROR_BIT_ON" Value="Add error bit to SSI data stream"/>
+          <Text TextId="IDV_SSI_MASTER_CLOCK_HIGH" Value="80kHz - 800kHz"/>
+          <Text TextId="IDV_SSI_MASTER_CLOCK_LOW" Value="50kHz - 79kHz"/>
+          <!-- Misc values -->
+          <Text TextId="IDV_PROFILE_FBPS" Value="FBPS Profile"/>
+          <Text TextId="IDV_BCB_SELECTION_3CM" Value="3cm BCT"/>
+          <Text TextId="IDV_BCB_SELECTION_4CM" Value="4cm BCT"/>
+          <!-- Module 5x parameters -->
+          <Text TextId="PARAM_REF_NAME_SafeDataLayout" Value="Safe data layout id"/>
+          <Text TextId="PARAM_REF_NAME_ErrorReactionTimePROFIsafe" Value="Error Reaction Time"/>
+          <Text TextId="IDV_ErrorReactionTimePROFIsafe_10" Value="10 [ms]"/>
+          <Text TextId="IDV_ErrorReactionTimePROFIsafe_20" Value="20 [ms]"/>
+          <Text TextId="IDV_ErrorReactionTimePROFIsafe_50" Value="50 [ms]"/>
+          <Text TextId="IDV_ErrorReactionTimePROFIsafe_100" Value="100 [ms]"/>
+          <Text TextId="IDV_ErrorReactionTimePROFIsafe_200" Value="200 [ms]"/>
+          <Text TextId="IDV_ErrorReactionTimePROFIsafe_400" Value="400 [ms]"/>
+          <Text TextId="PARAM_REF_NAME_PositionResolutionPROFIsafe" Value="Position resolution PROFIsafe"/>
+          <Text TextId="IDV_POSITION_RESOLUTIONPROFIsafe_1_10" Value="0.1 mm"/>
+          <Text TextId="IDV_POSITION_RESOLUTIONPROFIsafe_1" Value="1 mm"/>
+          <Text TextId="IDV_POSITION_RESOLUTIONPROFIsafe_10" Value="10 mm"/>
+          <Text TextId="PARAM_REF_NAME_VelocityResolutionPROFIsafe" Value="Velocity resolution PROFIsafe"/>
+          <Text TextId="IDV_VELOCITY_RESOLUTIONPROFIsafe_1" Value="1 mm/s"/>
+          <Text TextId="IDV_VELOCITY_RESOLUTIONPROFIsafe_10" Value="10 mm/s"/>
+          <Text TextId="IDV_VELOCITY_RESOLUTIONPROFIsafe_100" Value="100 mm/s"/>
+          <Text TextId="PARAM_REF_NAME_VelocityAveragingPROFIsafe" Value="Velocity averaging PROFIsafe"/>        
+          <Text TextId="IDV_VELOCITY_AVERAGINGPROFIsafe_none" Value="No averaging"/>
+          <Text TextId="IDV_VELOCITY_AVERAGINGPROFIsafe_2" Value="2 ms"/>
+          <Text TextId="IDV_VELOCITY_AVERAGINGPROFIsafe_4" Value="4 ms"/>
+          <Text TextId="IDV_VELOCITY_AVERAGINGPROFIsafe_8" Value="8 ms"/>
+          <Text TextId="IDV_VELOCITY_AVERAGINGPROFIsafe_16" Value="16 ms"/>
+          <Text TextId="IDV_VELOCITY_AVERAGINGPROFIsafe_32" Value="32 ms"/>
+          <Text TextId="PARAM_REF_NAME_CountingDirectionPROFIsafe" Value="Counting direction"/>
+          <Text TextId="IDV_CountingDirectionPROFIsafe_Positive" Value="Positive"/>
+          <Text TextId="IDV_CountingDirectionPROFIsafe_Negative" Value="Negative"/>          
+          <Text TextId="PARAM_REF_NAME_PositionOffsetValuePROFIsafe" Value="Position offset value"/>
+          <Text TextId="PARAM_REF_NAME_TapeSwitchTolerancePROFIsafe" Value="Tape switch tolerance"/>
+          <Text TextId="IDV_TapeSwitchTolerancePROFIsafe_0" Value="no tolerance"/>
+          <Text TextId="IDV_TapeSwitchTolerancePROFIsafe_15" Value="up to 15 mm tolerance"/>
+          <Text TextId="IDT_ControlReservedSafe" Value="Reserved"/>
+          <Text TextId="IDT_StateReservedSafe" Value="Reserved"/>
+          <Text TextId="IDT_DATAITEM_I_PS_Safety_4" Value="Input 4 bytes PROFIsafe trailer"/>
+          <Text TextId="IDT_DATAITEM_O_PS_Safety_4" Value="Output 4 bytes PROFIsafe trailer"/>
+          <Text TextId="IDT_DATAITEM_I_PS_Safety_5" Value="Input 5 bytes PROFIsafe trailer"/>
+          <Text TextId="IDT_DATAITEM_O_PS_Safety_5" Value="Output 5 bytes PROFIsafe trailer"/>
+          <!-- ===============================-->
+          <!-- PDEV modules -->
+          <Text TextId="X1" Value="X1"/>
+          <Text TextId="X1P1" Value="X1 P1"/>
+          <Text TextId="X1P2" Value="X1 P2"/>
+          <Text TextId="PN-IO" Value="PN-IO"/>
+          <Text TextId="Port1" Value="Port 1"/>
+          <Text TextId="Port2" Value="Port 2"/>
+          <Text TextId="IDT_DIAG_NAME_0x0040" Value="Mismatch of safety destination address (F_Dest_Add), error type=0064d"/>
+          <Text TextId="IDT_DIAG_HELP_0x0040" Value=""/>
+          <Text TextId="IDT_DIAG_NAME_0x0041" Value="Safety destination address not valid (F_Dest_Add), error type=0065d"/>
+          <Text TextId="IDT_DIAG_HELP_0x0041" Value=""/>
+          <Text TextId="IDT_DIAG_NAME_0x0042" Value="Safety source address not valid (F_Source_Add), error type=0066d"/>
+          <Text TextId="IDT_DIAG_HELP_0x0042" Value=""/>
+          <Text TextId="IDT_DIAG_NAME_0x0043" Value="Safety watchdog time value is 0 ms (F_WD_Time), error type=0067d"/>
+          <Text TextId="IDT_DIAG_HELP_0x0043" Value=""/>
+          <Text TextId="IDT_DIAG_NAME_0x0044" Value="Parameter F_SIL exceeds SIL from specific device application, error type=0068d"/>
+          <Text TextId="IDT_DIAG_HELP_0x0044" Value=""/>
+          <Text TextId="IDT_DIAG_NAME_0x0045" Value="Parameter F_CRC_Length does not match the generated values, error type=0069d"/>
+          <Text TextId="IDT_DIAG_HELP_0x0045" Value=""/>
+          <Text TextId="IDT_DIAG_NAME_0x0046" Value="Version of F parameter set incorrect, error type=0070d"/>
+          <Text TextId="IDT_DIAG_HELP_0x0046" Value=""/>
+          <Text TextId="IDT_DIAG_NAME_0x0047" Value="Data inconsistent in received F-Parameter block (CRC1 error), error type=0071d"/>
+          <Text TextId="IDT_DIAG_HELP_0x0047" Value=""/>
+          <Text TextId="IDT_DIAG_NAME_0x0048" Value="Device specific or unspecified diagnosis information, see manual, error type=0072d"/>
+          <Text TextId="IDT_DIAG_HELP_0x0048" Value=""/>
+          <Text TextId="IDT_DIAG_NAME_0x0049" Value="Save iParameter watchdog time exceeded, error type=0073d"/>
+          <Text TextId="IDT_DIAG_HELP_0x0049" Value=""/>
+          <Text TextId="IDT_DIAG_NAME_0x004A" Value="Restore iParameter watchdog time exceeded, error type=0074d"/>
+          <Text TextId="IDT_DIAG_HELP_0x004A" Value=""/>
+          <Text TextId="IDT_DIAG_NAME_0x004B" Value="Inconsistent iParameters (iParCRC error), error type=0075d"/>
+          <Text TextId="IDT_DIAG_HELP_0x004B" Value=""/>
+          <Text TextId="IDT_DIAG_NAME_0x004C" Value="F_Block_ID not supported, error type=0076d"/>
+          <Text TextId="IDT_DIAG_HELP_0x004C" Value=""/>
+          <Text TextId="IDT_DIAG_NAME_0x004D" Value="Transmission error: data inconsistent (CRC2 error), error type=0077d"/>
+          <Text TextId="IDT_DIAG_HELP_0x004D" Value=""/>
+          <Text TextId="IDT_DIAG_NAME_0x004E" Value="Transmission error: timeout (F_WD_Time or F_WD_Time_2 elapsed), error type=0078d"/>
+          <Text TextId="IDT_DIAG_HELP_0x004E" Value=""/>
+          <Text TextId="IDT_DIAG_NAME_0x004F" Value="Acknowledge needed to enable the channel(s), error type=0079d"/>
+          <Text TextId="IDT_DIAG_HELP_0x004F" Value=""/>
+        </PrimaryLanguage>
+      </ExternalTextList>
+    </ApplicationProcess>
+  </ProfileBody>
+</ISO15745Profile>

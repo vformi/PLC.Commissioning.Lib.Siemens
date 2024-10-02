@@ -1,0 +1,24 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="NSubstitute" Version="5.1.0" />
+    <PackageReference Include="NUnit" Version="3.12.0" />
+    <PackageReference Include="NUnit3TestAdapter" Version="3.16.1" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.5.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\PLC.Commissioning.Lib.Siemens\PLC.Commissioning.Lib.Siemens.csproj" />
+  </ItemGroup>
+	
+	<Target Name="PostBuild" AfterTargets="PostBuildEvent">
+		<Exec Command="xcopy /Y &quot;C:\Program Files\Siemens\Automation\Portal V17\PublicAPI\V17\*.dll&quot; &quot;$(TargetDir)&quot;&#xD;&#xA;" />
+	</Target>
+
+</Project>

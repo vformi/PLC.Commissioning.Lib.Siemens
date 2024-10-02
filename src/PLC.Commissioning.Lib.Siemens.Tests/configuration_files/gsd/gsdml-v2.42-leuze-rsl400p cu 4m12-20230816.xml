@@ -1,0 +1,1841 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<ISO15745Profile xmlns="http://www.profibus.com/GSDML/2003/11/DeviceProfile" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.profibus.com/GSDML/2003/11/DeviceProfile ..\xsd\GSDML-DeviceProfile-V2.42.xsd">
+
+	<!-- ******************************** Revision history - LEP13 **************************************** -->
+	<!-- Date        Sgn   Ver.  Changes -->
+	<!-- 2023-08-16  opo 2.0.6   Corrected PNIO_Version value (set back to V2.34)  -->
+	<!-- 2022-09-13  opo 2.0.6   Upgraded to GSDML v2.42 (cosmetic changes, XML code cleaned) -->
+	<!-- 2022-00-13  opo 2.0.6   New signals A-BANK-SEL/B-BANK-SEL added in modules M14/M15 (using former reserve bits 4-7 of 5th byte) -->
+	<!-- 2021-06-17  opo 2.0.4   Added parameter PowerBudgetControlSupported="true" for optical variant -->
+	<!-- 2021-06-17  opo 2.0.4   Changed FiberOpticTypes = 1 to correct FiberOpticTypes = 4 5 for optical variant --> 
+	<!-- 2019-11-21  pst 2.0.2   Removed F-Addres default values --> 
+	<!-- 2019-11-21  pst 2.0.2   changed Mautype 54 to the correct Mautype 18 --> 
+	<!-- 2019-11-05  pst 2.0.1   F_WD_Time increased to 80ms -->
+	<!-- 2019-10-08  pst 2.0.1   Update to PNIO V2.34, GSDML V2.34, pschulze -->
+	<!-- 2019-10-08  pst 2.0.1   Removed for both DAP's SupportedMibs="MIB2", ReductionRatioNonPow2="1" -->
+	<!-- 2019-10-08  pst 2.0.1   Added for both DAP's DelayMeasurementSupported="true" NumberOfDeviceAccessAR="1" -->
+	<!-- 2019-10-24  pst 2.0.1   Added a logbook entry list -->
+
+	<ProfileHeader>
+		<ProfileIdentification>PROFINET Device Profile</ProfileIdentification>
+		<ProfileRevision>1.00</ProfileRevision>
+		<ProfileName>Device Profile for PROFINET Devices</ProfileName>
+		<ProfileSource>PROFIBUS Nutzerorganisation e. V. (PNO)</ProfileSource>
+		<ProfileClassID>Device</ProfileClassID>
+		<ISO15745Reference>
+			<ISO15745Part>4</ISO15745Part>
+			<ISO15745Edition>1</ISO15745Edition>
+			<ProfileTechnology>GSDML</ProfileTechnology>
+		</ISO15745Reference>
+	</ProfileHeader>
+	<ProfileBody>
+		<DeviceIdentity VendorID="0x0152" DeviceID="0x0016">
+			<InfoText TextId="DeviceDescription_InfoText" />
+			<VendorName Value="Leuze electronic GmbH + Co. KG" />
+		</DeviceIdentity>
+		<DeviceFunction>
+			<Family MainFamily="Sensors" ProductFamily="Leuze" />
+		</DeviceFunction>
+		<ApplicationProcess>
+			<DeviceAccessPointList>
+				<DeviceAccessPointItem NumberOfDeviceAccessAR="1" AddressAssignment="DCP" DNS_CompatibleName="RSL400P" DeviceAccessSupported="true" FixedInSlots="0" ID="DIM 12" ImplementationType="NetX51" MinDeviceInterval="8" ModuleIdentNumber="0x00000001" MultipleWriteSupported="true" NameOfStationNotTransferable="true" ObjectUUID_LocalIndex="1" LLDP_NoD_Supported="true" PNIO_Version="V2.34" PhysicalSlots="0..255" ResetToFactoryModes="2" SharedDeviceSupported="false" SharedInputSupported="false" CheckDeviceID_Allowed="true">
+					<ModuleInfo>
+						<Name TextId="IDT_NAME_DAP" />
+						<InfoText TextId="DIM_12_InfoText" />
+						<VendorName Value="Leuze electronic GmbH + Co. KG" />
+						<OrderNumber Value="53800169" />
+						<HardwareRelease Value="1" />
+						<SoftwareRelease Value="V2.0.*" />
+					</ModuleInfo>
+					<CertificationInfo ConformanceClass="C" ApplicationClass="" NetloadClass="III" />
+					<SubslotList>
+						<SubslotItem SubslotNumber="32768" TextId="IDT_X1" />
+						<SubslotItem SubslotNumber="32769" TextId="IDT_X1P1" />
+						<SubslotItem SubslotNumber="32770" TextId="IDT_X1P2" />
+					</SubslotList>
+
+					<IOConfigData MaxInputLength="1440" MaxOutputLength="1440" />
+					<UseableModules>
+
+						<ModuleItemRef ModuleItemTarget="M1_SAFE_SIGNAL" AllowedInSlots="1" UsedInSlots="1" />
+						<ModuleItemRef ModuleItemTarget="M2_SYSTEM_STATUS" AllowedInSlots="2" />
+						<ModuleItemRef ModuleItemTarget="M3_SCAN_NUMBER" AllowedInSlots="3" />
+						<ModuleItemRef ModuleItemTarget="M4_REFLECTOR_STATUS" AllowedInSlots="4" />
+						<ModuleItemRef ModuleItemTarget="M5_PROTECTIVE_FUNCTION_A_STATUS" AllowedInSlots="5" />
+						<ModuleItemRef ModuleItemTarget="M6_PROTECTIVE_FUNCTION_B_STATUS" AllowedInSlots="6" />
+						<ModuleItemRef ModuleItemTarget="M7_PROTECTIVE_FUNCTION_A_VIOLATION" AllowedInSlots="7" />
+						<ModuleItemRef ModuleItemTarget="M8_PROTECTIVE_FUNCTION_B_VIOLATION" AllowedInSlots="8" />
+
+					</UseableModules>
+					<VirtualSubmoduleList>
+						<VirtualSubmoduleItem ID="DIM 12" SubmoduleIdentNumber="0x00002010" Writeable_IM_Records="1 2 3" MayIssueProcessAlarm="false">
+							<IOData />
+							<ModuleInfo CategoryRef="CATEGORY__DAP_MODULE">
+								<Name TextId="IDT_NAME_DAP" />
+								<InfoText TextId="DIM_12_InfoText" />
+							</ModuleInfo>
+						</VirtualSubmoduleItem>
+					</VirtualSubmoduleList>
+
+					<SystemDefinedSubmoduleList>
+						<InterfaceSubmoduleItem DCP_HelloSupported="false" ID="DIM 12 Interfacesubmodule" NetworkComponentDiagnosisSupported="true" SubmoduleIdentNumber="0x00002011" SubslotNumber="32768" SupportedProtocols="SNMP;LLDP" SupportedRT_Classes="RT_CLASS_1;RT_CLASS_3" PTP_BoundarySupported="true" DCP_BoundarySupported="true" TextId="IDT_PN-IO" DelayMeasurementSupported="true" SupportedDelayMeasurements="PTCP">
+							<RT_Class3Properties MaxBridgeDelay="5500" MaxNumberIR_FrameData="1024" MaxRangeIR_FrameID="1024" StartupMode="Legacy;Advanced" ForwardingMode="Relative"/>
+							<SynchronisationMode SupportedRole="SyncSlave" MaxLocalJitter="50" T_PLL_MAX="1000" SupportedSyncProtocols="PTCP"/>
+							<ApplicationRelations NumberOfAR="1" StartupMode="Legacy;Advanced" PullModuleAlarmSupported = "true">
+								<TimingProperties ReductionRatio="1 2 4 8 16 32 64 128 256 512" SendClock="32 64 128" />
+								<RT_Class3TimingProperties SendClock="8 16 32 64 128" ReductionRatioPow2="1 2 4 8 16"  MaxReductionRatioIsochroneMode="1"/>
+							</ApplicationRelations>
+							<MediaRedundancy SupportedRole="Client" />
+						</InterfaceSubmoduleItem>
+						<PortSubmoduleItem ID="DIM 12 Portsubmodule 1" SubmoduleIdentNumber="0x00002012" SubslotNumber="32769" LinkStateDiagnosisCapability="Up+Down" MAUTypes="16" MaxPortRxDelay="340" MaxPortTxDelay="92" IsDefaultRingport="true" PortDeactivationSupported="true" CheckMAUTypeDifferenceSupported="true" CheckMAUTypeSupported="true" TextId="IDT_PORT1">
+							<MAUTypeList>
+								<MAUTypeItem Value="16" AdjustSupported="true" />
+							</MAUTypeList>
+						</PortSubmoduleItem>
+						<PortSubmoduleItem ID="DIM 12 Portsubmodule 2" SubmoduleIdentNumber="0x00002013" SubslotNumber="32770" LinkStateDiagnosisCapability="Up+Down" MAUTypes="16" MaxPortRxDelay="340" MaxPortTxDelay="92" IsDefaultRingport="true" PortDeactivationSupported="true" CheckMAUTypeDifferenceSupported="true" CheckMAUTypeSupported="true" TextId="IDT_PORT2">
+							<MAUTypeList>
+								<MAUTypeItem Value="16" AdjustSupported="true" />
+							</MAUTypeList>
+						</PortSubmoduleItem>
+					</SystemDefinedSubmoduleList>
+
+					<Graphics>
+						<GraphicItemRef Type="DeviceSymbol" GraphicItemTarget="IDG_DEVICE" />
+						<GraphicItemRef Type="DeviceIcon" GraphicItemTarget="IDG_DEVICE" />
+					</Graphics>
+				</DeviceAccessPointItem>
+
+				<DeviceAccessPointItem NumberOfDeviceAccessAR="1" AddressAssignment="DCP" DNS_CompatibleName="RSL400P" DeviceAccessSupported="true" FixedInSlots="0" ID="DIM 22" ImplementationType="NetX51" MinDeviceInterval="8" ModuleIdentNumber="0x00000003" MultipleWriteSupported="true" NameOfStationNotTransferable="true" ObjectUUID_LocalIndex="1" LLDP_NoD_Supported="true" PNIO_Version="V2.34" PhysicalSlots="0..255" ResetToFactoryModes="2" SharedDeviceSupported="false" SharedInputSupported="false" CheckDeviceID_Allowed="true">
+					<ModuleInfo>
+						<Name TextId="IDT_NAME_DAP2" />
+						<InfoText TextId="DIM_22_InfoText" />
+						<VendorName Value="Leuze electronic GmbH + Co. KG" />
+						<OrderNumber Value="53800169" />
+						<HardwareRelease Value="1" />
+						<SoftwareRelease Value="V2.0.*" />
+					</ModuleInfo>
+					<CertificationInfo ConformanceClass="C" ApplicationClass="" NetloadClass="III" />
+					<SubslotList>
+						<SubslotItem SubslotNumber="32768" TextId="IDT_X1" />
+						<SubslotItem SubslotNumber="32769" TextId="IDT_X1P1" />
+						<SubslotItem SubslotNumber="32770" TextId="IDT_X1P2" />
+					</SubslotList>
+					<IOConfigData MaxInputLength="1440" MaxOutputLength="1440" />
+					<UseableModules>
+						<ModuleItemRef ModuleItemTarget="M11_SAFE_SIGNAL_PS2v4" AllowedInSlots="1" />
+						<ModuleItemRef ModuleItemTarget="M11_SAFE_SIGNAL_PS2v6" AllowedInSlots="1" UsedInSlots="1" />
+						<ModuleItemRef ModuleItemTarget="M12_SYSTEM_STATUS" AllowedInSlots="2" />
+						<ModuleItemRef ModuleItemTarget="M13_SYSTEM_DATA" AllowedInSlots="3" />
+						<ModuleItemRef ModuleItemTarget="M14_PROTECTIVE_FUNCTION_A_STATUS" AllowedInSlots="4" />
+						<ModuleItemRef ModuleItemTarget="M15_PROTECTIVE_FUNCTION_B_STATUS" AllowedInSlots="5" />
+						<ModuleItemRef ModuleItemTarget="M16_PROTECTIVE_FUNCTION_A_VIOLATION" AllowedInSlots="6" />
+						<ModuleItemRef ModuleItemTarget="M17_PROTECTIVE_FUNCTION_B_VIOLATION" AllowedInSlots="7" />
+					</UseableModules>
+					<VirtualSubmoduleList>
+						<VirtualSubmoduleItem ID="DIM 22" SubmoduleIdentNumber="0x00002020" Writeable_IM_Records="1 2 3" MayIssueProcessAlarm="false">
+							<IOData />
+							<ModuleInfo CategoryRef="CATEGORY__DAP_MODULE">
+								<Name TextId="IDT_NAME_DAP2" />
+								<InfoText TextId="DIM_22_InfoText" />
+							</ModuleInfo>
+						</VirtualSubmoduleItem>
+					</VirtualSubmoduleList>
+					<SystemDefinedSubmoduleList>
+						<InterfaceSubmoduleItem DCP_HelloSupported="false" ID="DIM 22 Interfacesubmodule" NetworkComponentDiagnosisSupported="true" SubmoduleIdentNumber="0x00002021" SubslotNumber="32768" SupportedProtocols="SNMP;LLDP" SupportedRT_Classes="RT_CLASS_1;RT_CLASS_3" PTP_BoundarySupported="true" DCP_BoundarySupported="true" TextId="IDT_PN-IO" DelayMeasurementSupported="true" SupportedDelayMeasurements="PTCP">
+							<RT_Class3Properties MaxBridgeDelay="5500" MaxNumberIR_FrameData="1024" MaxRangeIR_FrameID="1024" StartupMode="Legacy;Advanced" ForwardingMode="Relative" />
+							<SynchronisationMode SupportedRole="SyncSlave" MaxLocalJitter="50" T_PLL_MAX="1000" SupportedSyncProtocols="PTCP" />
+							<ApplicationRelations NumberOfAR="1" StartupMode="Legacy;Advanced" PullModuleAlarmSupported="true">
+								<TimingProperties ReductionRatio="1 2 4 8 16 32 64 128 256 512" SendClock="32 64 128" />
+								<RT_Class3TimingProperties SendClock="8 16 32 64 128" ReductionRatioPow2="1 2 4 8 16" MaxReductionRatioIsochroneMode="1" />
+							</ApplicationRelations>
+							<MediaRedundancy SupportedRole="Client" />
+						</InterfaceSubmoduleItem>
+						<PortSubmoduleItem ID="DIM 22 Portsubmodule 1" SubmoduleIdentNumber="0x00002022" SubslotNumber="32769" LinkStateDiagnosisCapability="Up+Down" MAUTypes="16" MaxPortRxDelay="340" MaxPortTxDelay="92" IsDefaultRingport="true" PortDeactivationSupported="true" CheckMAUTypeDifferenceSupported="true" CheckMAUTypeSupported="true" TextId="IDT_PORT1">
+							<MAUTypeList>
+								<MAUTypeItem Value="16" AdjustSupported="true" />
+							</MAUTypeList>
+						</PortSubmoduleItem>
+						<PortSubmoduleItem ID="DIM 22 Portsubmodule 2" SubmoduleIdentNumber="0x00002023" SubslotNumber="32770" LinkStateDiagnosisCapability="Up+Down" MAUTypes="16" MaxPortRxDelay="340" MaxPortTxDelay="92" IsDefaultRingport="true" PortDeactivationSupported="true" CheckMAUTypeDifferenceSupported="true" CheckMAUTypeSupported="true" TextId="IDT_PORT2">
+							<MAUTypeList>
+								<MAUTypeItem Value="16" AdjustSupported="true" />
+							</MAUTypeList>
+						</PortSubmoduleItem>
+					</SystemDefinedSubmoduleList>
+					<Graphics>
+						<GraphicItemRef Type="DeviceSymbol" GraphicItemTarget="IDG_DEVICE" />
+						<GraphicItemRef Type="DeviceIcon" GraphicItemTarget="IDG_DEVICE" />
+					</Graphics>
+
+				</DeviceAccessPointItem>
+			</DeviceAccessPointList>
+			<ModuleList>
+
+				<ModuleItem ID="M1_SAFE_SIGNAL" ModuleIdentNumber="0x00000002">
+					<ModuleInfo CategoryRef="CATEGORY__SAFETY_MODULE">
+						<Name TextId="IDT_Safety_Module" />
+						<InfoText TextId="IDT_INFO_Safety_Module" />
+					</ModuleInfo>
+					<VirtualSubmoduleList>
+						<VirtualSubmoduleItem ID="21" SubmoduleIdentNumber="0x00000001" PROFIsafeSupported="true" MayIssueProcessAlarm="false">
+							<IOData F_IO_StructureDescCRC="22158">
+								<Input Consistency="All items consistency">
+									<DataItem DataType="Unsigned8" UseAsBits="true" TextId="IDT__BYTE0">
+										<BitDataItem BitOffset="0" TextId="IDT_M1_SM0_IN__BIT0" />
+										<BitDataItem BitOffset="1" TextId="IDT_M1_SM0_IN__BIT1" />
+										<BitDataItem BitOffset="2" TextId="IDT_M1_SM0_IN__BIT2" />
+										<BitDataItem BitOffset="3" TextId="IDT_M1_SM0_IN__BIT3" />
+										<BitDataItem BitOffset="4" TextId="IDT_M1_SM0_IN__BIT4" />
+										<BitDataItem BitOffset="5" TextId="IDT_M1_SM0_IN__BIT5" />
+										<BitDataItem BitOffset="6" TextId="IDT_M1_SM0_IN__BIT6" />
+										<BitDataItem BitOffset="7" TextId="IDT_M1_SM0_IN__BIT7" />
+
+									</DataItem>
+									<DataItem DataType="Unsigned8" UseAsBits="true" TextId="IDT__BYTE1">
+										<BitDataItem BitOffset="0" TextId="IDT_M1_SM1_IN__BIT0" />
+										<BitDataItem BitOffset="1" TextId="IDT_M1_SM1_IN__BIT1" />
+										<BitDataItem BitOffset="2" TextId="IDT_M1_SM1_IN__BIT2" />
+										<BitDataItem BitOffset="3" TextId="IDT_M1_SM1_IN__BIT3" />
+										<BitDataItem BitOffset="4" TextId="IDT_M1_SM1_IN__BIT4" />
+										<BitDataItem BitOffset="5" TextId="IDT_M1_SM1_IN__BIT5" />
+										<BitDataItem BitOffset="6" TextId="IDT_M1_SM1_IN__BIT6" />
+										<BitDataItem BitOffset="7" TextId="IDT_M1_SM1_IN__BIT7" />
+
+									</DataItem>
+									<DataItem DataType="Unsigned8" UseAsBits="true" TextId="IDT__BYTE2">
+										<BitDataItem BitOffset="0" TextId="IDT_M1_SM2_IN__BIT0" />
+										<BitDataItem BitOffset="1" TextId="IDT_M1_SM2_IN__BIT1" />
+										<BitDataItem BitOffset="2" TextId="IDT_M1_SM2_IN__BIT2" />
+										<BitDataItem BitOffset="3" TextId="IDT_M1_SM2_IN__BIT3" />
+										<BitDataItem BitOffset="4" TextId="IDT_M1_SM2_IN__BIT4" />
+										<BitDataItem BitOffset="5" TextId="IDT_M1_SM2_IN__BIT5" />
+										<BitDataItem BitOffset="6" TextId="IDT_M1_SM2_IN__BIT6" />
+										<BitDataItem BitOffset="7" TextId="IDT_M1_SM2_IN__BIT7" />
+
+									</DataItem>
+									<DataItem DataType="F_MessageTrailer4Byte" TextId="IDT_DATAITEM_Safety" />
+								</Input>
+								<Output Consistency="All items consistency">
+									<DataItem DataType="Unsigned8" UseAsBits="true" TextId="IDT__BYTE0">
+										<BitDataItem BitOffset="0" TextId="IDT_M1_SM0_OUT__BIT0" />
+										<BitDataItem BitOffset="1" TextId="IDT_M1_SM0_OUT__BIT1" />
+										<BitDataItem BitOffset="2" TextId="IDT_M1_SM0_OUT__BIT2" />
+										<BitDataItem BitOffset="3" TextId="IDT_M1_SM0_OUT__BIT3" />
+										<BitDataItem BitOffset="4" TextId="IDT_M1_SM0_OUT__BIT4" />
+										<BitDataItem BitOffset="5" TextId="IDT_M1_SM0_OUT__BIT5" />
+										<BitDataItem BitOffset="6" TextId="IDT_M1_SM0_OUT__BIT6" />
+										<BitDataItem BitOffset="7" TextId="IDT_M1_SM0_OUT__BIT7" />
+
+									</DataItem>
+									<DataItem DataType="Unsigned8" UseAsBits="true" TextId="IDT__BYTE1">
+										<BitDataItem BitOffset="0" TextId="IDT_M1_SM1_OUT__BIT0" />
+										<BitDataItem BitOffset="1" TextId="IDT_M1_SM1_OUT__BIT1" />
+										<BitDataItem BitOffset="2" TextId="IDT_M1_SM1_OUT__BIT2" />
+										<BitDataItem BitOffset="3" TextId="IDT_M1_SM1_OUT__BIT3" />
+										<BitDataItem BitOffset="4" TextId="IDT_M1_SM1_OUT__BIT4" />
+										<BitDataItem BitOffset="5" TextId="IDT_M1_SM1_OUT__BIT5" />
+										<BitDataItem BitOffset="6" TextId="IDT_M1_SM1_OUT__BIT6" />
+										<BitDataItem BitOffset="7" TextId="IDT_M1_SM1_OUT__BIT7" />
+
+									</DataItem>
+									<DataItem DataType="Unsigned8" UseAsBits="true" TextId="IDT__BYTE2">
+										<BitDataItem BitOffset="0" TextId="IDT_M1_SM2_OUT__BIT0" />
+										<BitDataItem BitOffset="1" TextId="IDT_M1_SM2_OUT__BIT1" />
+										<BitDataItem BitOffset="2" TextId="IDT_M1_SM2_OUT__BIT2" />
+										<BitDataItem BitOffset="3" TextId="IDT_M1_SM2_OUT__BIT3" />
+										<BitDataItem BitOffset="4" TextId="IDT_M1_SM2_OUT__BIT4" />
+										<BitDataItem BitOffset="5" TextId="IDT_M1_SM2_OUT__BIT5" />
+										<BitDataItem BitOffset="6" TextId="IDT_M1_SM2_OUT__BIT6" />
+										<BitDataItem BitOffset="7" TextId="IDT_M1_SM2_OUT__BIT7" />
+
+									</DataItem>
+									<DataItem DataType="F_MessageTrailer4Byte" TextId="IDT_DATAITEM_Safety" />
+								</Output>
+							</IOData>
+							<RecordDataList>
+								<F_ParameterRecordDataItem Index="1" F_ParamDescCRC="65037">
+									<F_Check_iPar />
+									<F_SIL DefaultValue="SIL2" AllowedValues="SIL2" Changeable="false" />
+									<F_CRC_Length DefaultValue="3-Byte-CRC" AllowedValues="3-Byte-CRC" />
+									<F_Block_ID DefaultValue="0" />
+									<F_Par_Version Changeable="false" />
+									<F_Source_Add AllowedValues="1..65534" />
+									<F_Dest_Add AllowedValues="1..65534" />
+									<F_WD_Time DefaultValue="100" AllowedValues="80..10000" />
+									<F_Par_CRC DefaultValue="49406" />
+								</F_ParameterRecordDataItem>
+							</RecordDataList>
+							<ModuleInfo>
+								<Name TextId="IDT_Safety_Module" />
+								<InfoText TextId="IDT_INFO_Safety_Module" />
+							</ModuleInfo>
+						</VirtualSubmoduleItem>
+					</VirtualSubmoduleList>
+				</ModuleItem>
+
+				<!--MODULE M2_SYSTEM_STATUS Size: 8Bytes -->
+				<ModuleItem ID="M2_SYSTEM_STATUS" ModuleIdentNumber="0x00000002">
+					<ModuleInfo CategoryRef="CATEGORY__INPUT_MODULE">
+						<Name TextId="IDT_M2__NAME" />
+						<InfoText TextId="IDT_M2__INFO_TEXT" />
+					</ModuleInfo>
+					<VirtualSubmoduleList>
+						<VirtualSubmoduleItem ID="M2_SM1" SubmoduleIdentNumber="0x00000002" MayIssueProcessAlarm="false">
+							<IOData>
+								<Input Consistency="All items consistency">
+									<DataItem DataType="Unsigned8" TextId="IDT_M2_SM1_IN__BYTE0" />
+
+									<DataItem DataType="Unsigned8" UseAsBits="true" TextId="IDT__BYTE1">
+										<BitDataItem BitOffset="0" TextId="IDT_M2_SM1_IN__BIT0" />
+										<BitDataItem BitOffset="1" TextId="IDT_M2_SM1_IN__BIT1" />
+										<BitDataItem BitOffset="2" TextId="IDT_M2_SM1_IN__BIT2" />
+										<BitDataItem BitOffset="3" TextId="IDT_M2_SM1_IN__BIT3" />
+										<BitDataItem BitOffset="4" TextId="IDT_M2_SM1_IN__BIT4" />
+									</DataItem>
+
+									<DataItem DataType="Integer16" TextId="IDT_M2_SM1_IN__BYTE2" />
+									<DataItem DataType="Integer16" TextId="IDT_M2_SM1_IN__BYTE4" />
+									<DataItem DataType="Integer16" TextId="IDT_M2_SM1_IN__BYTE6" />
+
+								</Input>
+							</IOData>
+							<ModuleInfo>
+								<Name TextId="IDT_M2_SM1__NAME" />
+								<InfoText TextId="IDT_M2_SM1__INFO_TEXT" />
+							</ModuleInfo>
+						</VirtualSubmoduleItem>
+					</VirtualSubmoduleList>
+				</ModuleItem>
+
+				<!-- M3_SCAN_NUMBER Size: 4 Bytes -->
+				<ModuleItem ID="M3_SCAN_NUMBER" ModuleIdentNumber="0x00000002">
+					<ModuleInfo CategoryRef="CATEGORY__INPUT_MODULE">
+						<Name TextId="IDT_M3__NAME" />
+						<InfoText TextId="IDT_M3__INFO_TEXT" />
+					</ModuleInfo>
+					<VirtualSubmoduleList>
+						<VirtualSubmoduleItem ID="M3_SM1" SubmoduleIdentNumber="0x00000003" MayIssueProcessAlarm="false">
+							<IOData>
+								<Input>
+									<DataItem DataType="Unsigned32" TextId="IDT_M3_SM1_IN__BYTE0" />
+								</Input>
+							</IOData>
+							<ModuleInfo>
+								<Name TextId="IDT_M3_SM1__NAME" />
+								<InfoText TextId="IDT_M3_SM1__INFO_TEXT" />
+							</ModuleInfo>
+						</VirtualSubmoduleItem>
+					</VirtualSubmoduleList>
+				</ModuleItem>
+
+				<!-- M4_REFLECTOR_STATUS Size: 2Bytes -->
+				<ModuleItem ID="M4_REFLECTOR_STATUS" ModuleIdentNumber="0x00000002">
+					<ModuleInfo CategoryRef="CATEGORY__INPUT_MODULE">
+						<Name TextId="IDT_M4__NAME" />
+						<InfoText TextId="IDT_M4__INFO_TEXT" />
+					</ModuleInfo>
+					<VirtualSubmoduleList>
+						<VirtualSubmoduleItem ID="M4_SM1" SubmoduleIdentNumber="0x00000004" MayIssueProcessAlarm="false">
+							<IOData>
+								<Input>
+									<DataItem DataType="Unsigned16" UseAsBits="true" TextId="IDT__BYTE0">
+										<BitDataItem BitOffset="0" TextId="IDT_M4_SM1_IN__BIT0" />
+										<BitDataItem BitOffset="1" TextId="IDT_M4_SM1_IN__BIT1" />
+										<BitDataItem BitOffset="2" TextId="IDT_M4_SM1_IN__BIT2" />
+										<BitDataItem BitOffset="3" TextId="IDT_M4_SM1_IN__BIT3" />
+									</DataItem>
+
+								</Input>
+							</IOData>
+							<ModuleInfo>
+								<Name TextId="IDT_M4_SM1__NAME" />
+								<InfoText TextId="IDT_M4_SM1__INFO_TEXT" />
+							</ModuleInfo>
+						</VirtualSubmoduleItem>
+					</VirtualSubmoduleList>
+				</ModuleItem>
+
+				<!-- M5_PROTECTIVE_FUNCTION_A_STATUS Size: 3Bytes -->
+				<ModuleItem ID="M5_PROTECTIVE_FUNCTION_A_STATUS" ModuleIdentNumber="0x00000002">
+					<ModuleInfo CategoryRef="CATEGORY__INPUT_MODULE">
+						<Name TextId="IDT_M5__NAME" />
+						<InfoText TextId="IDT_M5__INFO_TEXT" />
+					</ModuleInfo>
+					<VirtualSubmoduleList>
+						<VirtualSubmoduleItem ID="M5_SM1" SubmoduleIdentNumber="0x00000005" MayIssueProcessAlarm="false">
+							<IOData>
+								<Input>
+									<DataItem DataType="Unsigned8" UseAsBits="true" TextId="IDT__BYTE0">
+										<BitDataItem BitOffset="0" TextId="IDT_M5_SM1_IN__BIT0" />
+										<BitDataItem BitOffset="1" TextId="IDT_M5_SM1_IN__BIT1" />
+										<BitDataItem BitOffset="2" TextId="IDT_M5_SM1_IN__BIT2" />
+										<BitDataItem BitOffset="3" TextId="IDT_M5_SM1_IN__BIT3" />
+										<BitDataItem BitOffset="4" TextId="IDT_M5_SM1_IN__BIT4" />
+										<BitDataItem BitOffset="5" TextId="IDT_M5_SM1_IN__BIT5" />
+										<BitDataItem BitOffset="6" TextId="IDT_M5_SM1_IN__BIT6" />
+									</DataItem>
+									<DataItem DataType="Unsigned8" UseAsBits="true" TextId="IDT__BYTE1">
+										<BitDataItem BitOffset="0" TextId="IDT_M5_SM2_IN__BIT0" />
+										<BitDataItem BitOffset="4" TextId="IDT_M5_SM2_IN__BIT4" />
+									</DataItem>
+									<DataItem DataType="Unsigned8" UseAsBits="true" TextId="IDT__BYTE2">
+										<BitDataItem BitOffset="0" TextId="IDT_M5_SM3_IN__BIT0" />
+										<BitDataItem BitOffset="6" TextId="IDT_M5_SM3_IN__BIT6" />
+										<BitDataItem BitOffset="7" TextId="IDT_M5_SM3_IN__BIT7" />
+									</DataItem>
+								</Input>
+							</IOData>
+							<ModuleInfo>
+								<Name TextId="IDT_M5_SM1__NAME" />
+								<InfoText TextId="IDT_M5_SM1__INFO_TEXT" />
+							</ModuleInfo>
+						</VirtualSubmoduleItem>
+					</VirtualSubmoduleList>
+				</ModuleItem>
+
+				<!-- M6_PROTECTIVE_FUNCTION_B_STATUS-->
+				<ModuleItem ID="M6_PROTECTIVE_FUNCTION_B_STATUS" ModuleIdentNumber="0x00000002">
+					<ModuleInfo CategoryRef="CATEGORY__INPUT_MODULE">
+						<Name TextId="IDT_M6__NAME" />
+						<InfoText TextId="IDT_M6__INFO_TEXT" />
+					</ModuleInfo>
+					<VirtualSubmoduleList>
+						<VirtualSubmoduleItem ID="M6_SM1" SubmoduleIdentNumber="0x00000006" MayIssueProcessAlarm="false">
+							<IOData>
+								<Input>
+									<DataItem DataType="Unsigned8" UseAsBits="true" TextId="IDT__BYTE0">
+										<BitDataItem BitOffset="0" TextId="IDT_M6_SM1_IN__BIT0" />
+										<BitDataItem BitOffset="1" TextId="IDT_M6_SM1_IN__BIT1" />
+										<BitDataItem BitOffset="2" TextId="IDT_M6_SM1_IN__BIT2" />
+										<BitDataItem BitOffset="3" TextId="IDT_M6_SM1_IN__BIT3" />
+										<BitDataItem BitOffset="4" TextId="IDT_M6_SM1_IN__BIT4" />
+										<BitDataItem BitOffset="5" TextId="IDT_M6_SM1_IN__BIT5" />
+										<BitDataItem BitOffset="6" TextId="IDT_M6_SM1_IN__BIT6" />
+									</DataItem>
+									<DataItem DataType="Unsigned8" UseAsBits="true" TextId="IDT__BYTE1">
+										<BitDataItem BitOffset="0" TextId="IDT_M6_SM2_IN__BIT0" />
+										<BitDataItem BitOffset="4" TextId="IDT_M6_SM2_IN__BIT4" />
+									</DataItem>
+									<DataItem DataType="Unsigned8" UseAsBits="true" TextId="IDT__BYTE2">
+										<BitDataItem BitOffset="0" TextId="IDT_M6_SM3_IN__BIT0" />
+										<BitDataItem BitOffset="6" TextId="IDT_M6_SM3_IN__BIT6" />
+										<BitDataItem BitOffset="7" TextId="IDT_M6_SM3_IN__BIT7" />
+									</DataItem>
+								</Input>
+							</IOData>
+							<ModuleInfo>
+								<Name TextId="IDT_M6_SM1__NAME" />
+								<InfoText TextId="IDT_M6_SM1__INFO_TEXT" />
+							</ModuleInfo>
+						</VirtualSubmoduleItem>
+					</VirtualSubmoduleList>
+				</ModuleItem>
+
+				<!-- M7_PROTECTIVE_FUNCTION_A_VIOLATION -->
+				<ModuleItem ID="M7_PROTECTIVE_FUNCTION_A_VIOLATION" ModuleIdentNumber="0x00000002">
+					<ModuleInfo CategoryRef="CATEGORY__INPUT_MODULE">
+						<Name TextId="IDT_M7__NAME" />
+						<InfoText TextId="IDT_M7__INFO_TEXT" />
+					</ModuleInfo>
+					<VirtualSubmoduleList>
+						<VirtualSubmoduleItem ID="M7_SM1" SubmoduleIdentNumber="0x00000007" MayIssueProcessAlarm="false">
+							<IOData>
+								<Input>
+									<DataItem DataType="Integer16" TextId="IDT_M7_SM1_IN__BYTE0" />
+									<DataItem DataType="Unsigned16" TextId="IDT_M7_SM1_IN__BYTE2" />
+									<DataItem DataType="Integer16" TextId="IDT_M7_SM1_IN__BYTE4" />
+									<DataItem DataType="Unsigned16" TextId="IDT_M7_SM1_IN__BYTE6" />
+								</Input>
+							</IOData>
+							<ModuleInfo>
+								<Name TextId="IDT_M7_SM1__NAME" />
+								<InfoText TextId="IDT_M7_SM1__INFO_TEXT" />
+							</ModuleInfo>
+						</VirtualSubmoduleItem>
+					</VirtualSubmoduleList>
+				</ModuleItem>
+
+				<!-- M8_PROTECTIVE_FUNCTION_B_VIOLATION -->
+				<ModuleItem ID="M8_PROTECTIVE_FUNCTION_B_VIOLATION" ModuleIdentNumber="0x00000002">
+					<ModuleInfo CategoryRef="CATEGORY__INPUT_MODULE">
+						<Name TextId="IDT_M8__NAME" />
+						<InfoText TextId="IDT_M8__INFO_TEXT" />
+					</ModuleInfo>
+					<VirtualSubmoduleList>
+						<VirtualSubmoduleItem ID="M8_SM1" SubmoduleIdentNumber="0x00000008" MayIssueProcessAlarm="false">
+							<IOData>
+								<Input>
+									<DataItem DataType="Integer16" TextId="IDT_M8_SM1_IN__BYTE0" />
+									<DataItem DataType="Unsigned16" TextId="IDT_M8_SM1_IN__BYTE2" />
+									<DataItem DataType="Integer16" TextId="IDT_M8_SM1_IN__BYTE4" />
+									<DataItem DataType="Unsigned16" TextId="IDT_M8_SM1_IN__BYTE6" />
+								</Input>
+							</IOData>
+							<ModuleInfo>
+								<Name TextId="IDT_M8_SM1__NAME" />
+								<InfoText TextId="IDT_M8_SM1__INFO_TEXT" />
+							</ModuleInfo>
+						</VirtualSubmoduleItem>
+					</VirtualSubmoduleList>
+				</ModuleItem>
+
+				<!-- M11 SAFE_SIGNAL PROFIsafe V2.4: Size 7 Bytes IN / 11 Bytes OUT -->
+				<ModuleItem ID="M11_SAFE_SIGNAL_PS2v4" ModuleIdentNumber="0x00000004">
+					<ModuleInfo CategoryRef="CATEGORY__SAFETY_MODULE_NEW">
+						<Name TextId="IDT_Safety_Module_new" />
+						<InfoText TextId="IDT_INFO_Safety_Module_new" />
+					</ModuleInfo>
+					<VirtualSubmoduleList>
+						<VirtualSubmoduleItem ID="22" SubmoduleIdentNumber="0x0000000B" PROFIsafeSupported="true" MayIssueProcessAlarm="false">
+							<IOData F_IO_StructureDescCRC="37479">								<!-- CRC value used from GSD Checker -->
+								<Input Consistency="All items consistency">
+									<DataItem DataType="Unsigned8" UseAsBits="true" TextId="IDT__BYTE0">
+										<BitDataItem BitOffset="0" TextId="IDT_M11_SM0_IN__BIT0" />
+										<BitDataItem BitOffset="1" TextId="IDT_M11_SM0_IN__BIT1" />
+										<BitDataItem BitOffset="2" TextId="IDT_M11_SM0_IN__BIT2" />
+										<BitDataItem BitOffset="3" TextId="IDT_M11_SM0_IN__BIT3" />
+										<BitDataItem BitOffset="4" TextId="IDT_M11_SM0_IN__BIT4" />
+										<BitDataItem BitOffset="5" TextId="IDT_M11_SM0_IN__BIT5" />
+										<BitDataItem BitOffset="6" TextId="IDT_M11_SM0_IN__BIT6" />
+										<BitDataItem BitOffset="7" TextId="IDT_M11_SM0_IN__BIT7" />
+									</DataItem>
+									<DataItem DataType="Unsigned8" UseAsBits="true" TextId="IDT__BYTE1">
+										<BitDataItem BitOffset="0" TextId="IDT_M11_SM1_IN__BIT0" />
+										<BitDataItem BitOffset="1" TextId="IDT_M11_SM1_IN__BIT1" />
+										<BitDataItem BitOffset="2" TextId="IDT_M11_SM1_IN__BIT2" />
+										<BitDataItem BitOffset="3" TextId="IDT_M11_SM1_IN__BIT3" />
+										<BitDataItem BitOffset="4" TextId="IDT_M11_SM1_IN__BIT4" />
+										<BitDataItem BitOffset="5" TextId="IDT_M11_SM1_IN__BIT5" />
+										<BitDataItem BitOffset="6" TextId="IDT_M11_SM1_IN__BIT6" />
+										<BitDataItem BitOffset="7" TextId="IDT_M11_SM1_IN__BIT7" />
+									</DataItem>
+									<!-- Reserve byte for compatibility between PS v2.4 and v2.6  -->
+									<DataItem DataType="Unsigned8" UseAsBits="true" TextId="IDT_M11_SM2_IN__BYTE2">
+										<BitDataItem BitOffset="0" TextId="IDT_M11_SM2_IN__BIT0" />
+										<BitDataItem BitOffset="1" TextId="IDT_M11_SM2_IN__BIT1" />
+										<BitDataItem BitOffset="2" TextId="IDT_M11_SM2_IN__BIT2" />
+										<BitDataItem BitOffset="3" TextId="IDT_M11_SM2_IN__BIT3" />
+										<BitDataItem BitOffset="4" TextId="IDT_M11_SM2_IN__BIT4" />
+										<BitDataItem BitOffset="5" TextId="IDT_M11_SM2_IN__BIT5" />
+										<BitDataItem BitOffset="6" TextId="IDT_M11_SM2_IN__BIT6" />
+										<BitDataItem BitOffset="7" TextId="IDT_M11_SM2_IN__BIT7" />
+									</DataItem>
+									<DataItem DataType="F_MessageTrailer4Byte" TextId="IDT_DATAITEM_Safety_new" />
+								</Input>
+								<Output Consistency="All items consistency">
+									<DataItem DataType="Unsigned8" UseAsBits="true" TextId="IDT__BYTE0">
+										<BitDataItem BitOffset="0" TextId="IDT_M11_SM0_OUT__BIT0" />
+										<BitDataItem BitOffset="1" TextId="IDT_M11_SM0_OUT__BIT1" />
+										<BitDataItem BitOffset="2" TextId="IDT_M11_SM0_OUT__BIT2" />
+										<BitDataItem BitOffset="3" TextId="IDT_M11_SM0_OUT__BIT3" />
+										<BitDataItem BitOffset="4" TextId="IDT_M11_SM0_OUT__BIT4" />
+										<BitDataItem BitOffset="5" TextId="IDT_M11_SM0_OUT__BIT5" />
+										<BitDataItem BitOffset="6" TextId="IDT_M11_SM0_OUT__BIT6" />
+										<BitDataItem BitOffset="7" TextId="IDT_M11_SM0_OUT__BIT7" />
+									</DataItem>
+									<DataItem DataType="Unsigned8" UseAsBits="true" TextId="IDT__BYTE1">
+										<BitDataItem BitOffset="0" TextId="IDT_M11_SM1_OUT__BIT0" />
+										<BitDataItem BitOffset="1" TextId="IDT_M11_SM1_OUT__BIT1" />
+										<BitDataItem BitOffset="2" TextId="IDT_M11_SM1_OUT__BIT2" />
+										<BitDataItem BitOffset="3" TextId="IDT_M11_SM1_OUT__BIT3" />
+										<BitDataItem BitOffset="4" TextId="IDT_M11_SM1_OUT__BIT4" />
+										<BitDataItem BitOffset="5" TextId="IDT_M11_SM1_OUT__BIT5" />
+										<BitDataItem BitOffset="6" TextId="IDT_M11_SM1_OUT__BIT6" />
+										<BitDataItem BitOffset="7" TextId="IDT_M11_SM1_OUT__BIT7" />
+									</DataItem>
+									<DataItem DataType="Unsigned8" UseAsBits="true" TextId="IDT__BYTE2">
+										<BitDataItem BitOffset="0" TextId="IDT_M11_SM2_OUT__BIT0" />
+										<BitDataItem BitOffset="1" TextId="IDT_M11_SM2_OUT__BIT1" />
+										<BitDataItem BitOffset="2" TextId="IDT_M11_SM2_OUT__BIT2" />
+										<BitDataItem BitOffset="3" TextId="IDT_M11_SM2_OUT__BIT3" />
+										<BitDataItem BitOffset="4" TextId="IDT_M11_SM2_OUT__BIT4" />
+										<BitDataItem BitOffset="5" TextId="IDT_M11_SM2_OUT__BIT5" />
+										<BitDataItem BitOffset="6" TextId="IDT_M11_SM2_OUT__BIT6" />
+										<BitDataItem BitOffset="7" TextId="IDT_M11_SM2_OUT__BIT7" />
+									</DataItem>
+									<DataItem DataType="Unsigned8" UseAsBits="true" TextId="IDT__BYTE3">
+										<BitDataItem BitOffset="0" TextId="IDT_M11_SM3_OUT__BIT0" />
+										<BitDataItem BitOffset="1" TextId="IDT_M11_SM3_OUT__BIT1" />
+										<BitDataItem BitOffset="2" TextId="IDT_M11_SM3_OUT__BIT2" />
+										<BitDataItem BitOffset="3" TextId="IDT_M11_SM3_OUT__BIT3" />
+										<BitDataItem BitOffset="4" TextId="IDT_M11_SM3_OUT__BIT4" />
+										<BitDataItem BitOffset="5" TextId="IDT_M11_SM3_OUT__BIT5" />
+										<BitDataItem BitOffset="6" TextId="IDT_M11_SM3_OUT__BIT6" />
+										<BitDataItem BitOffset="7" TextId="IDT_M11_SM3_OUT__BIT7" />
+									</DataItem>
+									<DataItem DataType="Unsigned8" UseAsBits="true" TextId="IDT__BYTE4">
+										<BitDataItem BitOffset="0" TextId="IDT_M11_SM4_OUT__BIT0" />
+										<BitDataItem BitOffset="1" TextId="IDT_M11_SM4_OUT__BIT1" />
+										<BitDataItem BitOffset="2" TextId="IDT_M11_SM4_OUT__BIT2" />
+										<BitDataItem BitOffset="3" TextId="IDT_M11_SM4_OUT__BIT3" />
+										<BitDataItem BitOffset="4" TextId="IDT_M11_SM4_OUT__BIT4" />
+										<BitDataItem BitOffset="5" TextId="IDT_M11_SM4_OUT__BIT5" />
+										<BitDataItem BitOffset="6" TextId="IDT_M11_SM4_OUT__BIT6" />
+										<BitDataItem BitOffset="7" TextId="IDT_M11_SM4_OUT__BIT7" />
+									</DataItem>
+									<DataItem DataType="Unsigned8" UseAsBits="true" TextId="IDT__BYTE5">
+										<BitDataItem BitOffset="0" TextId="IDT_M11_SM5_OUT__BIT0" />
+										<BitDataItem BitOffset="1" TextId="IDT_M11_SM5_OUT__BIT1" />
+										<BitDataItem BitOffset="2" TextId="IDT_M11_SM5_OUT__BIT2" />
+										<BitDataItem BitOffset="3" TextId="IDT_M11_SM5_OUT__BIT3" />
+										<BitDataItem BitOffset="4" TextId="IDT_M11_SM5_OUT__BIT4" />
+										<BitDataItem BitOffset="5" TextId="IDT_M11_SM5_OUT__BIT5" />
+										<BitDataItem BitOffset="6" TextId="IDT_M11_SM5_OUT__BIT6" />
+										<BitDataItem BitOffset="7" TextId="IDT_M11_SM5_OUT__BIT7" />
+									</DataItem>
+									<!-- Reserve output byte 6 for compatibility between PS v2.4 and v2.6  -->
+									<DataItem DataType="Unsigned8" UseAsBits="true" TextId="IDT_M11_SM6_OUT__BYTE6">
+										<BitDataItem BitOffset="0" TextId="IDT_M11_SM6_OUT__BIT0" />
+										<BitDataItem BitOffset="1" TextId="IDT_M11_SM6_OUT__BIT1" />
+										<BitDataItem BitOffset="2" TextId="IDT_M11_SM6_OUT__BIT2" />
+										<BitDataItem BitOffset="3" TextId="IDT_M11_SM6_OUT__BIT3" />
+										<BitDataItem BitOffset="4" TextId="IDT_M11_SM6_OUT__BIT4" />
+										<BitDataItem BitOffset="5" TextId="IDT_M11_SM6_OUT__BIT5" />
+										<BitDataItem BitOffset="6" TextId="IDT_M11_SM6_OUT__BIT6" />
+										<BitDataItem BitOffset="7" TextId="IDT_M11_SM6_OUT__BIT7" />
+									</DataItem>
+									<DataItem DataType="F_MessageTrailer4Byte" TextId="IDT_DATAITEM_Safety_new" />
+								</Output>
+							</IOData>
+							<RecordDataList>
+								<F_ParameterRecordDataItem Index="1" F_ParamDescCRC="65037">
+									<F_Check_iPar />
+									<F_SIL DefaultValue="SIL2" AllowedValues="SIL2" Changeable="false" />
+									<F_CRC_Length DefaultValue="3-Byte-CRC" AllowedValues="3-Byte-CRC" />
+									<F_Block_ID DefaultValue="0" />
+									<F_Par_Version Changeable="false" />
+									<F_Source_Add AllowedValues="1..65534" />
+									<F_Dest_Add AllowedValues="1..65534" />
+									<F_WD_Time DefaultValue="100" AllowedValues="80..10000" />
+									<F_Par_CRC DefaultValue="49406" />
+								</F_ParameterRecordDataItem>
+							</RecordDataList>
+							<ModuleInfo>
+								<Name TextId="IDT_Safety_Module_new" />
+								<InfoText TextId="IDT_INFO_Safety_Module_new" />
+							</ModuleInfo>
+						</VirtualSubmoduleItem>
+					</VirtualSubmoduleList>
+				</ModuleItem>
+
+				<!-- M11 SAFE_SIGNAL PROFIsafe V2.6: Size 7 Bytes IN / 11 Bytes OUT -->
+				<ModuleItem ID="M11_SAFE_SIGNAL_PS2v6" ModuleIdentNumber="0x00000004">
+					<ModuleInfo CategoryRef="CATEGORY__SAFETY_MODULE_NEW_PS2v6">
+						<Name TextId="IDT_Safety_Module_new_PS2v6" />
+						<InfoText TextId="IDT_INFO_Safety_Module_new_PS2v6" />
+					</ModuleInfo>
+					<VirtualSubmoduleList>
+						<VirtualSubmoduleItem ID="23" SubmoduleIdentNumber="0x0000001B" PROFIsafeSupported="true" MayIssueProcessAlarm="false">
+							<IOData F_IO_StructureDescCRC="980">								<!-- CRC value used from GSD Checker -->
+								<Input Consistency="All items consistency">
+									<DataItem DataType="Unsigned8" UseAsBits="true" TextId="IDT__BYTE0">
+										<BitDataItem BitOffset="0" TextId="IDT_M11_SM0_IN__BIT0" />
+										<BitDataItem BitOffset="1" TextId="IDT_M11_SM0_IN__BIT1" />
+										<BitDataItem BitOffset="2" TextId="IDT_M11_SM0_IN__BIT2" />
+										<BitDataItem BitOffset="3" TextId="IDT_M11_SM0_IN__BIT3" />
+										<BitDataItem BitOffset="4" TextId="IDT_M11_SM0_IN__BIT4" />
+										<BitDataItem BitOffset="5" TextId="IDT_M11_SM0_IN__BIT5" />
+										<BitDataItem BitOffset="6" TextId="IDT_M11_SM0_IN__BIT6" />
+										<BitDataItem BitOffset="7" TextId="IDT_M11_SM0_IN__BIT7" />
+									</DataItem>
+									<DataItem DataType="Unsigned8" UseAsBits="true" TextId="IDT__BYTE1">
+										<BitDataItem BitOffset="0" TextId="IDT_M11_SM1_IN__BIT0" />
+										<BitDataItem BitOffset="1" TextId="IDT_M11_SM1_IN__BIT1" />
+										<BitDataItem BitOffset="2" TextId="IDT_M11_SM1_IN__BIT2" />
+										<BitDataItem BitOffset="3" TextId="IDT_M11_SM1_IN__BIT3" />
+										<BitDataItem BitOffset="4" TextId="IDT_M11_SM1_IN__BIT4" />
+										<BitDataItem BitOffset="5" TextId="IDT_M11_SM1_IN__BIT5" />
+										<BitDataItem BitOffset="6" TextId="IDT_M11_SM1_IN__BIT6" />
+										<BitDataItem BitOffset="7" TextId="IDT_M11_SM1_IN__BIT7" />
+									</DataItem>
+									<DataItem DataType="F_MessageTrailer5Byte" TextId="IDT_DATAITEM_Safety_new_PS2v6" />
+								</Input>
+								<Output Consistency="All items consistency">
+									<DataItem DataType="Unsigned8" UseAsBits="true" TextId="IDT__BYTE0">
+										<BitDataItem BitOffset="0" TextId="IDT_M11_SM0_OUT__BIT0" />
+										<BitDataItem BitOffset="1" TextId="IDT_M11_SM0_OUT__BIT1" />
+										<BitDataItem BitOffset="2" TextId="IDT_M11_SM0_OUT__BIT2" />
+										<BitDataItem BitOffset="3" TextId="IDT_M11_SM0_OUT__BIT3" />
+										<BitDataItem BitOffset="4" TextId="IDT_M11_SM0_OUT__BIT4" />
+										<BitDataItem BitOffset="5" TextId="IDT_M11_SM0_OUT__BIT5" />
+										<BitDataItem BitOffset="6" TextId="IDT_M11_SM0_OUT__BIT6" />
+										<BitDataItem BitOffset="7" TextId="IDT_M11_SM0_OUT__BIT7" />
+									</DataItem>
+									<DataItem DataType="Unsigned8" UseAsBits="true" TextId="IDT__BYTE1">
+										<BitDataItem BitOffset="0" TextId="IDT_M11_SM1_OUT__BIT0" />
+										<BitDataItem BitOffset="1" TextId="IDT_M11_SM1_OUT__BIT1" />
+										<BitDataItem BitOffset="2" TextId="IDT_M11_SM1_OUT__BIT2" />
+										<BitDataItem BitOffset="3" TextId="IDT_M11_SM1_OUT__BIT3" />
+										<BitDataItem BitOffset="4" TextId="IDT_M11_SM1_OUT__BIT4" />
+										<BitDataItem BitOffset="5" TextId="IDT_M11_SM1_OUT__BIT5" />
+										<BitDataItem BitOffset="6" TextId="IDT_M11_SM1_OUT__BIT6" />
+										<BitDataItem BitOffset="7" TextId="IDT_M11_SM1_OUT__BIT7" />
+									</DataItem>
+									<DataItem DataType="Unsigned8" UseAsBits="true" TextId="IDT__BYTE2">
+										<BitDataItem BitOffset="0" TextId="IDT_M11_SM2_OUT__BIT0" />
+										<BitDataItem BitOffset="1" TextId="IDT_M11_SM2_OUT__BIT1" />
+										<BitDataItem BitOffset="2" TextId="IDT_M11_SM2_OUT__BIT2" />
+										<BitDataItem BitOffset="3" TextId="IDT_M11_SM2_OUT__BIT3" />
+										<BitDataItem BitOffset="4" TextId="IDT_M11_SM2_OUT__BIT4" />
+										<BitDataItem BitOffset="5" TextId="IDT_M11_SM2_OUT__BIT5" />
+										<BitDataItem BitOffset="6" TextId="IDT_M11_SM2_OUT__BIT6" />
+										<BitDataItem BitOffset="7" TextId="IDT_M11_SM2_OUT__BIT7" />
+									</DataItem>
+									<DataItem DataType="Unsigned8" UseAsBits="true" TextId="IDT__BYTE3">
+										<BitDataItem BitOffset="0" TextId="IDT_M11_SM3_OUT__BIT0" />
+										<BitDataItem BitOffset="1" TextId="IDT_M11_SM3_OUT__BIT1" />
+										<BitDataItem BitOffset="2" TextId="IDT_M11_SM3_OUT__BIT2" />
+										<BitDataItem BitOffset="3" TextId="IDT_M11_SM3_OUT__BIT3" />
+										<BitDataItem BitOffset="4" TextId="IDT_M11_SM3_OUT__BIT4" />
+										<BitDataItem BitOffset="5" TextId="IDT_M11_SM3_OUT__BIT5" />
+										<BitDataItem BitOffset="6" TextId="IDT_M11_SM3_OUT__BIT6" />
+										<BitDataItem BitOffset="7" TextId="IDT_M11_SM3_OUT__BIT7" />
+									</DataItem>
+									<DataItem DataType="Unsigned8" UseAsBits="true" TextId="IDT__BYTE4">
+										<BitDataItem BitOffset="0" TextId="IDT_M11_SM4_OUT__BIT0" />
+										<BitDataItem BitOffset="1" TextId="IDT_M11_SM4_OUT__BIT1" />
+										<BitDataItem BitOffset="2" TextId="IDT_M11_SM4_OUT__BIT2" />
+										<BitDataItem BitOffset="3" TextId="IDT_M11_SM4_OUT__BIT3" />
+										<BitDataItem BitOffset="4" TextId="IDT_M11_SM4_OUT__BIT4" />
+										<BitDataItem BitOffset="5" TextId="IDT_M11_SM4_OUT__BIT5" />
+										<BitDataItem BitOffset="6" TextId="IDT_M11_SM4_OUT__BIT6" />
+										<BitDataItem BitOffset="7" TextId="IDT_M11_SM4_OUT__BIT7" />
+									</DataItem>
+									<DataItem DataType="Unsigned8" UseAsBits="true" TextId="IDT__BYTE5">
+										<BitDataItem BitOffset="0" TextId="IDT_M11_SM5_OUT__BIT0" />
+										<BitDataItem BitOffset="1" TextId="IDT_M11_SM5_OUT__BIT1" />
+										<BitDataItem BitOffset="2" TextId="IDT_M11_SM5_OUT__BIT2" />
+										<BitDataItem BitOffset="3" TextId="IDT_M11_SM5_OUT__BIT3" />
+										<BitDataItem BitOffset="4" TextId="IDT_M11_SM5_OUT__BIT4" />
+										<BitDataItem BitOffset="5" TextId="IDT_M11_SM5_OUT__BIT5" />
+										<BitDataItem BitOffset="6" TextId="IDT_M11_SM5_OUT__BIT6" />
+										<BitDataItem BitOffset="7" TextId="IDT_M11_SM5_OUT__BIT7" />
+									</DataItem>
+									<DataItem DataType="F_MessageTrailer5Byte" TextId="IDT_DATAITEM_Safety_new_PS2v6" />
+								</Output>
+							</IOData>
+							<RecordDataList>
+								<F_ParameterRecordDataItem Index="1" F_ParamDescCRC="24100" ChangeableWithBump="false" TransferSequence="0">
+									<F_Check_iPar AllowedValues="NoCheck" Changeable="false" DefaultValue="NoCheck" Visible="false" />
+									<F_SIL DefaultValue="SIL2" AllowedValues="SIL2" Changeable="false" Visible="true"/>
+									<F_CRC_Length DefaultValue="4-Byte-CRC" AllowedValues="4-Byte-CRC" Visible="true" Changeable="false" />
+									<F_CRC_Seed AllowedValues="CRC-Seed24/32" Changeable="false" DefaultValue="CRC-Seed24/32" Visible="true" />
+									<F_Passivation DefaultValue="Device/Module" AllowedValues="Device/Module"  Changeable="false" Visible="true" />
+									<F_Block_ID DefaultValue="0" AllowedValues="0" Changeable="false" Visible="true"/>
+									<F_Par_Version AllowedValues="1" Changeable="false" DefaultValue="1" Visible="true" />
+									<F_Source_Add AllowedValues="1..65534" Changeable="true" Visible="true" />
+									<F_Dest_Add AllowedValues="1..65534" Changeable="true" Visible="true" />
+									<F_WD_Time DefaultValue="100" AllowedValues="80..10000" Changeable="true" Visible="true" />
+									<F_Par_CRC DefaultValue="28028" AllowedValues="0..65535" Changeable="true" Visible="true"/>
+								</F_ParameterRecordDataItem>
+							</RecordDataList>
+							<ModuleInfo>
+								<Name TextId="IDT_Safety_Module_new_PS2v6" />
+								<InfoText TextId="IDT_INFO_Safety_Module_new_PS2v6" />
+							</ModuleInfo>
+						</VirtualSubmoduleItem>
+					</VirtualSubmoduleList>
+				</ModuleItem>
+
+				<!--MODULE M12_SYSTEM_STATUS Size: 6 Bytes -->
+				<ModuleItem ID="M12_SYSTEM_STATUS" ModuleIdentNumber="0x00000004">
+					<ModuleInfo CategoryRef="CATEGORY__INPUT_MODULE">
+						<Name TextId="IDT_M12__NAME" />
+						<InfoText TextId="IDT_M12__INFO_TEXT" />
+					</ModuleInfo>
+					<VirtualSubmoduleList>
+						<VirtualSubmoduleItem ID="M12_SM1" SubmoduleIdentNumber="0x0000000C" MayIssueProcessAlarm="false">
+							<IOData>
+								<Input Consistency="All items consistency">
+									<DataItem DataType="Unsigned8" TextId="IDT_M12_SM0_IN__BYTE0" />
+									<DataItem DataType="Unsigned8" UseAsBits="true" TextId="IDT__BYTE1">
+										<BitDataItem BitOffset="0" TextId="IDT_M12_SM1_IN__BIT0" />
+										<BitDataItem BitOffset="1" TextId="IDT_M12_SM1_IN__BIT1" />
+										<BitDataItem BitOffset="2" TextId="IDT_M12_SM1_IN__BIT2" />
+										<BitDataItem BitOffset="3" TextId="IDT_M12_SM1_IN__BIT3" />
+										<BitDataItem BitOffset="4" TextId="IDT_M12_SM1_IN__BIT4" />
+										<BitDataItem BitOffset="5" TextId="IDT_M12_SM1_IN__BIT5" />
+										<BitDataItem BitOffset="6" TextId="IDT_M12_SM1_IN__BIT6" />
+										<BitDataItem BitOffset="7" TextId="IDT_M12_SM1_IN__BIT7" />
+									</DataItem>
+									<DataItem DataType="Unsigned8" UseAsBits="true" TextId="IDT__BYTE2">
+										<BitDataItem BitOffset="0" TextId="IDT_M12_SM2_IN__BIT0" />
+										<BitDataItem BitOffset="1" TextId="IDT_M12_SM2_IN__BIT1" />
+										<BitDataItem BitOffset="2" TextId="IDT_M12_SM2_IN__BIT2" />
+										<BitDataItem BitOffset="3" TextId="IDT_M12_SM2_IN__BIT3" />
+										<BitDataItem BitOffset="4" TextId="IDT_M12_SM2_IN__BIT4" />
+										<BitDataItem BitOffset="5" TextId="IDT_M12_SM2_IN__BIT5" />
+										<BitDataItem BitOffset="6" TextId="IDT_M12_SM2_IN__BIT6" />
+										<BitDataItem BitOffset="7" TextId="IDT_M12_SM2_IN__BIT7" />
+									</DataItem>
+									<DataItem DataType="Unsigned8" UseAsBits="true" TextId="IDT__BYTE3">
+										<BitDataItem BitOffset="0" TextId="IDT_M12_SM3_IN__BIT0" />
+										<BitDataItem BitOffset="1" TextId="IDT_M12_SM3_IN__BIT1" />
+										<BitDataItem BitOffset="2" TextId="IDT_M12_SM3_IN__BIT2" />
+										<BitDataItem BitOffset="3" TextId="IDT_M12_SM3_IN__BIT3" />
+										<BitDataItem BitOffset="4" TextId="IDT_M12_SM3_IN__BIT4" />
+										<BitDataItem BitOffset="5" TextId="IDT_M12_SM3_IN__BIT5" />
+										<BitDataItem BitOffset="6" TextId="IDT_M12_SM3_IN__BIT6" />
+										<BitDataItem BitOffset="7" TextId="IDT_M12_SM3_IN__BIT7" />
+									</DataItem>
+									<DataItem DataType="Unsigned8" UseAsBits="true" TextId="IDT__BYTE4">
+										<BitDataItem BitOffset="0" TextId="IDT_M12_SM4_IN__BIT0" />
+										<BitDataItem BitOffset="1" TextId="IDT_M12_SM4_IN__BIT1" />
+										<BitDataItem BitOffset="2" TextId="IDT_M12_SM4_IN__BIT2" />
+										<BitDataItem BitOffset="3" TextId="IDT_M12_SM4_IN__BIT3" />
+										<BitDataItem BitOffset="4" TextId="IDT_M12_SM4_IN__BIT4" />
+										<BitDataItem BitOffset="5" TextId="IDT_M12_SM4_IN__BIT5" />
+										<BitDataItem BitOffset="6" TextId="IDT_M12_SM4_IN__BIT6" />
+										<BitDataItem BitOffset="7" TextId="IDT_M12_SM4_IN__BIT7" />
+									</DataItem>
+									<DataItem DataType="Unsigned8" UseAsBits="true" TextId="IDT__BYTE5">
+										<BitDataItem BitOffset="0" TextId="IDT_M12_SM5_IN__BIT0" />
+										<BitDataItem BitOffset="1" TextId="IDT_M12_SM5_IN__BIT1" />
+										<BitDataItem BitOffset="2" TextId="IDT_M12_SM5_IN__BIT2" />
+										<BitDataItem BitOffset="3" TextId="IDT_M12_SM5_IN__BIT3" />
+										<BitDataItem BitOffset="4" TextId="IDT_M12_SM5_IN__BIT4" />
+										<BitDataItem BitOffset="5" TextId="IDT_M12_SM5_IN__BIT5" />
+										<BitDataItem BitOffset="6" TextId="IDT_M12_SM5_IN__BIT6" />
+										<BitDataItem BitOffset="7" TextId="IDT_M12_SM5_IN__BIT7" />
+									</DataItem>
+								</Input>
+							</IOData>
+							<ModuleInfo>
+								<Name TextId="IDT_M12_SM1__NAME" />
+								<InfoText TextId="IDT_M12_SM1__INFO_TEXT" />
+							</ModuleInfo>
+						</VirtualSubmoduleItem>
+					</VirtualSubmoduleList>
+				</ModuleItem>
+
+				<!-- MODULE M13_SYSTEM_DATA Size: 8 Bytes -->
+				<ModuleItem ID="M13_SYSTEM_DATA" ModuleIdentNumber="0x00000004">
+					<ModuleInfo CategoryRef="CATEGORY__INPUT_MODULE">
+						<Name TextId="IDT_M13__NAME" />
+						<InfoText TextId="IDT_M13__INFO_TEXT" />
+					</ModuleInfo>
+					<VirtualSubmoduleList>
+						<VirtualSubmoduleItem ID="M13_SM1" SubmoduleIdentNumber="0x0000000D" MayIssueProcessAlarm="false">
+							<IOData>
+								<Input>
+									<DataItem DataType="Integer16" TextId="IDT_M13_SM1_IN__BYTE0" />
+									<DataItem DataType="Integer16" TextId="IDT_M13_SM1_IN__BYTE2" />
+									<DataItem DataType="Integer16" TextId="IDT_M13_SM1_IN__BYTE4" />
+									<DataItem DataType="Integer16" TextId="IDT_M13_SM1_IN__BYTE6" />
+								</Input>
+							</IOData>
+							<ModuleInfo>
+								<Name TextId="IDT_M13_SM1__NAME" />
+								<InfoText TextId="IDT_M13_SM1__INFO_TEXT" />
+							</ModuleInfo>
+						</VirtualSubmoduleItem>
+					</VirtualSubmoduleList>
+				</ModuleItem>
+
+				<!-- M14_PROTECTIVE_FUNCTION_A_STATUS Size: 8 Bytes -->
+				<ModuleItem ID="M14_PROTECTIVE_FUNCTION_A_STATUS" ModuleIdentNumber="0x00000004">
+					<ModuleInfo CategoryRef="CATEGORY__INPUT_MODULE">
+						<Name TextId="IDT_M14__NAME" />
+						<InfoText TextId="IDT_M14__INFO_TEXT" />
+					</ModuleInfo>
+					<VirtualSubmoduleList>
+						<VirtualSubmoduleItem ID="M14_SM1" SubmoduleIdentNumber="0x0000000E" MayIssueProcessAlarm="false">
+							<IOData>
+								<Input>
+									<DataItem DataType="Unsigned8" UseAsBits="true" TextId="IDT__BYTE0">
+										<BitDataItem BitOffset="0" TextId="IDT_M14_SM0_IN__BIT0" />
+										<BitDataItem BitOffset="1" TextId="IDT_M14_SM0_IN__BIT1" />
+										<BitDataItem BitOffset="2" TextId="IDT_M14_SM0_IN__BIT2" />
+										<BitDataItem BitOffset="3" TextId="IDT_M14_SM0_IN__BIT3" />
+										<BitDataItem BitOffset="4" TextId="IDT_M14_SM0_IN__BIT4" />
+										<BitDataItem BitOffset="5" TextId="IDT_M14_SM0_IN__BIT5" />
+										<BitDataItem BitOffset="6" TextId="IDT_M14_SM0_IN__BIT6" />
+										<BitDataItem BitOffset="7" TextId="IDT_M14_SM0_IN__BIT7" />
+									</DataItem>
+
+									<DataItem DataType="Unsigned8" UseAsBits="true" TextId="IDT__BYTE1">
+										<BitDataItem BitOffset="0" TextId="IDT_M14_SM1_IN__BIT0" />
+										<BitDataItem BitOffset="1" TextId="IDT_M14_SM1_IN__BIT1" />
+										<BitDataItem BitOffset="2" TextId="IDT_M14_SM1_IN__BIT2" />
+										<BitDataItem BitOffset="3" TextId="IDT_M14_SM1_IN__BIT3" />
+										<BitDataItem BitOffset="4" TextId="IDT_M14_SM1_IN__BIT4" />
+										<BitDataItem BitOffset="5" TextId="IDT_M14_SM1_IN__BIT5" />
+										<BitDataItem BitOffset="6" TextId="IDT_M14_SM1_IN__BIT6" />
+										<BitDataItem BitOffset="7" TextId="IDT_M14_SM1_IN__BIT7" />
+									</DataItem>
+
+									<DataItem DataType="Unsigned8" UseAsBits="true" TextId="IDT__BYTE2">
+										<BitDataItem BitOffset="0" TextId="IDT_M14_SM2_IN__BIT0" />
+										<BitDataItem BitOffset="1" TextId="IDT_M14_SM2_IN__BIT1" />
+										<BitDataItem BitOffset="2" TextId="IDT_M14_SM2_IN__BIT2" />
+										<BitDataItem BitOffset="3" TextId="IDT_M14_SM2_IN__BIT3" />
+										<BitDataItem BitOffset="4" TextId="IDT_M14_SM2_IN__BIT4" />
+										<BitDataItem BitOffset="5" TextId="IDT_M14_SM2_IN__BIT5" />
+										<BitDataItem BitOffset="6" TextId="IDT_M14_SM2_IN__BIT6" />
+										<BitDataItem BitOffset="7" TextId="IDT_M14_SM2_IN__BIT7" />
+									</DataItem>
+
+									<DataItem DataType="Unsigned8" UseAsBits="true" TextId="IDT__BYTE3">
+										<BitDataItem BitOffset="0" TextId="IDT_M14_SM3_IN__BIT0" />
+										<BitDataItem BitOffset="1" TextId="IDT_M14_SM3_IN__BIT1" />
+										<BitDataItem BitOffset="2" TextId="IDT_M14_SM3_IN__BIT2" />
+										<BitDataItem BitOffset="3" TextId="IDT_M14_SM3_IN__BIT3" />
+										<BitDataItem BitOffset="4" TextId="IDT_M14_SM3_IN__BIT4" />
+										<BitDataItem BitOffset="5" TextId="IDT_M14_SM3_IN__BIT5" />
+										<BitDataItem BitOffset="6" TextId="IDT_M14_SM3_IN__BIT6" />
+										<BitDataItem BitOffset="7" TextId="IDT_M14_SM3_IN__BIT7" />
+									</DataItem>
+
+									<DataItem DataType="Unsigned8" UseAsBits="true" TextId="IDT__BYTE4">
+										<BitDataItem BitOffset="0" TextId="IDT_M14_SM4_IN__BIT0" />
+										<BitDataItem BitOffset="1" TextId="IDT_M14_SM4_IN__BIT1" />
+										<BitDataItem BitOffset="2" TextId="IDT_M14_SM4_IN__BIT2" />
+										<BitDataItem BitOffset="3" TextId="IDT_M14_SM4_IN__BIT3" />
+										<BitDataItem BitOffset="4" TextId="IDT_M14_SM4_IN__BIT4" />
+										<BitDataItem BitOffset="5" TextId="IDT_M14_SM4_IN__BIT5" />
+										<BitDataItem BitOffset="6" TextId="IDT_M14_SM4_IN__BIT6" />
+										<BitDataItem BitOffset="7" TextId="IDT_M14_SM4_IN__BIT7" />
+									</DataItem>
+
+									<DataItem DataType="Unsigned8" UseAsBits="true" TextId="IDT__BYTE5">
+										<BitDataItem BitOffset="0" TextId="IDT_M14_SM5_IN__BIT0" />
+										<BitDataItem BitOffset="1" TextId="IDT_M14_SM5_IN__BIT1" />
+										<BitDataItem BitOffset="2" TextId="IDT_M14_SM5_IN__BIT2" />
+										<BitDataItem BitOffset="3" TextId="IDT_M14_SM5_IN__BIT3" />
+										<BitDataItem BitOffset="4" TextId="IDT_M14_SM5_IN__BIT4" />
+										<BitDataItem BitOffset="5" TextId="IDT_M14_SM5_IN__BIT5" />
+										<BitDataItem BitOffset="6" TextId="IDT_M14_SM5_IN__BIT6" />
+										<BitDataItem BitOffset="7" TextId="IDT_M14_SM5_IN__BIT7" />
+									</DataItem>
+
+									<DataItem DataType="Unsigned8" UseAsBits="true" TextId="IDT__BYTE6">
+										<BitDataItem BitOffset="0" TextId="IDT_M14_SM6_IN__BIT0" />
+										<BitDataItem BitOffset="1" TextId="IDT_M14_SM6_IN__BIT1" />
+										<BitDataItem BitOffset="2" TextId="IDT_M14_SM6_IN__BIT2" />
+										<BitDataItem BitOffset="3" TextId="IDT_M14_SM6_IN__BIT3" />
+										<BitDataItem BitOffset="4" TextId="IDT_M14_SM6_IN__BIT4" />
+										<BitDataItem BitOffset="5" TextId="IDT_M14_SM6_IN__BIT5" />
+										<BitDataItem BitOffset="6" TextId="IDT_M14_SM6_IN__BIT6" />
+										<BitDataItem BitOffset="7" TextId="IDT_M14_SM6_IN__BIT7" />
+									</DataItem>
+									<DataItem DataType="Unsigned8" TextId="IDT_M14_SM1_IN__BYTE7" />
+								</Input>
+							</IOData>
+							<ModuleInfo>
+								<Name TextId="IDT_M14_SM1__NAME" />
+								<InfoText TextId="IDT_M14_SM1__INFO_TEXT" />
+							</ModuleInfo>
+						</VirtualSubmoduleItem>
+					</VirtualSubmoduleList>
+				</ModuleItem>
+
+				<!-- M15_PROTECTIVE_FUNCTION_B_STATUS Size: 8 Bytes -->
+				<ModuleItem ID="M15_PROTECTIVE_FUNCTION_B_STATUS" ModuleIdentNumber="0x00000004">
+					<ModuleInfo CategoryRef="CATEGORY__INPUT_MODULE">
+						<Name TextId="IDT_M15__NAME" />
+						<InfoText TextId="IDT_M15__INFO_TEXT" />
+					</ModuleInfo>
+					<VirtualSubmoduleList>
+						<VirtualSubmoduleItem ID="M15_SM1" SubmoduleIdentNumber="0x0000000F" MayIssueProcessAlarm="false">
+							<IOData>
+								<Input>
+									<DataItem DataType="Unsigned8" UseAsBits="true" TextId="IDT__BYTE0">
+										<BitDataItem BitOffset="0" TextId="IDT_M15_SM0_IN__BIT0" />
+										<BitDataItem BitOffset="1" TextId="IDT_M15_SM0_IN__BIT1" />
+										<BitDataItem BitOffset="2" TextId="IDT_M15_SM0_IN__BIT2" />
+										<BitDataItem BitOffset="3" TextId="IDT_M15_SM0_IN__BIT3" />
+										<BitDataItem BitOffset="4" TextId="IDT_M15_SM0_IN__BIT4" />
+										<BitDataItem BitOffset="5" TextId="IDT_M15_SM0_IN__BIT5" />
+										<BitDataItem BitOffset="6" TextId="IDT_M15_SM0_IN__BIT6" />
+										<BitDataItem BitOffset="7" TextId="IDT_M15_SM0_IN__BIT7" />
+									</DataItem>
+
+									<DataItem DataType="Unsigned8" UseAsBits="true" TextId="IDT__BYTE1">
+										<BitDataItem BitOffset="0" TextId="IDT_M15_SM1_IN__BIT0" />
+										<BitDataItem BitOffset="1" TextId="IDT_M15_SM1_IN__BIT1" />
+										<BitDataItem BitOffset="2" TextId="IDT_M15_SM1_IN__BIT2" />
+										<BitDataItem BitOffset="3" TextId="IDT_M15_SM1_IN__BIT3" />
+										<BitDataItem BitOffset="4" TextId="IDT_M15_SM1_IN__BIT4" />
+										<BitDataItem BitOffset="5" TextId="IDT_M15_SM1_IN__BIT5" />
+										<BitDataItem BitOffset="6" TextId="IDT_M15_SM1_IN__BIT6" />
+										<BitDataItem BitOffset="7" TextId="IDT_M15_SM1_IN__BIT7" />
+									</DataItem>
+
+									<DataItem DataType="Unsigned8" UseAsBits="true" TextId="IDT__BYTE2">
+										<BitDataItem BitOffset="0" TextId="IDT_M15_SM2_IN__BIT0" />
+										<BitDataItem BitOffset="1" TextId="IDT_M15_SM2_IN__BIT1" />
+										<BitDataItem BitOffset="2" TextId="IDT_M15_SM2_IN__BIT2" />
+										<BitDataItem BitOffset="3" TextId="IDT_M15_SM2_IN__BIT3" />
+										<BitDataItem BitOffset="4" TextId="IDT_M15_SM2_IN__BIT4" />
+										<BitDataItem BitOffset="5" TextId="IDT_M15_SM2_IN__BIT5" />
+										<BitDataItem BitOffset="6" TextId="IDT_M15_SM2_IN__BIT6" />
+										<BitDataItem BitOffset="7" TextId="IDT_M15_SM2_IN__BIT7" />
+									</DataItem>
+
+									<DataItem DataType="Unsigned8" UseAsBits="true" TextId="IDT__BYTE3">
+										<BitDataItem BitOffset="0" TextId="IDT_M15_SM3_IN__BIT0" />
+										<BitDataItem BitOffset="1" TextId="IDT_M15_SM3_IN__BIT1" />
+										<BitDataItem BitOffset="2" TextId="IDT_M15_SM3_IN__BIT2" />
+										<BitDataItem BitOffset="3" TextId="IDT_M15_SM3_IN__BIT3" />
+										<BitDataItem BitOffset="4" TextId="IDT_M15_SM3_IN__BIT4" />
+										<BitDataItem BitOffset="5" TextId="IDT_M15_SM3_IN__BIT5" />
+										<BitDataItem BitOffset="6" TextId="IDT_M15_SM3_IN__BIT6" />
+										<BitDataItem BitOffset="7" TextId="IDT_M15_SM3_IN__BIT7" />
+									</DataItem>
+
+									<DataItem DataType="Unsigned8" UseAsBits="true" TextId="IDT__BYTE4">
+										<BitDataItem BitOffset="0" TextId="IDT_M15_SM4_IN__BIT0" />
+										<BitDataItem BitOffset="1" TextId="IDT_M15_SM4_IN__BIT1" />
+										<BitDataItem BitOffset="2" TextId="IDT_M15_SM4_IN__BIT2" />
+										<BitDataItem BitOffset="3" TextId="IDT_M15_SM4_IN__BIT3" />
+										<BitDataItem BitOffset="4" TextId="IDT_M15_SM4_IN__BIT4" />
+										<BitDataItem BitOffset="5" TextId="IDT_M15_SM4_IN__BIT5" />
+										<BitDataItem BitOffset="6" TextId="IDT_M15_SM4_IN__BIT6" />
+										<BitDataItem BitOffset="7" TextId="IDT_M15_SM4_IN__BIT7" />
+									</DataItem>
+
+									<DataItem DataType="Unsigned8" UseAsBits="true" TextId="IDT__BYTE5">
+										<BitDataItem BitOffset="0" TextId="IDT_M15_SM5_IN__BIT0" />
+										<BitDataItem BitOffset="1" TextId="IDT_M15_SM5_IN__BIT1" />
+										<BitDataItem BitOffset="2" TextId="IDT_M15_SM5_IN__BIT2" />
+										<BitDataItem BitOffset="3" TextId="IDT_M15_SM5_IN__BIT3" />
+										<BitDataItem BitOffset="4" TextId="IDT_M15_SM5_IN__BIT4" />
+										<BitDataItem BitOffset="5" TextId="IDT_M15_SM5_IN__BIT5" />
+										<BitDataItem BitOffset="6" TextId="IDT_M15_SM5_IN__BIT6" />
+										<BitDataItem BitOffset="7" TextId="IDT_M15_SM5_IN__BIT7" />
+									</DataItem>
+
+									<DataItem DataType="Unsigned8" UseAsBits="true" TextId="IDT__BYTE6">
+										<BitDataItem BitOffset="0" TextId="IDT_M15_SM6_IN__BIT0" />
+										<BitDataItem BitOffset="1" TextId="IDT_M15_SM6_IN__BIT1" />
+										<BitDataItem BitOffset="2" TextId="IDT_M15_SM6_IN__BIT2" />
+										<BitDataItem BitOffset="3" TextId="IDT_M15_SM6_IN__BIT3" />
+										<BitDataItem BitOffset="4" TextId="IDT_M15_SM6_IN__BIT4" />
+										<BitDataItem BitOffset="5" TextId="IDT_M15_SM6_IN__BIT5" />
+										<BitDataItem BitOffset="6" TextId="IDT_M15_SM6_IN__BIT6" />
+										<BitDataItem BitOffset="7" TextId="IDT_M15_SM6_IN__BIT7" />
+									</DataItem>
+
+									<DataItem DataType="Unsigned8" TextId="IDT_M15_SM1_IN__BYTE7" />
+								</Input>
+							</IOData>
+							<ModuleInfo>
+								<Name TextId="IDT_M15_SM1__NAME" />
+								<InfoText TextId="IDT_M15_SM1__INFO_TEXT" />
+							</ModuleInfo>
+						</VirtualSubmoduleItem>
+					</VirtualSubmoduleList>
+				</ModuleItem>
+
+				<!-- MODULE M16_PROTECTIVE_FUNCTION_A_VIOLATION Size: 8 Bytes -->
+				<ModuleItem ID="M16_PROTECTIVE_FUNCTION_A_VIOLATION" ModuleIdentNumber="0x00000004">
+					<ModuleInfo CategoryRef="CATEGORY__INPUT_MODULE">
+						<Name TextId="IDT_M16__NAME" />
+						<InfoText TextId="IDT_M16__INFO_TEXT" />
+					</ModuleInfo>
+					<VirtualSubmoduleList>
+						<VirtualSubmoduleItem ID="M16_SM1" SubmoduleIdentNumber="0x00000010" MayIssueProcessAlarm="false">
+							<IOData>
+								<Input>
+									<DataItem DataType="Integer16" TextId="IDT_M16_SM1_IN__BYTE0" />
+									<DataItem DataType="Unsigned16" TextId="IDT_M16_SM1_IN__BYTE2" />
+									<DataItem DataType="Integer16" TextId="IDT_M16_SM1_IN__BYTE4" />
+									<DataItem DataType="Unsigned16" TextId="IDT_M16_SM1_IN__BYTE6" />
+								</Input>
+							</IOData>
+							<ModuleInfo>
+								<Name TextId="IDT_M16_SM1__NAME" />
+								<InfoText TextId="IDT_M16_SM1__INFO_TEXT" />
+							</ModuleInfo>
+						</VirtualSubmoduleItem>
+					</VirtualSubmoduleList>
+				</ModuleItem>
+
+				<!-- MODULE M17_PROTECTIVE_FUNCTION_B_VIOLATION Size: 8 Bytes -->
+				<ModuleItem ID="M17_PROTECTIVE_FUNCTION_B_VIOLATION" ModuleIdentNumber="0x00000004">
+					<ModuleInfo CategoryRef="CATEGORY__INPUT_MODULE">
+						<Name TextId="IDT_M17__NAME" />
+						<InfoText TextId="IDT_M17__INFO_TEXT" />
+					</ModuleInfo>
+					<VirtualSubmoduleList>
+						<VirtualSubmoduleItem ID="M17_SM1" SubmoduleIdentNumber="0x00000011" MayIssueProcessAlarm="false">
+							<IOData>
+								<Input>
+									<DataItem DataType="Integer16" TextId="IDT_M17_SM1_IN__BYTE0" />
+									<DataItem DataType="Unsigned16" TextId="IDT_M17_SM1_IN__BYTE2" />
+									<DataItem DataType="Integer16" TextId="IDT_M17_SM1_IN__BYTE4" />
+									<DataItem DataType="Unsigned16" TextId="IDT_M17_SM1_IN__BYTE6" />
+								</Input>
+							</IOData>
+							<ModuleInfo>
+								<Name TextId="IDT_M17_SM1__NAME" />
+								<InfoText TextId="IDT_M17_SM1__INFO_TEXT" />
+							</ModuleInfo>
+						</VirtualSubmoduleItem>
+					</VirtualSubmoduleList>
+				</ModuleItem>
+			</ModuleList>
+			<!-- Alarms  -->
+			<ChannelDiagList>
+				<ChannelDiagItem ErrorType="16">
+					<Name TextId="IDT_NAME_DIAG_ERROR_TYPE_16" />
+					<Help TextId="IDT_HELP_DIAG_ERROR_TYPE_16" />
+				</ChannelDiagItem>
+				<ChannelDiagItem ErrorType="64">
+					<Name TextId="IDT_NAME_DIAG_ERROR_TYPE_64" />
+					<Help TextId="IDT_HELP_DIAG_ERROR_TYPE_64" />
+				</ChannelDiagItem>
+				<ChannelDiagItem ErrorType="65">
+					<Name TextId="IDT_NAME_DIAG_ERROR_TYPE_65" />
+					<Help TextId="IDT_HELP_DIAG_ERROR_TYPE_65" />
+				</ChannelDiagItem>
+				<ChannelDiagItem ErrorType="66">
+					<Name TextId="IDT_NAME_DIAG_ERROR_TYPE_66" />
+					<Help TextId="IDT_HELP_DIAG_ERROR_TYPE_66" />
+				</ChannelDiagItem>
+				<ChannelDiagItem ErrorType="67">
+					<Name TextId="IDT_NAME_DIAG_ERROR_TYPE_67" />
+					<Help TextId="IDT_HELP_DIAG_ERROR_TYPE_67" />
+				</ChannelDiagItem>
+				<ChannelDiagItem ErrorType="68">
+					<Name TextId="IDT_NAME_DIAG_ERROR_TYPE_68" />
+					<Help TextId="IDT_HELP_DIAG_ERROR_TYPE_68" />
+				</ChannelDiagItem>
+				<ChannelDiagItem ErrorType="69">
+					<Name TextId="IDT_NAME_DIAG_ERROR_TYPE_69" />
+					<Help TextId="IDT_HELP_DIAG_ERROR_TYPE_69" />
+				</ChannelDiagItem>
+				<ChannelDiagItem ErrorType="70">
+					<Name TextId="IDT_NAME_DIAG_ERROR_TYPE_70" />
+					<Help TextId="IDT_HELP_DIAG_ERROR_TYPE_70" />
+				</ChannelDiagItem>
+				<ChannelDiagItem ErrorType="71">
+					<Name TextId="IDT_NAME_DIAG_ERROR_TYPE_71" />
+					<Help TextId="IDT_HELP_DIAG_ERROR_TYPE_71" />
+				</ChannelDiagItem>
+				<ChannelDiagItem ErrorType="75">
+					<Name TextId="IDT_NAME_DIAG_ERROR_TYPE_75" />
+					<Help TextId="IDT_HELP_DIAG_ERROR_TYPE_75" />
+				</ChannelDiagItem>
+				<ChannelDiagItem ErrorType="76">
+					<Name TextId="IDT_NAME_DIAG_ERROR_TYPE_76" />
+					<Help TextId="IDT_HELP_DIAG_ERROR_TYPE_76" />
+				</ChannelDiagItem>
+				<ChannelDiagItem ErrorType="77">
+					<Name TextId="IDT_NAME_DIAG_ERROR_TYPE_77" />
+					<Help TextId="IDT_HELP_DIAG_ERROR_TYPE_77" />
+				</ChannelDiagItem>
+				<ChannelDiagItem ErrorType="78">
+					<Name TextId="IDT_NAME_DIAG_ERROR_TYPE_78" />
+					<Help TextId="IDT_HELP_DIAG_ERROR_TYPE_78" />
+				</ChannelDiagItem>
+				<ChannelDiagItem ErrorType="256">
+					<Name TextId="IDT_NAME_DIAG_ERROR_TYPE_256" />
+					<Help TextId="IDT_HELP_DIAG_ERROR_TYPE_256" />
+				</ChannelDiagItem>
+				<ChannelDiagItem ErrorType="258">
+					<Name TextId="IDT_NAME_DIAG_ERROR_TYPE_258" />
+					<Help TextId="IDT_HELP_DIAG_ERROR_TYPE_258" />
+				</ChannelDiagItem>
+				<ChannelDiagItem ErrorType="259">
+					<Name TextId="IDT_NAME_DIAG_ERROR_TYPE_259" />
+					<Help TextId="IDT_HELP_DIAG_ERROR_TYPE_259" />
+				</ChannelDiagItem>
+				<ChannelDiagItem ErrorType="260">
+					<Name TextId="IDT_NAME_DIAG_ERROR_TYPE_260" />
+					<Help TextId="IDT_HELP_DIAG_ERROR_TYPE_260" />
+				</ChannelDiagItem>
+				<ChannelDiagItem ErrorType="300">
+					<Name TextId="IDT_NAME_DIAG_ERROR_TYPE_300" />
+					<Help TextId="IDT_HELP_DIAG_ERROR_TYPE_300" />
+				</ChannelDiagItem>
+				<ChannelDiagItem ErrorType="301">
+					<Name TextId="IDT_NAME_DIAG_ERROR_TYPE_301" />
+					<Help TextId="IDT_HELP_DIAG_ERROR_TYPE_301" />
+				</ChannelDiagItem>
+				<ChannelDiagItem ErrorType="302">
+					<Name TextId="IDT_NAME_DIAG_ERROR_TYPE_302" />
+					<Help TextId="IDT_HELP_DIAG_ERROR_TYPE_302" />
+				</ChannelDiagItem>
+				<ChannelDiagItem ErrorType="303">
+					<Name TextId="IDT_NAME_DIAG_ERROR_TYPE_303" />
+					<Help TextId="IDT_HELP_DIAG_ERROR_TYPE_303" />
+				</ChannelDiagItem>
+				<ChannelDiagItem ErrorType="304">
+					<Name TextId="IDT_NAME_DIAG_ERROR_TYPE_304" />
+					<Help TextId="IDT_HELP_DIAG_ERROR_TYPE_304" />
+				</ChannelDiagItem>
+				<ChannelDiagItem ErrorType="305">
+					<Name TextId="IDT_NAME_DIAG_ERROR_TYPE_305" />
+					<Help TextId="IDT_HELP_DIAG_ERROR_TYPE_305" />
+				</ChannelDiagItem>
+				<ChannelDiagItem ErrorType="306">
+					<Name TextId="IDT_NAME_DIAG_ERROR_TYPE_306" />
+					<Help TextId="IDT_HELP_DIAG_ERROR_TYPE_306" />
+				</ChannelDiagItem>
+				<ChannelDiagItem ErrorType="307">
+					<Name TextId="IDT_NAME_DIAG_ERROR_TYPE_307" />
+					<Help TextId="IDT_HELP_DIAG_ERROR_TYPE_307" />
+				</ChannelDiagItem>
+				<ChannelDiagItem ErrorType="308">
+					<Name TextId="IDT_NAME_DIAG_ERROR_TYPE_308" />
+					<Help TextId="IDT_HELP_DIAG_ERROR_TYPE_308" />
+				</ChannelDiagItem>
+				<ChannelDiagItem ErrorType="309">
+					<Name TextId="IDT_NAME_DIAG_ERROR_TYPE_309" />
+					<Help TextId="IDT_HELP_DIAG_ERROR_TYPE_309" />
+				</ChannelDiagItem>
+				<ChannelDiagItem ErrorType="310">
+					<Name TextId="IDT_NAME_DIAG_ERROR_TYPE_310" />
+					<Help TextId="IDT_HELP_DIAG_ERROR_TYPE_310" />
+				</ChannelDiagItem>
+				<ChannelDiagItem ErrorType="311">
+					<Name TextId="IDT_NAME_DIAG_ERROR_TYPE_311" />
+					<Help TextId="IDT_HELP_DIAG_ERROR_TYPE_311" />
+				</ChannelDiagItem>
+				<ChannelDiagItem ErrorType="312">
+					<Name TextId="IDT_NAME_DIAG_ERROR_TYPE_312" />
+					<Help TextId="IDT_HELP_DIAG_ERROR_TYPE_312" />
+				</ChannelDiagItem>
+				<ChannelDiagItem ErrorType="313">
+					<Name TextId="IDT_NAME_DIAG_ERROR_TYPE_313" />
+					<Help TextId="IDT_HELP_DIAG_ERROR_TYPE_313" />
+				</ChannelDiagItem>
+				<ChannelDiagItem ErrorType="314">
+					<Name TextId="IDT_NAME_DIAG_ERROR_TYPE_314" />
+					<Help TextId="IDT_HELP_DIAG_ERROR_TYPE_314" />
+				</ChannelDiagItem>
+			</ChannelDiagList>
+
+            <LogBookEntryList>
+                <!--- PNIO error log entries -->
+                <LogBookEntryItem Status="8487423">                           
+                    <ErrorCode2List>                            
+                       <ErrorCode2Item ErrorCode2="0">
+                            <Name TextId="IDT_NAME_LOG_BOOK_ENTRY_RES_AVAIL" /> 
+                       </ErrorCode2Item>
+                       <ErrorCode2Item ErrorCode2="1">
+                            <Name TextId="IDT_NAME_LOG_BOOK_ENTRY_RES_NOTAVAIL" /> 
+                       </ErrorCode2Item>
+                       <ErrorCode2Item ErrorCode2="3">
+                            <Name TextId="IDT_NAME_LOG_BOOK_ENTRY_CFG_CHANGED" /> 
+                       </ErrorCode2Item>
+                    </ErrorCode2List>
+                </LogBookEntryItem>                     
+            </LogBookEntryList>
+
+			<GraphicsList>
+				<GraphicItem ID="IDG_DEVICE" GraphicFile="GSDML-0152-0016-RSL400" />
+			</GraphicsList>
+
+			<CategoryList>
+				<CategoryItem ID="CATEGORY__DAP_MODULE" TextId="DAP Module_CategoryName" />
+				<CategoryItem ID="CATEGORY__SAFETY_MODULE" TextId="IDT_Safety_Module" />
+				<CategoryItem ID="CATEGORY__SAFETY_MODULE_NEW" TextId="IDT_Safety_Module_new" />
+				<CategoryItem ID="CATEGORY__SAFETY_MODULE_NEW_PS2v6" TextId="IDT_Safety_Module_new_PS2v6" />
+				<CategoryItem ID="CATEGORY__INPUT_MODULE" TextId="IDT_Input Module_CategoryName" />
+				<CategoryItem ID="CATEGORY__OUTPUT_MODULE" TextId="IDT_Output Module_CategoryName" />
+			</CategoryList>
+			<ExternalTextList>
+				<!-- Text -->
+				<PrimaryLanguage>
+					<!-- en -->
+					<Text TextId="DAP Module_CategoryName" Value="Device Access Point Modules" />
+					<Text TextId="IDT_NAME_DAP" Value="RSL400P 4M12" />
+					<Text TextId="DIM_12_InfoText" Value="RSL400P Safety Laser Scanner" />
+					<Text TextId="IDT_NAME_DAP2" Value="RSL400P 4M12 V2" />
+					<Text TextId="DIM_22_InfoText" Value="RSL400P Safety Laser Scanner" />
+					<Text TextId="DeviceDescription_InfoText" Value="RSL400P Safety Laser Scanner" />
+					<Text TextId="IDT_Safety_Module" Value="[M1] Safe signal" />
+					<Text TextId="IDT_INFO_Safety_Module" Value="Info safety module" />
+					<Text TextId="IDT_Safety_Module_new" Value="[M11] Safe signal - PROFIsafe V2.4" />
+					<Text TextId="IDT_Safety_Module_new_PS2v6" Value="[M11] Safe signal - PROFIsafe V2.6" />
+					<Text TextId="IDT_INFO_Safety_Module_new" Value="Info new safety module - PROFIsafe V2.4" />
+					<Text TextId="IDT_INFO_Safety_Module_new_PS2v6" Value="Info new safety module - PROFIsafe V2.6" />
+					<!-- Byte -->
+					<Text TextId="IDT__BYTE0" Value="Byte 0" />
+					<Text TextId="IDT__BYTE1" Value="Byte 1" />
+					<Text TextId="IDT__BYTE2" Value="Byte 2" />
+					<Text TextId="IDT__BYTE3" Value="Byte 3" />
+					<!-- added bytes -->
+					<Text TextId="IDT__BYTE4" Value="Byte 4" />
+					<Text TextId="IDT__BYTE5" Value="Byte 5" />
+					<Text TextId="IDT__BYTE6" Value="Byte 6" />
+
+					<!-- Modules -->
+					<Text TextId="IDT_Input Module_CategoryName" Value="Input modules" />
+
+					<Text TextId="IDT_DATAITEM_Safety" Value="[M1] SAFE SIGNAL" />
+					<Text TextId="IDT_M1_SM0_IN__BIT0" Value="A-SAFE-WF-CLEAR" />
+					<Text TextId="IDT_M1_SM0_IN__BIT1" Value="A-SAFE-PF-CLEAR" />
+					<Text TextId="IDT_M1_SM0_IN__BIT2" Value="B-SAFE-WF-CLEAR" />
+					<Text TextId="IDT_M1_SM0_IN__BIT3" Value="B-SAFE-PF-CLEAR" />
+					<Text TextId="IDT_M1_SM0_IN__BIT4" Value="A-WF-VIO" />
+					<Text TextId="IDT_M1_SM0_IN__BIT5" Value="A-PF-VIO" />
+					<Text TextId="IDT_M1_SM0_IN__BIT6" Value="B-WF-VIO" />
+					<Text TextId="IDT_M1_SM0_IN__BIT7" Value="B-PF-VIO" />
+
+					<Text TextId="IDT_M1_SM1_IN__BIT0" Value="A-RES-WF" />
+					<Text TextId="IDT_M1_SM1_IN__BIT1" Value="A-RES" />
+					<Text TextId="IDT_M1_SM1_IN__BIT2" Value="B-RES-WF" />
+					<Text TextId="IDT_M1_SM1_IN__BIT3" Value="B-RES" />
+					<Text TextId="IDT_M1_SM1_IN__BIT4" Value="Reserve0" />
+					<Text TextId="IDT_M1_SM1_IN__BIT5" Value="Reserve1" />
+					<Text TextId="IDT_M1_SM1_IN__BIT6" Value="Reserve2" />
+					<Text TextId="IDT_M1_SM1_IN__BIT7" Value="Reserve3" />
+
+					<Text TextId="IDT_M1_SM2_IN__BIT0" Value="ERROR" />
+					<Text TextId="IDT_M1_SM2_IN__BIT1" Value="SCREEN" />
+					<Text TextId="IDT_M1_SM2_IN__BIT2" Value="FIELD PAIR" />
+					<Text TextId="IDT_M1_SM2_IN__BIT3" Value="Mode-PARK" />
+					<Text TextId="IDT_M1_SM2_IN__BIT4" Value="EA1" />
+					<Text TextId="IDT_M1_SM2_IN__BIT5" Value="EA2" />
+					<Text TextId="IDT_M1_SM2_IN__BIT6" Value="Reserve4" />
+					<Text TextId="IDT_M1_SM2_IN__BIT7" Value="Reserve5" />
+
+					<Text TextId="IDT_M1_SM0_OUT__BIT0" Value="Byte 0 Bit 0" />
+					<Text TextId="IDT_M1_SM0_OUT__BIT1" Value="Byte 0 Bit 1" />
+					<Text TextId="IDT_M1_SM0_OUT__BIT2" Value="Byte 0 Bit 2" />
+					<Text TextId="IDT_M1_SM0_OUT__BIT3" Value="Byte 0 Bit 3" />
+					<Text TextId="IDT_M1_SM0_OUT__BIT4" Value="Byte 0 Bit 4" />
+					<Text TextId="IDT_M1_SM0_OUT__BIT5" Value="Byte 0 Bit 5" />
+					<Text TextId="IDT_M1_SM0_OUT__BIT6" Value="Byte 0 Bit 6" />
+					<Text TextId="IDT_M1_SM0_OUT__BIT7" Value="Byte 0 Bit 7" />
+
+					<Text TextId="IDT_M1_SM1_OUT__BIT0" Value="Byte 1 Bit 0" />
+					<Text TextId="IDT_M1_SM1_OUT__BIT1" Value="Byte 1 Bit 1" />
+					<Text TextId="IDT_M1_SM1_OUT__BIT2" Value="Byte 1 Bit 2" />
+					<Text TextId="IDT_M1_SM1_OUT__BIT3" Value="Byte 1 Bit 3" />
+					<Text TextId="IDT_M1_SM1_OUT__BIT4" Value="Byte 1 Bit 4" />
+					<Text TextId="IDT_M1_SM1_OUT__BIT5" Value="Byte 1 Bit 5" />
+					<Text TextId="IDT_M1_SM1_OUT__BIT6" Value="Byte 1 Bit 6" />
+					<Text TextId="IDT_M1_SM1_OUT__BIT7" Value="Byte 1 Bit 7" />
+
+					<Text TextId="IDT_M1_SM2_OUT__BIT0" Value="Byte 2 Bit 0" />
+					<Text TextId="IDT_M1_SM2_OUT__BIT1" Value="Byte 2 Bit 1" />
+					<Text TextId="IDT_M1_SM2_OUT__BIT2" Value="Byte 2 Bit 2" />
+					<Text TextId="IDT_M1_SM2_OUT__BIT3" Value="Byte 2 Bit 3" />
+					<Text TextId="IDT_M1_SM2_OUT__BIT4" Value="Byte 2 Bit 4" />
+					<Text TextId="IDT_M1_SM2_OUT__BIT5" Value="Byte 2 Bit 5" />
+					<Text TextId="IDT_M1_SM2_OUT__BIT6" Value="Byte 2 Bit 6" />
+					<Text TextId="IDT_M1_SM2_OUT__BIT7" Value="Byte 2 Bit 7" />
+
+					<!--MODULE M2_SYSTEM_STATUS -->
+					<Text TextId="IDT_M2__INFO_TEXT" Value="System status" />
+					<Text TextId="IDT_M2__NAME" Value="[M2] System status" />
+					<Text TextId="IDT_M2_SM1__INFO_TEXT" Value="System status submodule" />
+					<Text TextId="IDT_M2_SM1__NAME" Value="System status" />
+
+					<Text TextId="IDT_M2_SM1_IN__BYTE0" Value="OP-MODE" />
+					<Text TextId="IDT_M2_SM1_IN__BIT0" Value="ERROR" />
+					<Text TextId="IDT_M2_SM1_IN__BIT1" Value="ALARM" />
+					<Text TextId="IDT_M2_SM1_IN__BIT2" Value="SCREEN" />
+					<Text TextId="IDT_M2_SM1_IN__BIT3" Value="FIELD PAIR" />
+					<Text TextId="IDT_M2_SM1_IN__BIT4" Value="MODE PARK" />
+					<Text TextId="IDT_M2_SM1_IN__BYTE2" Value="ALIGNMENT-H" />
+					<Text TextId="IDT_M2_SM1_IN__BYTE4" Value="ALIGNMENT-V" />
+					<Text TextId="IDT_M2_SM1_IN__BYTE6" Value="SYS-TEMP" />
+
+					<!-- M3_SCAN_NUMBER -->
+					<Text TextId="IDT_M3__INFO_TEXT" Value="Scan Number" />
+					<Text TextId="IDT_M3__NAME" Value="[M3] Scan Number" />
+					<Text TextId="IDT_M3_SM1__INFO_TEXT" Value="Scan Number Submodule" />
+					<Text TextId="IDT_M3_SM1__NAME" Value="Scan Number" />
+					<Text TextId="IDT_M3_SM1_IN__BYTE0" Value="SCAN" />
+
+					<!-- M4_REFLECTOR_STATUS -->
+					<Text TextId="IDT_M4__INFO_TEXT" Value="Reflector Status" />
+					<Text TextId="IDT_M4__NAME" Value="[M4] Reflector Status" />
+					<Text TextId="IDT_M4_SM1__INFO_TEXT" Value="Reflector Status" />
+					<Text TextId="IDT_M4_SM1__NAME" Value="Reflector Status" />
+
+					<Text TextId="IDT_M4_SM1_IN__BIT0" Value="RFL-SEG-1" />
+					<Text TextId="IDT_M4_SM1_IN__BIT1" Value="RFL-SEG-2" />
+					<Text TextId="IDT_M4_SM1_IN__BIT2" Value="RFL-SEG-3" />
+					<Text TextId="IDT_M4_SM1_IN__BIT3" Value="RFL-SEG-4" />
+
+					<!--M5_PROTECTIVE_FUNCTION_A_STATUS -->
+					<Text TextId="IDT_M5__INFO_TEXT" Value="Protective function A status" />
+					<Text TextId="IDT_M5__NAME" Value="[M5] Protective function A status" />
+					<Text TextId="IDT_M5_SM1__INFO_TEXT" Value="Protective function A status" />
+					<Text TextId="IDT_M5_SM1__NAME" Value="Protective function A status" />
+
+					<Text TextId="IDT_M5_SM1_IN__BIT0" Value="A-ACTIVE" />
+					<Text TextId="IDT_M5_SM1_IN__BIT1" Value="A-WF-VIO" />
+					<Text TextId="IDT_M5_SM1_IN__BIT2" Value="A-PF-VIO" />
+					<Text TextId="IDT_M5_SM1_IN__BIT3" Value="A-WF-VIO-SEG 1" />
+					<Text TextId="IDT_M5_SM1_IN__BIT4" Value="A-WF-VIO-SEG 2" />
+					<Text TextId="IDT_M5_SM1_IN__BIT5" Value="A-PF-VIO-SEG 1" />
+					<Text TextId="IDT_M5_SM1_IN__BIT6" Value="A-PF-VIO-SEG 2" />
+
+					<Text TextId="IDT_M5_SM2_IN__BIT0" Value="A-PAIR-SEL 1" />
+					<Text TextId="IDT_M5_SM2_IN__BIT4" Value="A-PAIR-SEL 2" />
+
+					<Text TextId="IDT_M5_SM3_IN__BIT0" Value="A-PAIR-SEL 3" />
+					<Text TextId="IDT_M5_SM3_IN__BIT6" Value="A-FP-SEL 1" />
+					<Text TextId="IDT_M5_SM3_IN__BIT7" Value="A-FP-SEL 2" />
+
+					<!--M6_PROTECTIVE_FUNCTION_B_STATUS-->
+					<Text TextId="IDT_M6__INFO_TEXT" Value="Protective function B status" />
+					<Text TextId="IDT_M6__NAME" Value="[M6] Protective function B status" />
+					<Text TextId="IDT_M6_SM1__INFO_TEXT" Value="Protective function B status" />
+					<Text TextId="IDT_M6_SM1__NAME" Value="Protective function B status" />
+
+					<Text TextId="IDT_M6_SM1_IN__BIT0" Value="B-ACTIVE" />
+					<Text TextId="IDT_M6_SM1_IN__BIT1" Value="B-WF-VIO" />
+					<Text TextId="IDT_M6_SM1_IN__BIT2" Value="B-PF-VIO" />
+					<Text TextId="IDT_M6_SM1_IN__BIT3" Value="B-WF-VIO-SEG 1" />
+					<Text TextId="IDT_M6_SM1_IN__BIT4" Value="B-WF-VIO-SEG 2" />
+					<Text TextId="IDT_M6_SM1_IN__BIT5" Value="B-PF-VIO-SEG 1" />
+					<Text TextId="IDT_M6_SM1_IN__BIT6" Value="B-PF-VIO-SEG 2" />
+
+					<Text TextId="IDT_M6_SM2_IN__BIT0" Value="B-PAIR-SEL 1" />
+					<Text TextId="IDT_M6_SM2_IN__BIT4" Value="B-PAIR-SEL 2" />
+
+					<Text TextId="IDT_M6_SM3_IN__BIT0" Value="B-PAIR-SEL 3" />
+					<Text TextId="IDT_M6_SM3_IN__BIT6" Value="B-FP-SEL 1" />
+					<Text TextId="IDT_M6_SM3_IN__BIT7" Value="B-FP-SEL 2" />
+
+					<!-- M7_PROTECTIVE_FUNCTION_A_VIOLATION-->
+					<Text TextId="IDT_M7__INFO_TEXT" Value="Protective function A violation" />
+					<Text TextId="IDT_M7__NAME" Value="[M7] Protective function A violation" />
+					<Text TextId="IDT_M7_SM1__INFO_TEXT" Value="Protective function A violation" />
+					<Text TextId="IDT_M7_SM1__NAME" Value="Protective function A violation" />
+
+					<Text TextId="IDT_M7_SM1_IN__BYTE0" Value="A-PF-VIO-ANGLE" />
+					<Text TextId="IDT_M7_SM1_IN__BYTE2" Value="A-PF-VIO-RADIUS" />
+					<Text TextId="IDT_M7_SM1_IN__BYTE4" Value="A-WF-VIO-ANGLE" />
+					<Text TextId="IDT_M7_SM1_IN__BYTE6" Value="A-WF-VIO-RADIUS" />
+
+					<!-- M8_PROTECTIVE_FUNCTION_B_VIOLATION-->
+					<Text TextId="IDT_M8__INFO_TEXT" Value="Protective function B violation" />
+					<Text TextId="IDT_M8__NAME" Value="[M8] Protective function B violation" />
+					<Text TextId="IDT_M8_SM1__INFO_TEXT" Value="Protective function B violation" />
+					<Text TextId="IDT_M8_SM1__NAME" Value="Protective function B violation" />
+
+					<Text TextId="IDT_M8_SM1_IN__BYTE0" Value="B-PF-VIO-ANGLE" />
+					<Text TextId="IDT_M8_SM1_IN__BYTE2" Value="B-PF-VIO-RADIUS" />
+					<Text TextId="IDT_M8_SM1_IN__BYTE4" Value="B-WF-VIO-ANGLE" />
+					<Text TextId="IDT_M8_SM1_IN__BYTE6" Value="B-WF-VIO-RADIUS" />
+
+					<!-- M11_SAFE_SIGNAL -->
+					<Text TextId="IDT_DATAITEM_Safety_new" Value="[M11] SAFE SIGNAL PROFIsafe V2.4" />
+					<Text TextId="IDT_DATAITEM_Safety_new_PS2v6" Value="[M11] SAFE SIGNAL PROFIsafe V2.6" />
+
+					<Text TextId="IDT_M11_SM0_IN__BIT0" Value="A-SAFE-WF-CLEAR" />
+					<Text TextId="IDT_M11_SM0_IN__BIT1" Value="A-SAFE-PF-CLEAR" />
+					<Text TextId="IDT_M11_SM0_IN__BIT2" Value="Reserve" />
+					<Text TextId="IDT_M11_SM0_IN__BIT3" Value="Reserve" />
+					<Text TextId="IDT_M11_SM0_IN__BIT4" Value="Reserve" />
+					<Text TextId="IDT_M11_SM0_IN__BIT5" Value="Reserve" />
+					<Text TextId="IDT_M11_SM0_IN__BIT6" Value="Reserve" />
+					<Text TextId="IDT_M11_SM0_IN__BIT7" Value="Reserve" />
+
+					<Text TextId="IDT_M11_SM1_IN__BIT0" Value="B-SAFE-WF-CLEAR" />
+					<Text TextId="IDT_M11_SM1_IN__BIT1" Value="B-SAFE-PF-CLEAR" />
+					<Text TextId="IDT_M11_SM1_IN__BIT2" Value="Reserve" />
+					<Text TextId="IDT_M11_SM1_IN__BIT3" Value="Reserve" />
+					<Text TextId="IDT_M11_SM1_IN__BIT4" Value="Reserve" />
+					<Text TextId="IDT_M11_SM1_IN__BIT5" Value="Reserve" />
+					<Text TextId="IDT_M11_SM1_IN__BIT6" Value="Reserve" />
+					<Text TextId="IDT_M11_SM1_IN__BIT7" Value="Reserve" />
+
+					<Text TextId="IDT_M11_SM2_IN__BYTE2" Value="Reserve" />
+					<Text TextId="IDT_M11_SM2_IN__BIT0" Value="Reserve" />
+					<Text TextId="IDT_M11_SM2_IN__BIT1" Value="Reserve" />
+					<Text TextId="IDT_M11_SM2_IN__BIT2" Value="Reserve" />
+					<Text TextId="IDT_M11_SM2_IN__BIT3" Value="Reserve" />
+					<Text TextId="IDT_M11_SM2_IN__BIT4" Value="Reserve" />
+					<Text TextId="IDT_M11_SM2_IN__BIT5" Value="Reserve" />
+					<Text TextId="IDT_M11_SM2_IN__BIT6" Value="Reserve" />
+					<Text TextId="IDT_M11_SM2_IN__BIT7" Value="Reserve" />
+
+					<Text TextId="IDT_M11_SM0_OUT__BIT0" Value="Byte 0 Bit 0" />
+					<Text TextId="IDT_M11_SM0_OUT__BIT1" Value="Byte 0 Bit 1" />
+					<Text TextId="IDT_M11_SM0_OUT__BIT2" Value="Byte 0 Bit 2" />
+					<Text TextId="IDT_M11_SM0_OUT__BIT3" Value="Byte 0 Bit 3" />
+					<Text TextId="IDT_M11_SM0_OUT__BIT4" Value="Byte 0 Bit 4" />
+					<Text TextId="IDT_M11_SM0_OUT__BIT5" Value="Byte 0 Bit 5" />
+					<Text TextId="IDT_M11_SM0_OUT__BIT6" Value="Byte 0 Bit 6" />
+					<Text TextId="IDT_M11_SM0_OUT__BIT7" Value="Byte 0 Bit 7" />
+
+					<Text TextId="IDT_M11_SM1_OUT__BIT0" Value="Byte 1 Bit 0" />
+					<Text TextId="IDT_M11_SM1_OUT__BIT1" Value="Byte 1 Bit 1" />
+					<Text TextId="IDT_M11_SM1_OUT__BIT2" Value="Byte 1 Bit 2" />
+					<Text TextId="IDT_M11_SM1_OUT__BIT3" Value="Byte 1 Bit 3" />
+					<Text TextId="IDT_M11_SM1_OUT__BIT4" Value="Byte 1 Bit 4" />
+					<Text TextId="IDT_M11_SM1_OUT__BIT5" Value="Byte 1 Bit 5" />
+					<Text TextId="IDT_M11_SM1_OUT__BIT6" Value="Byte 1 Bit 6" />
+					<Text TextId="IDT_M11_SM1_OUT__BIT7" Value="Byte 1 Bit 7" />
+
+					<Text TextId="IDT_M11_SM2_OUT__BIT0" Value="Byte 2 Bit 0" />
+					<Text TextId="IDT_M11_SM2_OUT__BIT1" Value="Byte 2 Bit 1" />
+					<Text TextId="IDT_M11_SM2_OUT__BIT2" Value="Byte 2 Bit 2" />
+					<Text TextId="IDT_M11_SM2_OUT__BIT3" Value="Byte 2 Bit 3" />
+					<Text TextId="IDT_M11_SM2_OUT__BIT4" Value="Byte 2 Bit 4" />
+					<Text TextId="IDT_M11_SM2_OUT__BIT5" Value="Byte 2 Bit 5" />
+					<Text TextId="IDT_M11_SM2_OUT__BIT6" Value="Byte 2 Bit 6" />
+					<Text TextId="IDT_M11_SM2_OUT__BIT7" Value="Byte 2 Bit 7" />
+
+					<Text TextId="IDT_M11_SM3_OUT__BIT0" Value="Byte 3 Bit 0" />
+					<Text TextId="IDT_M11_SM3_OUT__BIT1" Value="Byte 3 Bit 1" />
+					<Text TextId="IDT_M11_SM3_OUT__BIT2" Value="Byte 3 Bit 2" />
+					<Text TextId="IDT_M11_SM3_OUT__BIT3" Value="Byte 3 Bit 3" />
+					<Text TextId="IDT_M11_SM3_OUT__BIT4" Value="Byte 3 Bit 4" />
+					<Text TextId="IDT_M11_SM3_OUT__BIT5" Value="Byte 3 Bit 5" />
+					<Text TextId="IDT_M11_SM3_OUT__BIT6" Value="Byte 3 Bit 6" />
+					<Text TextId="IDT_M11_SM3_OUT__BIT7" Value="Byte 3 Bit 7" />
+
+					<Text TextId="IDT_M11_SM4_OUT__BIT0" Value="Byte 4 Bit 0" />
+					<Text TextId="IDT_M11_SM4_OUT__BIT1" Value="Byte 4 Bit 1" />
+					<Text TextId="IDT_M11_SM4_OUT__BIT2" Value="Byte 4 Bit 2" />
+					<Text TextId="IDT_M11_SM4_OUT__BIT3" Value="Byte 4 Bit 3" />
+					<Text TextId="IDT_M11_SM4_OUT__BIT4" Value="Byte 4 Bit 4" />
+					<Text TextId="IDT_M11_SM4_OUT__BIT5" Value="Byte 4 Bit 5" />
+					<Text TextId="IDT_M11_SM4_OUT__BIT6" Value="Byte 4 Bit 6" />
+					<Text TextId="IDT_M11_SM4_OUT__BIT7" Value="Byte 4 Bit 7" />
+
+					<Text TextId="IDT_M11_SM5_OUT__BIT0" Value="Byte 5 Bit 0" />
+					<Text TextId="IDT_M11_SM5_OUT__BIT1" Value="Byte 5 Bit 1" />
+					<Text TextId="IDT_M11_SM5_OUT__BIT2" Value="Byte 5 Bit 2" />
+					<Text TextId="IDT_M11_SM5_OUT__BIT3" Value="Byte 5 Bit 3" />
+					<Text TextId="IDT_M11_SM5_OUT__BIT4" Value="Byte 5 Bit 4" />
+					<Text TextId="IDT_M11_SM5_OUT__BIT5" Value="Byte 5 Bit 5" />
+					<Text TextId="IDT_M11_SM5_OUT__BIT6" Value="Byte 5 Bit 6" />
+					<Text TextId="IDT_M11_SM5_OUT__BIT7" Value="Byte 5 Bit 7" />
+
+					<Text TextId="IDT_M11_SM6_OUT__BYTE6" Value="Reserve" />
+					<Text TextId="IDT_M11_SM6_OUT__BIT0" Value="Reserve" />
+					<Text TextId="IDT_M11_SM6_OUT__BIT1" Value="Reserve" />
+					<Text TextId="IDT_M11_SM6_OUT__BIT2" Value="Reserve" />
+					<Text TextId="IDT_M11_SM6_OUT__BIT3" Value="Reserve" />
+					<Text TextId="IDT_M11_SM6_OUT__BIT4" Value="Reserve" />
+					<Text TextId="IDT_M11_SM6_OUT__BIT5" Value="Reserve" />
+					<Text TextId="IDT_M11_SM6_OUT__BIT6" Value="Reserve" />
+					<Text TextId="IDT_M11_SM6_OUT__BIT7" Value="Reserve" />
+
+					<!-- M12_SYSTEM_STATUS -->
+					<Text TextId="IDT_M12__INFO_TEXT" Value="System status" />
+					<Text TextId="IDT_M12__NAME" Value="[M12] System status" />
+					<Text TextId="IDT_M12_SM1__NAME" Value="System status" />
+					<Text TextId="IDT_M12_SM1__INFO_TEXT" Value="System status submodule" />
+
+					<Text TextId="IDT_M12_SM0_IN__BYTE0" Value="OP-MODE" />
+
+					<Text TextId="IDT_M12_SM1_IN__BIT0" Value="A-ACTIVE" />
+					<Text TextId="IDT_M12_SM1_IN__BIT1" Value="Reserve" />
+					<Text TextId="IDT_M12_SM1_IN__BIT2" Value="Reserve" />
+					<Text TextId="IDT_M12_SM1_IN__BIT3" Value="Reserve" />
+					<Text TextId="IDT_M12_SM1_IN__BIT4" Value="B-ACTIVE" />
+					<Text TextId="IDT_M12_SM1_IN__BIT5" Value="Reserve" />
+					<Text TextId="IDT_M12_SM1_IN__BIT6" Value="Reserve" />
+					<Text TextId="IDT_M12_SM1_IN__BIT7" Value="Reserve" />
+
+					<Text TextId="IDT_M12_SM2_IN__BIT0" Value="ERROR" />
+					<Text TextId="IDT_M12_SM2_IN__BIT1" Value="SCREEN WARN" />
+					<Text TextId="IDT_M12_SM2_IN__BIT2" Value="SCREEN" />
+					<Text TextId="IDT_M12_SM2_IN__BIT3" Value="FIELD PAIR" />
+					<Text TextId="IDT_M12_SM2_IN__BIT4" Value="Mode-PARK" />
+					<Text TextId="IDT_M12_SM2_IN__BIT5" Value="Reserve" />
+					<Text TextId="IDT_M12_SM2_IN__BIT6" Value="Reserve" />
+					<Text TextId="IDT_M12_SM2_IN__BIT7" Value="Reserve" />
+
+					<Text TextId="IDT_M12_SM3_IN__BIT0" Value="EA1" />
+					<Text TextId="IDT_M12_SM3_IN__BIT1" Value="EA2" />
+					<Text TextId="IDT_M12_SM3_IN__BIT2" Value="Reserve" />
+					<Text TextId="IDT_M12_SM3_IN__BIT3" Value="Reserve" />
+					<Text TextId="IDT_M12_SM3_IN__BIT4" Value="Reserve" />
+					<Text TextId="IDT_M12_SM3_IN__BIT5" Value="Reserve" />
+					<Text TextId="IDT_M12_SM3_IN__BIT6" Value="Reserve" />
+					<Text TextId="IDT_M12_SM3_IN__BIT7" Value="Reserve" />
+
+					<Text TextId="IDT_M12_SM4_IN__BIT0" Value="A-WF-VIO" />
+					<Text TextId="IDT_M12_SM4_IN__BIT1" Value="A-PF-VIO" />
+					<Text TextId="IDT_M12_SM4_IN__BIT2" Value="Reserve" />
+					<Text TextId="IDT_M12_SM4_IN__BIT3" Value="Reserve" />
+					<Text TextId="IDT_M12_SM4_IN__BIT4" Value="B-WF-VIO" />
+					<Text TextId="IDT_M12_SM4_IN__BIT5" Value="B-PF-VIO" />
+					<Text TextId="IDT_M12_SM4_IN__BIT6" Value="Reserve" />
+					<Text TextId="IDT_M12_SM4_IN__BIT7" Value="Reserve" />
+
+					<Text TextId="IDT_M12_SM5_IN__BIT0" Value="A-RES-WF" />
+					<Text TextId="IDT_M12_SM5_IN__BIT1" Value="A-RES" />
+					<Text TextId="IDT_M12_SM5_IN__BIT2" Value="Reserve" />
+					<Text TextId="IDT_M12_SM5_IN__BIT3" Value="Reserve" />
+					<Text TextId="IDT_M12_SM5_IN__BIT4" Value="B-RES-WF" />
+					<Text TextId="IDT_M12_SM5_IN__BIT5" Value="B-RES" />
+					<Text TextId="IDT_M12_SM5_IN__BIT6" Value="Reserve" />
+					<Text TextId="IDT_M12_SM5_IN__BIT7" Value="Reserve" />
+
+					<!-- M13_SYSTEM_DATA -->
+					<Text TextId="IDT_M13__INFO_TEXT" Value="System data" />
+					<Text TextId="IDT_M13__NAME" Value="[M13] System data" />
+					<Text TextId="IDT_M13_SM1__NAME" Value="System data" />
+					<Text TextId="IDT_M13_SM1__INFO_TEXT" Value="System data submodule" />
+
+					<Text TextId="IDT_M13_SM1_IN__BYTE0" Value="ALIGNMENT-H" />
+					<Text TextId="IDT_M13_SM1_IN__BYTE2" Value="ALIGNMENT-V" />
+					<Text TextId="IDT_M13_SM1_IN__BYTE4" Value="SYS-TEMP" />
+					<Text TextId="IDT_M13_SM1_IN__BYTE6" Value="VOLTAGE" />
+
+					<!-- M14_PROTECTIVE_FUNCTION_A_STATUS -->
+					<Text TextId="IDT_M14__INFO_TEXT" Value="Protective function A status" />
+					<Text TextId="IDT_M14__NAME" Value="[M14] Protective function A status" />
+					<Text TextId="IDT_M14_SM1__NAME" Value="Protective function A status" />
+					<Text TextId="IDT_M14_SM1__INFO_TEXT" Value="Protective function A status submodule" />
+
+					<Text TextId="IDT_M14_SM0_IN__BIT0" Value="A-WF-VIO" />
+					<Text TextId="IDT_M14_SM0_IN__BIT1" Value="A-PF-VIO" />
+					<Text TextId="IDT_M14_SM0_IN__BIT2" Value="Reserve" />
+					<Text TextId="IDT_M14_SM0_IN__BIT3" Value="Reserve" />
+					<Text TextId="IDT_M14_SM0_IN__BIT4" Value="A-ACTIVE" />
+					<Text TextId="IDT_M14_SM0_IN__BIT5" Value="Reserve" />
+					<Text TextId="IDT_M14_SM0_IN__BIT6" Value="Reserve" />
+					<Text TextId="IDT_M14_SM0_IN__BIT7" Value="Reserve" />
+
+					<Text TextId="IDT_M14_SM1_IN__BIT0" Value="A-RES-WF" />
+					<Text TextId="IDT_M14_SM1_IN__BIT1" Value="A-RES" />
+					<Text TextId="IDT_M14_SM1_IN__BIT2" Value="Reserve" />
+					<Text TextId="IDT_M14_SM1_IN__BIT3" Value="Reserve" />
+					<Text TextId="IDT_M14_SM1_IN__BIT4" Value="Reserve" />
+					<Text TextId="IDT_M14_SM1_IN__BIT5" Value="Reserve" />
+					<Text TextId="IDT_M14_SM1_IN__BIT6" Value="Reserve" />
+					<Text TextId="IDT_M14_SM1_IN__BIT7" Value="Reserve" />
+
+					<Text TextId="IDT_M14_SM2_IN__BIT0" Value="A-WF-VIO-SEG-1" />
+					<Text TextId="IDT_M14_SM2_IN__BIT1" Value="A-WF-VIO-SEG-2" />
+					<Text TextId="IDT_M14_SM2_IN__BIT2" Value="Reserve" />
+					<Text TextId="IDT_M14_SM2_IN__BIT3" Value="Reserve" />
+					<Text TextId="IDT_M14_SM2_IN__BIT4" Value="Reserve" />
+					<Text TextId="IDT_M14_SM2_IN__BIT5" Value="Reserve" />
+					<Text TextId="IDT_M14_SM2_IN__BIT6" Value="Reserve" />
+					<Text TextId="IDT_M14_SM2_IN__BIT7" Value="Reserve" />
+
+					<Text TextId="IDT_M14_SM3_IN__BIT0" Value="A-PF-VIO-SEG-1" />
+					<Text TextId="IDT_M14_SM3_IN__BIT1" Value="A-PF-VIO-SEG-2" />
+					<Text TextId="IDT_M14_SM3_IN__BIT2" Value="Reserve" />
+					<Text TextId="IDT_M14_SM3_IN__BIT3" Value="Reserve" />
+					<Text TextId="IDT_M14_SM3_IN__BIT4" Value="Reserve" />
+					<Text TextId="IDT_M14_SM3_IN__BIT5" Value="Reserve" />
+					<Text TextId="IDT_M14_SM3_IN__BIT6" Value="Reserve" />
+					<Text TextId="IDT_M14_SM3_IN__BIT7" Value="Reserve" />
+
+					<Text TextId="IDT_M14_SM4_IN__BIT0" Value="A-PAIR-SEL 1" />
+					<Text TextId="IDT_M14_SM4_IN__BIT1" Value="A-PAIR-SEL 1" />
+					<Text TextId="IDT_M14_SM4_IN__BIT2" Value="A-PAIR-SEL 1" />
+					<Text TextId="IDT_M14_SM4_IN__BIT3" Value="A-PAIR-SEL 1" />
+					<Text TextId="IDT_M14_SM4_IN__BIT4" Value="A-PAIR-SEL 2" />
+					<Text TextId="IDT_M14_SM4_IN__BIT5" Value="A-PAIR-SEL 2" />
+					<Text TextId="IDT_M14_SM4_IN__BIT6" Value="A-PAIR-SEL 2" />
+					<Text TextId="IDT_M14_SM4_IN__BIT7" Value="A-PAIR-SEL 2" />
+
+					<Text TextId="IDT_M14_SM5_IN__BIT0" Value="A-PAIR-SEL 3" />
+					<Text TextId="IDT_M14_SM5_IN__BIT1" Value="A-PAIR-SEL 3" />
+					<Text TextId="IDT_M14_SM5_IN__BIT2" Value="A-PAIR-SEL 3" />
+					<Text TextId="IDT_M14_SM5_IN__BIT3" Value="A-PAIR-SEL 3" />
+					<Text TextId="IDT_M14_SM5_IN__BIT4" Value="A-BANK-SEL" />
+					<Text TextId="IDT_M14_SM5_IN__BIT5" Value="A-BANK-SEL" />
+					<Text TextId="IDT_M14_SM5_IN__BIT6" Value="A-BANK-SEL" />
+					<Text TextId="IDT_M14_SM5_IN__BIT7" Value="A-BANK-SEL" />
+
+					<Text TextId="IDT_M14_SM6_IN__BIT0" Value="A-FP-SEL-1" />
+					<Text TextId="IDT_M14_SM6_IN__BIT1" Value="A-FP-SEL-2" />
+					<Text TextId="IDT_M14_SM6_IN__BIT2" Value="Reserve" />
+					<Text TextId="IDT_M14_SM6_IN__BIT3" Value="Reserve" />
+					<Text TextId="IDT_M14_SM6_IN__BIT4" Value="Reserve" />
+					<Text TextId="IDT_M14_SM6_IN__BIT5" Value="Reserve" />
+					<Text TextId="IDT_M14_SM6_IN__BIT6" Value="Reserve" />
+					<Text TextId="IDT_M14_SM6_IN__BIT7" Value="Reserve" />
+
+					<Text TextId="IDT_M14_SM1_IN__BYTE7" Value="Reserve" />
+
+					<!-- M15_PROTECTIVE_FUNCTION_B_STATUS -->
+					<Text TextId="IDT_M15__INFO_TEXT" Value="Protective function B status" />
+					<Text TextId="IDT_M15__NAME" Value="[M15] Protective function B status" />
+					<Text TextId="IDT_M15_SM1__NAME" Value="Protective function B status" />
+					<Text TextId="IDT_M15_SM1__INFO_TEXT" Value="Protective function B status submodule" />
+
+					<Text TextId="IDT_M15_SM0_IN__BIT0" Value="B-WF-VIO" />
+					<Text TextId="IDT_M15_SM0_IN__BIT1" Value="B-PF-VIO" />
+					<Text TextId="IDT_M15_SM0_IN__BIT2" Value="Reserve" />
+					<Text TextId="IDT_M15_SM0_IN__BIT3" Value="Reserve" />
+					<Text TextId="IDT_M15_SM0_IN__BIT4" Value="B-ACTIVE" />
+					<Text TextId="IDT_M15_SM0_IN__BIT5" Value="Reserve" />
+					<Text TextId="IDT_M15_SM0_IN__BIT6" Value="Reserve" />
+					<Text TextId="IDT_M15_SM0_IN__BIT7" Value="Reserve" />
+
+					<Text TextId="IDT_M15_SM1_IN__BIT0" Value="B-RES-WF" />
+					<Text TextId="IDT_M15_SM1_IN__BIT1" Value="B-RES" />
+					<Text TextId="IDT_M15_SM1_IN__BIT2" Value="Reserve" />
+					<Text TextId="IDT_M15_SM1_IN__BIT3" Value="Reserve" />
+					<Text TextId="IDT_M15_SM1_IN__BIT4" Value="Reserve" />
+					<Text TextId="IDT_M15_SM1_IN__BIT5" Value="Reserve" />
+					<Text TextId="IDT_M15_SM1_IN__BIT6" Value="Reserve" />
+					<Text TextId="IDT_M15_SM1_IN__BIT7" Value="Reserve" />
+
+					<Text TextId="IDT_M15_SM2_IN__BIT0" Value="B-WF-VIO-SEG-1" />
+					<Text TextId="IDT_M15_SM2_IN__BIT1" Value="B-WF-VIO-SEG-2" />
+					<Text TextId="IDT_M15_SM2_IN__BIT2" Value="Reserve" />
+					<Text TextId="IDT_M15_SM2_IN__BIT3" Value="Reserve" />
+					<Text TextId="IDT_M15_SM2_IN__BIT4" Value="Reserve" />
+					<Text TextId="IDT_M15_SM2_IN__BIT5" Value="Reserve" />
+					<Text TextId="IDT_M15_SM2_IN__BIT6" Value="Reserve" />
+					<Text TextId="IDT_M15_SM2_IN__BIT7" Value="Reserve" />
+
+					<Text TextId="IDT_M15_SM3_IN__BIT0" Value="B-PF-VIO-SEG-1" />
+					<Text TextId="IDT_M15_SM3_IN__BIT1" Value="B-PF-VIO-SEG-2" />
+					<Text TextId="IDT_M15_SM3_IN__BIT2" Value="Reserve" />
+					<Text TextId="IDT_M15_SM3_IN__BIT3" Value="Reserve" />
+					<Text TextId="IDT_M15_SM3_IN__BIT4" Value="Reserve" />
+					<Text TextId="IDT_M15_SM3_IN__BIT5" Value="Reserve" />
+					<Text TextId="IDT_M15_SM3_IN__BIT6" Value="Reserve" />
+					<Text TextId="IDT_M15_SM3_IN__BIT7" Value="Reserve" />
+
+					<Text TextId="IDT_M15_SM4_IN__BIT0" Value="B-PAIR-SEL 1" />
+					<Text TextId="IDT_M15_SM4_IN__BIT1" Value="B-PAIR-SEL 1" />
+					<Text TextId="IDT_M15_SM4_IN__BIT2" Value="B-PAIR-SEL 1" />
+					<Text TextId="IDT_M15_SM4_IN__BIT3" Value="B-PAIR-SEL 1" />
+					<Text TextId="IDT_M15_SM4_IN__BIT4" Value="B-PAIR-SEL 2" />
+					<Text TextId="IDT_M15_SM4_IN__BIT5" Value="B-PAIR-SEL 2" />
+					<Text TextId="IDT_M15_SM4_IN__BIT6" Value="B-PAIR-SEL 2" />
+					<Text TextId="IDT_M15_SM4_IN__BIT7" Value="B-PAIR-SEL 2" />
+
+					<Text TextId="IDT_M15_SM5_IN__BIT0" Value="B-PAIR-SEL 3" />
+					<Text TextId="IDT_M15_SM5_IN__BIT1" Value="B-PAIR-SEL 3" />
+					<Text TextId="IDT_M15_SM5_IN__BIT2" Value="B-PAIR-SEL 3" />
+					<Text TextId="IDT_M15_SM5_IN__BIT3" Value="B-PAIR-SEL 3" />
+					<Text TextId="IDT_M15_SM5_IN__BIT4" Value="B-BANK-SEL" />
+					<Text TextId="IDT_M15_SM5_IN__BIT5" Value="B-BANK-SEL" />
+					<Text TextId="IDT_M15_SM5_IN__BIT6" Value="B-BANK-SEL" />
+					<Text TextId="IDT_M15_SM5_IN__BIT7" Value="B-BANK-SEL" />
+
+					<Text TextId="IDT_M15_SM6_IN__BIT0" Value="B-FP-SEL-1" />
+					<Text TextId="IDT_M15_SM6_IN__BIT1" Value="B-FP-SEL-2" />
+					<Text TextId="IDT_M15_SM6_IN__BIT2" Value="Reserve" />
+					<Text TextId="IDT_M15_SM6_IN__BIT3" Value="Reserve" />
+					<Text TextId="IDT_M15_SM6_IN__BIT4" Value="Reserve" />
+					<Text TextId="IDT_M15_SM6_IN__BIT5" Value="Reserve" />
+					<Text TextId="IDT_M15_SM6_IN__BIT6" Value="Reserve" />
+					<Text TextId="IDT_M15_SM6_IN__BIT7" Value="Reserve" />
+
+					<Text TextId="IDT_M15_SM1_IN__BYTE7" Value="Reserve" />
+
+					<!-- M16_SYSTEM_DATA -->
+					<Text TextId="IDT_M16__INFO_TEXT" Value="Protective function A violation" />
+					<Text TextId="IDT_M16__NAME" Value="[M16] Protective function A violation" />
+					<Text TextId="IDT_M16_SM1__NAME" Value="Protective function A violation" />
+					<Text TextId="IDT_M16_SM1__INFO_TEXT" Value="Protective function A violation submodule" />
+
+					<Text TextId="IDT_M16_SM1_IN__BYTE0" Value="A-WF-VIO-ANGLE" />
+					<Text TextId="IDT_M16_SM1_IN__BYTE2" Value="A-WF-VIO-RADIUS" />
+					<Text TextId="IDT_M16_SM1_IN__BYTE4" Value="A-PF-VIO-ANGLE" />
+					<Text TextId="IDT_M16_SM1_IN__BYTE6" Value="A-PF-VIO-RADIUS" />
+
+					<!-- M17_SYSTEM_DATA -->
+					<Text TextId="IDT_M17__INFO_TEXT" Value="Protective function B violation" />
+					<Text TextId="IDT_M17__NAME" Value="[M17] Protective function B violation" />
+					<Text TextId="IDT_M17_SM1__NAME" Value="Protective function B violation" />
+					<Text TextId="IDT_M17_SM1__INFO_TEXT" Value="Protective function B violation submodule" />
+
+					<Text TextId="IDT_M17_SM1_IN__BYTE0" Value="B-WF-VIO-ANGLE" />
+					<Text TextId="IDT_M17_SM1_IN__BYTE2" Value="B-WF-VIO-RADIUS" />
+					<Text TextId="IDT_M17_SM1_IN__BYTE4" Value="B-PF-VIO-ANGLE" />
+					<Text TextId="IDT_M17_SM1_IN__BYTE6" Value="B-PF-VIO-RADIUS" />
+
+					<!-- Category -->
+					<Text TextId="IDT_Output Module_CategoryName" Value="Output modules" />
+					<Text TextId="IDT_PN-IO" Value="PN-IO" />
+					<Text TextId="IDT_PORT1" Value="Port 1" />
+					<Text TextId="IDT_PORT2" Value="Port 2" />
+					<Text TextId="IDT_X1" Value="X1" />
+					<Text TextId="IDT_X1P1" Value="X1 P1" />
+					<Text TextId="IDT_X1P2" Value="X1 P2" />
+
+					<!-- Alarms -->
+					<Text TextId="IDT_NAME_DIAG_ERROR_TYPE_16" Value="Error in PROFINET parameters" />
+					<Text TextId="IDT_HELP_DIAG_ERROR_TYPE_16" Value="Check the PROFINET parameters" />
+
+					<Text TextId="IDT_NAME_DIAG_ERROR_TYPE_64" Value="Secure target address (F_Dest_Add) does not match presetting" />
+					<Text TextId="IDT_HELP_DIAG_ERROR_TYPE_64" Value="Secure target address (F_Dest_Add) does not match the set address" />
+					<Text TextId="IDT_NAME_DIAG_ERROR_TYPE_65" Value="Invalid secure target address (F_Dest_Add)" />
+					<Text TextId="IDT_HELP_DIAG_ERROR_TYPE_65" Value="Secure target address (F_Dest_Add) is outside of the valid value range" />
+					<Text TextId="IDT_NAME_DIAG_ERROR_TYPE_66" Value="Invalid or error in secure source address (F_Source_Add)" />
+					<Text TextId="IDT_HELP_DIAG_ERROR_TYPE_66" Value="Check the value of the secure source address (F_Source_Add) in the configuration" />
+					<Text TextId="IDT_NAME_DIAG_ERROR_TYPE_67" Value="Value of PROFIsafe watchdog is 0ms (F_WD_Time)" />
+					<Text TextId="IDT_HELP_DIAG_ERROR_TYPE_67" Value="Check the value of the PROFIsafe watchdog (F_WD_Time) in the configuration" />
+					<Text TextId="IDT_NAME_DIAG_ERROR_TYPE_68" Value="Parameter 'F_SIL' is higher than the SIL of the device" />
+					<Text TextId="IDT_HELP_DIAG_ERROR_TYPE_68" Value="Check the set SIL value in the configuration" />
+					<Text TextId="IDT_NAME_DIAG_ERROR_TYPE_69" Value="Parameter 'F_CRC_Length' is not equal to the generated value" />
+					<Text TextId="IDT_HELP_DIAG_ERROR_TYPE_69" Value="Check the set value for F_CRC_Length in the configuration" />
+					<Text TextId="IDT_NAME_DIAG_ERROR_TYPE_70" Value="Invalid version of the F-parameters" />
+					<Text TextId="IDT_HELP_DIAG_ERROR_TYPE_70" Value="Use version 2 of the F-parameters" />
+					<Text TextId="IDT_NAME_DIAG_ERROR_TYPE_71" Value="Data of the received F-parameter block is invalid (CRC1 error)" />
+					<Text TextId="IDT_HELP_DIAG_ERROR_TYPE_71" Value="Reload the safety program and make sure that you are using an F-PLC" />
+					<Text TextId="IDT_NAME_DIAG_ERROR_TYPE_75" Value="Invalid iParameter (iParCRC error)" />
+					<Text TextId="IDT_HELP_DIAG_ERROR_TYPE_75" Value="iParameters are not supported by the scanner" />
+					<Text TextId="IDT_NAME_DIAG_ERROR_TYPE_76" Value="F_Block_ID is faulty" />
+					<Text TextId="IDT_HELP_DIAG_ERROR_TYPE_76" Value="Check the F_Block_ID in the configuration" />
+					<Text TextId="IDT_NAME_DIAG_ERROR_TYPE_77" Value="Transmission error: data is invalid (CRC2 error)" />
+					<Text TextId="IDT_HELP_DIAG_ERROR_TYPE_77" Value="Check the transmission quality of the PROFINET network" />
+					<Text TextId="IDT_NAME_DIAG_ERROR_TYPE_78" Value="Transmission error: timeout (F_WD_Time)" />
+					<Text TextId="IDT_HELP_DIAG_ERROR_TYPE_78" Value="Check the cycle time of the safety program and the set watchdog time (F_WD_Time)" />
+
+					<Text TextId="IDT_NAME_DIAG_ERROR_TYPE_256" Value="RSL400P not connected to PROFINET connection unit" />
+					<Text TextId="IDT_HELP_DIAG_ERROR_TYPE_256" Value="Plug an RSL400P into the PROFINET connection unit" />
+					<Text TextId="IDT_NAME_DIAG_ERROR_TYPE_258" Value="Line diagnosis" />
+					<Text TextId="IDT_HELP_DIAG_ERROR_TYPE_258" Value="The maximum cable length is 100�m for electrical cables and 50�m for optical cables" />
+					<Text TextId="IDT_NAME_DIAG_ERROR_TYPE_259" Value="Error in the PROFINET connection unit" />
+					<Text TextId="IDT_HELP_DIAG_ERROR_TYPE_259" Value="Check the entry in the diagnostics list" />
+					<Text TextId="IDT_NAME_DIAG_ERROR_TYPE_260" Value="Topology error detected" />
+					<Text TextId="IDT_HELP_DIAG_ERROR_TYPE_260" Value="Compare the wiring of the PROFINET participants with the configuration" />
+					<Text TextId="IDT_NAME_DIAG_ERROR_TYPE_300" Value="RSL400P display shows information" />
+					<Text TextId="IDT_HELP_DIAG_ERROR_TYPE_300" Value="Refer to diagnostic ID Ixxx from the diagnostics list of the scanner in the operating instructions" />
+					<Text TextId="IDT_NAME_DIAG_ERROR_TYPE_301" Value="RSL400P display shows application errors" />
+					<Text TextId="IDT_HELP_DIAG_ERROR_TYPE_301" Value="Refer to diagnostic ID Uxxx from the diagnostics list of the scanner in the operating instructions" />
+					<Text TextId="IDT_NAME_DIAG_ERROR_TYPE_302" Value="RSL400P display shows external errors" />
+					<Text TextId="IDT_HELP_DIAG_ERROR_TYPE_302" Value="Refer to diagnostic ID Exxx from the diagnostics list of the scanner in the operating instructions" />
+					<Text TextId="IDT_NAME_DIAG_ERROR_TYPE_303" Value="RSL400P display shows internal errors" />
+					<Text TextId="IDT_HELP_DIAG_ERROR_TYPE_303" Value="Internal error detected, create a service file and contact the Leuze electronic customer service" />
+					<Text TextId="IDT_NAME_DIAG_ERROR_TYPE_304" Value="RSL400P display shows configuration errors" />
+					<Text TextId="IDT_HELP_DIAG_ERROR_TYPE_304" Value="Refer to diagnostic ID Pxxx from the diagnostics list of the scanner in the operating instructions" />
+					<Text TextId="IDT_NAME_DIAG_ERROR_TYPE_305" Value="Internal temperature of RSL400P is too high" />
+					<Text TextId="IDT_HELP_DIAG_ERROR_TYPE_305" Value="Check whether the RSL400P is operated according to the permissible environmental conditions" />
+					<Text TextId="IDT_NAME_DIAG_ERROR_TYPE_306" Value="Internal temperature of RSL400P is too low" />
+					<Text TextId="IDT_HELP_DIAG_ERROR_TYPE_306" Value="Check whether the RSL400P is operated according to the permissible environmental conditions" />
+					<Text TextId="IDT_NAME_DIAG_ERROR_TYPE_307" Value="Warning: Optics cover soiled" />
+					<Text TextId="IDT_HELP_DIAG_ERROR_TYPE_307" Value="Clean the optics cover as soon as possible, sensor is still in safety mode" />
+					<Text TextId="IDT_NAME_DIAG_ERROR_TYPE_308" Value="Optics cover soiled, please clean" />
+					<Text TextId="IDT_HELP_DIAG_ERROR_TYPE_308" Value="Clean the optics cover and check the optics cover for damage" />
+					<Text TextId="IDT_NAME_DIAG_ERROR_TYPE_309" Value="RSL400P requires restart" />
+					<Text TextId="IDT_HELP_DIAG_ERROR_TYPE_309" Value="Perform a manual restart" />
+					<Text TextId="IDT_NAME_DIAG_ERROR_TYPE_310" Value="Glare from light source or another scanner" />
+					<Text TextId="IDT_HELP_DIAG_ERROR_TYPE_310" Value="Align the RSL400P so that it is not dazzled by any other light source or another scanner" />
+					<Text TextId="IDT_NAME_DIAG_ERROR_TYPE_311" Value="Input status is invalid" />
+					<Text TextId="IDT_HELP_DIAG_ERROR_TYPE_311" Value="Check the data in the process image" />
+					<Text TextId="IDT_NAME_DIAG_ERROR_TYPE_312" Value="Data for protective field switchover is invalid" />
+					<Text TextId="IDT_HELP_DIAG_ERROR_TYPE_312" Value="Check the data in the process image and the protective field switchovers set in the configuration" />
+					<Text TextId="IDT_NAME_DIAG_ERROR_TYPE_313" Value="Error in the sequence for protective field switchover" />
+					<Text TextId="IDT_HELP_DIAG_ERROR_TYPE_313" Value="Check the data in the process image and the sequence set in the configuration" />
+					<Text TextId="IDT_NAME_DIAG_ERROR_TYPE_314" Value="Warning: remaining life expectancy less than 20%" />
+					<Text TextId="IDT_HELP_DIAG_ERROR_TYPE_314" Value="Please replace the sensors as soon as possible to ensure system availability" />
+
+					<Text TextId="IDT_NAME_LOG_BOOK_ENTRY_RES_AVAIL"    Value="Ressource available again" />
+					<Text TextId="IDT_NAME_LOG_BOOK_ENTRY_RES_NOTAVAIL" Value="Ressource not available" />
+					<Text TextId="IDT_NAME_LOG_BOOK_ENTRY_CFG_CHANGED"  Value="Configuration changed" />
+				</PrimaryLanguage>
+				<!-- 
+				<Language xml:lang="de">
+				</Language>
+
+				<Language xml:lang="es">
+				</Language>
+
+				<Language xml:lang="fr">
+				</Language>
+
+				<Language xml:lang="it">
+				</Language> 
+				-->
+			</ExternalTextList>
+		</ApplicationProcess>
+	</ProfileBody>
+</ISO15745Profile>
