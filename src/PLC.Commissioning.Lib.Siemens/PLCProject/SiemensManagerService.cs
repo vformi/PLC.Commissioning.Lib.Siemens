@@ -7,72 +7,45 @@ using Siemens.Engineering;
 
 namespace PLC.Commissioning.Lib.Siemens.PLCProject
 {
-    /// <summary>
-    /// Implements the <see cref="ISiemensManagerService"/> to manage interactions with the Siemens TIA Portal.
-    /// </summary>
     public class SiemensManagerService : ISiemensManagerService
     {
-        /// <summary>
-        /// Represents the TIA Portal instance used for PLC interactions.
-        /// </summary>
         private TiaPortal _tiaPortal;
-
-        /// <summary>
-        /// Indicates whether the TIA Portal should be started with a user interface.
-        /// </summary>
         private bool _useUserInterface;
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="SiemensManagerService"/> class.
-        /// </summary>
-        /// <param name="useUserInterface">Specifies whether to use the TIA Portal with a user interface.</param>
+        // double resolve!! not needed! use pages 80/84 of the manual https://cache.industry.siemens.com/dl/files/533/109798533/att_1069908/v1/TIAPortalOpennessenUS_en-US.pdf
+
         public SiemensManagerService(bool useUserInterface)
         {
-            AppDomain.CurrentDomain.AssemblyResolve += ResolveAssembly;
+            Log.Information("Initializing SiemensManagerService...");
+
+            // Register the AssemblyResolve event early
+            AppDomain.CurrentDomain.AssemblyResolve += MyResolver;
             _useUserInterface = useUserInterface;
+
+            Log.Information("AssemblyResolve event attached.");
         }
 
-        /// <summary>
-        /// Starts the TIA Portal with the specified mode.
-        /// </summary>
         public void StartTIA()
         {
+            Log.Information("Starting TIA Portal...");
+
+            // Delayed logic to start TIA Portal until after the resolver is registered
+            RunTiaPortal();
+        }
+
+        private void RunTiaPortal()
+        {
             TiaPortalMode mode = _useUserInterface ? TiaPortalMode.WithUserInterface : TiaPortalMode.WithoutUserInterface;
-            _tiaPortal = new TiaPortal(mode);
-            Log.Information($"TIA Portal started with{(mode == TiaPortalMode.WithUserInterface ? "" : "out")} user interface.");
-        }
 
-        /// <summary>
-        /// Gets the current instance of the TIA Portal.
-        /// </summary>
-        /// <returns>The <see cref="TiaPortal"/> instance.</returns>
-        /// <exception cref="InvalidOperationException">Thrown when the TIA Portal is not started.</exception>
-        public TiaPortal GetTiaPortal()
-        {
-            if (_tiaPortal is null)
+            using (_tiaPortal = new TiaPortal(mode))
             {
-                throw new InvalidOperationException("TIA Portal is not started.");
+                Log.Information($"TIA Portal started with{(mode == TiaPortalMode.WithUserInterface ? "" : "out")} user interface.");
+
+                // Further implementation of your TIA logic can be added here.
             }
-
-            return _tiaPortal;
         }
 
-        /// <summary>
-        /// Releases all resources used by the <see cref="SiemensManagerService"/> instance.
-        /// </summary>
-        public void Dispose()
-        {
-            _tiaPortal?.Dispose();
-            AppDomain.CurrentDomain.AssemblyResolve -= ResolveAssembly;
-        }
-
-        /// <summary>
-        /// Resolves assembly references for the TIA Portal.
-        /// </summary>
-        /// <param name="sender">The source of the event.</param>
-        /// <param name="args">The <see cref="ResolveEventArgs"/> that contains the event data.</param>
-        /// <returns>The loaded assembly, or null if the assembly could not be found.</returns>
-        private static Assembly ResolveAssembly(object sender, ResolveEventArgs args)
+        private static Assembly MyResolver(object sender, ResolveEventArgs args)
         {
             int index = args.Name.IndexOf(',');
             if (index == -1)
@@ -80,14 +53,29 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject
                 return null;
             }
             string name = args.Name.Substring(0, index) + ".dll";
-            string tiaPortalPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "TIA_Portal_Path"); // Adjust path as needed
-            string path = Path.Combine(tiaPortalPath, name);
+            // Edit the following path according to your installed version of TIA Portal
+            string path = Path.Combine(@"C:\Program Files\Siemens\Automation\Portal V17\PublicAPI\V17\", name);
             string fullPath = Path.GetFullPath(path);
             if (File.Exists(fullPath))
             {
                 return Assembly.LoadFrom(fullPath);
             }
             return null;
+        }
+
+        public TiaPortal GetTiaPortal()
+        {
+            if (_tiaPortal == null)
+            {
+                throw new InvalidOperationException("TIA Portal has not been started.");
+            }
+            return _tiaPortal;
+        }
+
+        public void Dispose()
+        {
+            _tiaPortal?.Dispose();
+            AppDomain.CurrentDomain.AssemblyResolve -= MyResolver;
         }
     }
 }

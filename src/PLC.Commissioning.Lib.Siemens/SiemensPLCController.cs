@@ -13,9 +13,10 @@ using Siemens.Engineering;
 using Siemens.Engineering.Download;
 using Siemens.Engineering.Online;
 using Siemens.Engineering.HW;
-using System.Reflection;
 using Siemens.Engineering.HW.Features;
 using PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.GSD.Abstractions;
+using PLC.Commissioning.Lib.Siemens.PLCProject.JsonRPC.Controllers;
+using Siemens.Simatic.S7.Webserver.API.Enums;
 
 namespace PLC.Commissioning.Lib.Siemens
 {
@@ -72,6 +73,11 @@ namespace PLC.Commissioning.Lib.Siemens
         /// Handles UI interactions during download operations.
         /// </summary>
         private UIDownloadHandler _uiDownloadHandler;
+
+        /// <summary>
+        /// Handles webserver interactions for start and stop procedures
+        /// </summary>
+        private RPCController _rpcController;
 
         // Internal variables to hold configuration values
 
@@ -242,6 +248,15 @@ namespace PLC.Commissioning.Lib.Siemens
                 if (!_controller.TryConfigureNetwork(_networkCard, 1, "1 X1"))
                 {
                     Log.Error("Initialization failed: Network configuration was unsuccessful.");
+                    return false;
+                }
+
+                // Initialize the RPCController synchronously
+                _rpcController = InitializeRpcController(cpuIP);
+
+                if (_rpcController == null)
+                {
+                    Log.Error("Initialization failed: RPCController initialization was unsuccessful.");
                     return false;
                 }
 
@@ -581,7 +596,6 @@ namespace PLC.Commissioning.Lib.Siemens
             }
         }
 
-
         /// <summary>
         /// Sets device parameters for a specified module.
         /// </summary>
@@ -711,7 +725,6 @@ namespace PLC.Commissioning.Lib.Siemens
             }
         }
 
-
         /// <summary>
         /// Starts the PLC.
         /// </summary>
@@ -720,9 +733,30 @@ namespace PLC.Commissioning.Lib.Siemens
         {
             try
             {
+                if (_rpcController != null)
+                {
+                    // Attempt to start the PLC using the async method synchronously
+                    _rpcController.PlcController.ChangeOperatingModeAsync(ApiPlcOperatingMode.Run).GetAwaiter().GetResult();
+                    Log.Information("PLC started successfully using ChangeOperatingModeAsync.");
+                    return true;
+                }
+                else
+                {
+                    Log.Warning("RPCController is not initialized. Falling back to the original Start method.");
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"Async Start operation failed: {ex.Message}");
+                Log.Warning("Falling back to the original Start method.");
+            }
+
+            // Fallback to the original Start method
+            try
+            {
                 if (_safety)
                 {
-                    _controller.GoOnline(); // figure out how to handle this 
+                    _controller.GoOnline(); // Figure out how to handle this
                     return _uiDownloadHandler.StartPLC();
                 }
                 else
@@ -732,7 +766,7 @@ namespace PLC.Commissioning.Lib.Siemens
             }
             catch (Exception ex)
             {
-                Log.Error($"Start operation failed: {ex.Message}");
+                Log.Error($"Fallback Start operation failed: {ex.Message}");
                 return false;
             }
         }
@@ -745,9 +779,30 @@ namespace PLC.Commissioning.Lib.Siemens
         {
             try
             {
+                if (_rpcController != null)
+                {
+                    // Attempt to stop the PLC using the async method synchronously
+                    _rpcController.PlcController.ChangeOperatingModeAsync(ApiPlcOperatingMode.Stop).GetAwaiter().GetResult();
+                    Log.Information("PLC stopped successfully using ChangeOperatingModeAsync.");
+                    return true;
+                }
+                else
+                {
+                    Log.Warning("RPCController is not initialized. Falling back to the original Stop method.");
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"Async Stop operation failed: {ex.Message}");
+                Log.Warning("Falling back to the original Stop method.");
+            }
+
+            // Fallback to the original Stop method
+            try
+            {
                 if (_safety)
                 {
-                    _controller.GoOnline();
+                    _controller.GoOnline(); // Figure out how to handle this
                     return _uiDownloadHandler.StopPLC();
                 }
                 else
@@ -757,7 +812,7 @@ namespace PLC.Commissioning.Lib.Siemens
             }
             catch (Exception ex)
             {
-                Log.Error($"Stop operation failed: {ex.Message}");
+                Log.Error($"Fallback Stop operation failed: {ex.Message}");
                 return false;
             }
         }
@@ -1016,6 +1071,7 @@ namespace PLC.Commissioning.Lib.Siemens
             Dispose(false);
         }
 
+        #region Private Functions
         /// <summary>
         /// Checks if the device information from the provided module matches the expected device attributes.
         /// </summary>
@@ -1121,5 +1177,25 @@ namespace PLC.Commissioning.Lib.Siemens
             var parameterHandler = new ParameterHandler(moduleItem);
             return parameterHandler.SetModuleData(module, parametersToSet);
         }
+
+        /// <summary>
+        /// Initializes the RPCController for PLC communication.
+        /// </summary>
+        /// <param name="cpuIP">The IP address of the CPU.</param>
+        /// <returns>An initialized instance of <see cref="RPCController"/>.</returns>
+        /// <exception cref="Exception">Thrown when the RPCController initialization fails.</exception>
+        private RPCController InitializeRpcController(string cpuIP)
+        {
+            try
+            {
+                return RPCController.InitializeAsync(cpuIP, "Everybody", "").GetAwaiter().GetResult();
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"Failed to initialize RPCController: {ex.Message}");
+                return null;
+            }
+        }
+        #endregion
     }
 }
