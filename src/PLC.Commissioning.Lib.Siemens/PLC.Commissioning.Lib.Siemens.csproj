@@ -10,11 +10,11 @@
     <PackageReference Include="FlaUI.UIA3" Version="4.0.0" />
     <PackageReference Include="Serilog" Version="4.0.1" />
     <PackageReference Include="Siemens.Collaboration.Net.TiaPortal.Packages.Openness" Version="17.0.1685432625" />
-    <PackageReference Include="Siemens.Simatic.S7.Webserver.API" Version="2.2.14" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\Abstractions\src\PLC.Commissioning.Lib.Abstractions\PLC.Commissioning.Lib.Abstractions.csproj" />
+    <ProjectReference Include="..\..\..\Webserver\src\PLC.Commissioning.Lib.Siemens.Webserver\PLC.Commissioning.Lib.Siemens.Webserver.csproj" />
   </ItemGroup>
 	
 </Project>

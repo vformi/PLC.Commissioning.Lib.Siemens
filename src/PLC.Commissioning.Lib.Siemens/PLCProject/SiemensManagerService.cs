@@ -16,13 +16,9 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject
 
         public SiemensManagerService(bool useUserInterface)
         {
-            Log.Information("Initializing SiemensManagerService...");
-
-            // Register the AssemblyResolve event early
-            AppDomain.CurrentDomain.AssemblyResolve += MyResolver;
+            // Register the AssemblyResolve event early (Commented out as it's not needed)
+            // AppDomain.CurrentDomain.AssemblyResolve += MyResolver;
             _useUserInterface = useUserInterface;
-
-            Log.Information("AssemblyResolve event attached.");
         }
 
         public void StartTIA()
@@ -75,7 +71,7 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject
         public void Dispose()
         {
             _tiaPortal?.Dispose();
-            AppDomain.CurrentDomain.AssemblyResolve -= MyResolver;
+            // AppDomain.CurrentDomain.AssemblyResolve -= MyResolver;
         }
     }
 }

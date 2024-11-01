@@ -15,7 +15,7 @@ using Siemens.Engineering.Online;
 using Siemens.Engineering.HW;
 using Siemens.Engineering.HW.Features;
 using PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.GSD.Abstractions;
-using PLC.Commissioning.Lib.Siemens.PLCProject.JsonRPC.Controllers;
+using PLC.Commissioning.Lib.Siemens.Webserver.Controllers;
 using Siemens.Simatic.S7.Webserver.API.Enums;
 
 namespace PLC.Commissioning.Lib.Siemens
