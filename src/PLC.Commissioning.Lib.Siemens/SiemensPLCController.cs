@@ -181,7 +181,7 @@ namespace PLC.Commissioning.Lib.Siemens
                 _manager = new SiemensManagerService(_safety);
                 _manager.StartTIA();
 
-                _tiaPortalInstance = _manager.GetTiaPortal();
+                _tiaPortalInstance = _manager.tiaPortal;
                 _projectHandler = new ProjectHandlerService(_tiaPortalInstance);
 
                 // Check if the project file exists
@@ -230,6 +230,7 @@ namespace PLC.Commissioning.Lib.Siemens
                     Log.Error("Failed to initialize IOSystemHandler.");
                     return false;
                 }
+
                 string cpuIP = ioSystemHandler.GetPLCIPAddress(_cpu);
                 if (!networkConfigurator.PingIpAddress(_networkCard, cpuIP))
                 {
@@ -254,12 +255,6 @@ namespace PLC.Commissioning.Lib.Siemens
                 // Initialize the RPCController synchronously
                 _rpcController = InitializeRpcController(cpuIP);
 
-                if (_rpcController == null)
-                {
-                    Log.Error("Initialization failed: RPCController initialization was unsuccessful.");
-                    return false;
-                }
-
                 // issue going from safety project to non safety and back ... implemented workaround to simply ping the PL
                 // keeping this here for a while
                 /*
@@ -280,6 +275,13 @@ namespace PLC.Commissioning.Lib.Siemens
                 */
 
                 return true;
+            }
+            catch (EngineeringSecurityException ex)
+            {
+                Log.Error(
+                    "EngineeringSecurityException: Ensure the user '{User}' is a member of the Siemens TIA Openness group.",
+                    Environment.UserName);
+                return false;
             }
             catch (Exception ex)
             {
@@ -1182,13 +1184,23 @@ namespace PLC.Commissioning.Lib.Siemens
         /// Initializes the RPCController for PLC communication.
         /// </summary>
         /// <param name="cpuIP">The IP address of the CPU.</param>
-        /// <returns>An initialized instance of <see cref="RPCController"/>.</returns>
-        /// <exception cref="Exception">Thrown when the RPCController initialization fails.</exception>
+        /// <returns>An initialized instance of <see cref="RPCController"/> or null if required methods are missing.</returns>
         private RPCController InitializeRpcController(string cpuIP)
         {
             try
             {
-                return RPCController.InitializeAsync(cpuIP, "Everybody", "").GetAwaiter().GetResult();
+                var rpcController = RPCController.InitializeAsync(cpuIP, "Everybody", "")
+                    .GetAwaiter().GetResult();
+                Log.Information("RPCController initialized successfully.");
+
+                // Validate the required methods within the RPCController instance
+                if (!rpcController.HasRequiredMethods(new[] { "Plc.ReadOperatingMode", "Plc.RequestChangeOperatingMode" }))
+                {
+                    Log.Warning("Required methods for RPCController are missing. Falling back to standard use case.");
+                    return null; // Perform fallback if required methods are not available
+                }
+
+                return rpcController;
             }
             catch (Exception ex)
             {

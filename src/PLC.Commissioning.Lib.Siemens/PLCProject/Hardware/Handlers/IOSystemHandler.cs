@@ -235,25 +235,44 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.Handlers
         }
 
         /// <summary>
-        /// Gets the IP address for the PLC.
+        /// Gets the IP address for the PLC by identifying the appropriate <see cref="DeviceItem"/> based on the 'InterfaceOperatingMode' attribute.
         /// </summary>
-        /// <param name="cpu">The <see cref="DeviceItem"/> for which to set the IP address.</param>
-        /// <returns>the IP address as string if it was possible to get it othervise null.</returns>
+        /// <param name="cpu">The <see cref="DeviceItem"/> that represents the PLC device.</param>
+        /// <returns>The IP address as a string if found; otherwise, null.</returns>
         public string GetPLCIPAddress(DeviceItem cpu)
         {
             try
             {
-                // Get the network interface for the device
-                NetworkInterface networkInterface = cpu.DeviceItems[2].GetService<NetworkInterface>(); // little bit hardcoded, but should work most of the times in our case 
-                // if not we will implement a more sophisticated solution of how to get the DeviceItem (PROFINET interface)
+                // Iterate through all DeviceItems to find the one with the required attribute
+                foreach (var deviceItem in cpu.DeviceItems)
+                {
+                    string operatingMode = null;
+                    try
+                    {
+                        operatingMode = deviceItem.GetAttribute("InterfaceOperatingMode")?.ToString();
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Debug($"Skipping DeviceItem {deviceItem.Name} as it does not support 'InterfaceOperatingMode'");
+                        continue;
+                    }
 
-                // Assuming there is a Node object associated with the network interface
-                Node node = networkInterface.Nodes[0]; // Node (IE1)
+                    if (!string.IsNullOrEmpty(operatingMode) && operatingMode == "IoController")
+                    {
+                        // Get the network interface for the identified DeviceItem
+                        var networkInterface = deviceItem.GetService<NetworkInterface>();
+                        if (networkInterface != null && networkInterface.Nodes.Count > 0)
+                        {
+                            var node = networkInterface.Nodes[0];
+                            string address = node.GetAttribute("Address").ToString();
+                            Log.Information($"Device {cpu.Name} has IP: {address}");
+                            return address;
+                        }
+                    }
+                }
 
-                string address = node.GetAttribute("Address").ToString();
-
-                Log.Information($"Device {cpu.Name} has IP: {address}.");
-                return address;
+                Log.Warning($"No DeviceItem with 'InterfaceOperatingMode=IoController' found for device: {cpu.Name}");
+                return null;
             }
             catch (Exception ex)
             {
