@@ -9,5 +9,10 @@
         /// Gets the parameter record data item associated with the device.
         /// </summary>
         ParameterRecordDataItem ParameterRecordDataItem { get; }
+
+        /// <summary>
+        /// Gets the F parameter record data item associated with the device.
+        /// </summary>
+        FParameterRecordDataItem FParameterRecordDataItem { get; }
     }
 }

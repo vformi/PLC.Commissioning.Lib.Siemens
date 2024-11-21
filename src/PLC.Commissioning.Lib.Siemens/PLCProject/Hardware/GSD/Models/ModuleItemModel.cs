@@ -10,5 +10,6 @@
         public string Name { get; set; }
         public string InfoText { get; set; }
         public ParameterRecordDataItem ParameterRecordDataItem { get; set; }
+        public FParameterRecordDataItem FParameterRecordDataItem { get; set; }
     }
 }

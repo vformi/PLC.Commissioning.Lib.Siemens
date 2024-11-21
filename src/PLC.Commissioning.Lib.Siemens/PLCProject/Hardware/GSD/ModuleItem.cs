@@ -21,12 +21,16 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.GSD
         /// Gets the model containing the parsed module item information.
         /// </summary>
         public ModuleItemModel Model { get; private set; }
-
+        
         /// <summary>
-        /// Gets the parameter record data item associated with the module item model.
+        /// Gets the parameter record data item associated with the device access point model.
         /// </summary>
         public ParameterRecordDataItem ParameterRecordDataItem => Model.ParameterRecordDataItem;
-
+        
+        /// <summary>
+        /// Gets the F parameter record data item associated with the device access point model.
+        /// </summary>
+        public FParameterRecordDataItem FParameterRecordDataItem => Model.FParameterRecordDataItem;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ModuleItem"/> class with the specified GSD handler.
@@ -57,9 +61,8 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.GSD
                 Model.InfoText = _gsdHandler.GetExternalText(infoTextId);
             }
 
+            // Parse ParameterRecordDataItem
             XmlNode parameterRecordDataItemNode = moduleItemNode.SelectSingleNode("gsd:VirtualSubmoduleList/gsd:VirtualSubmoduleItem/gsd:RecordDataList/gsd:ParameterRecordDataItem", _gsdHandler.nsmgr);
-
-            // Check if parameters exist
             if (parameterRecordDataItemNode != null)
             {
                 Model.ParameterRecordDataItem = new ParameterRecordDataItem(_gsdHandler);
@@ -67,8 +70,19 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.GSD
             }
             else
             {
-                // Handle case where no parameters are available
-                Model.ParameterRecordDataItem = null; 
+                Model.ParameterRecordDataItem = null;
+            }
+
+            // Parse FParameterRecordDataItem
+            XmlNode fParameterRecordDataItemNode = moduleItemNode.SelectSingleNode("gsd:VirtualSubmoduleList/gsd:VirtualSubmoduleItem/gsd:RecordDataList/gsd:F_ParameterRecordDataItem", _gsdHandler.nsmgr);
+            if (fParameterRecordDataItemNode != null)
+            {
+                Model.FParameterRecordDataItem = new FParameterRecordDataItem(_gsdHandler);
+                Model.FParameterRecordDataItem.ParseFParameterRecordDataItem(fParameterRecordDataItemNode);
+            }
+            else
+            {
+                Model.FParameterRecordDataItem = null;
             }
         }
 
@@ -82,14 +96,16 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.GSD
 
             sb.AppendLine($"Name: {Model.Name}");
             sb.AppendLine($"Info Text: {Model.InfoText}");
-
+            
+            if (Model.ParameterRecordDataItem != null) sb.AppendLine($"Parameters:");
             if (Model.ParameterRecordDataItem != null)
             {
                 sb.AppendLine(Model.ParameterRecordDataItem.ToString());
             }
-            else
+            if (Model.FParameterRecordDataItem != null) sb.AppendLine($"Safety Parameters:");
+            if (Model.FParameterRecordDataItem != null)
             {
-                sb.AppendLine("Module has no parameters to be changed.");
+                sb.AppendLine(Model.FParameterRecordDataItem.ToString());
             }
 
             return sb.ToString();
