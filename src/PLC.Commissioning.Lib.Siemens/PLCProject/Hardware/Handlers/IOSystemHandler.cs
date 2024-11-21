@@ -16,9 +16,10 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.Handlers
     public class IOSystemHandler : IIOSystemHandler
     {
         /// <summary>
-        /// Represents the project handler implementing methods from the interface <see cref="IProjectHandlerService"/>
+        /// Represents the project handler implementing methods from the interface <see cref="IProjectHandlerService"/>.
         /// </summary>
         private readonly IProjectHandlerService _projectHandler;
+        private bool _disposed;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="IOSystemHandler"/> class with the specified project handler service.
@@ -336,5 +337,41 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.Handlers
                 return null;
             }
         }
+        
+        #region IDisposable Implementation
+        
+        /// <summary>
+        /// Disposes the resources used by the <see cref="IOSystemHandler"/>.
+        /// </summary>
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        /// <summary>
+        /// Releases the unmanaged resources used by the <see cref="IOSystemHandler"/> and optionally releases the managed resources.
+        /// </summary>
+        /// <param name="disposing">A boolean value indicating whether to release managed resources.</param>
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!_disposed)
+            {
+                if (disposing)
+                {
+                    // Dispose managed resources
+                    // If the _projectHandler needs to be disposed, do so here
+                    if (_projectHandler is IDisposable disposableHandler)
+                    {
+                        disposableHandler.Dispose();
+                    }
+                }
+
+                // Mark as disposed
+                _disposed = true;
+            }
+        }
+
+        #endregion
     }
 }

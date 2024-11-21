@@ -1,5 +1,6 @@
 ﻿using Siemens.Engineering.HW;
 using Siemens.Engineering.HW.Features;
+using System;
 using System.Collections.Generic;
 
 namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.Abstractions
@@ -7,7 +8,7 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.Abstractions
     /// <summary>
     /// Defines the operations for handling hardware-related tasks in a TIA Portal project.
     /// </summary>
-    public interface IHardwareHandler
+    public interface IHardwareHandler : IDisposable
     {
         /// <summary>
         /// Finds and returns the CPU device item from the project.
@@ -30,6 +31,13 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.Abstractions
         /// <param name="moduleName">The name of the module to search for.</param>
         /// <returns>The <see cref="GsdDeviceItem"/> representing the module if found; otherwise, <c>null</c>.</returns>
         GsdDeviceItem GetDeviceModuleByName(Device device, string moduleName);
+
+        /// <summary>
+        /// Gets the DAP from a given device.
+        /// </summary>
+        /// <param name="device">The device to search within.</param>
+        /// <returns>The <see cref="GsdDeviceItem"/> representing the DAP if found; otherwise, <c>null</c>.</returns>
+        GsdDeviceItem GetDeviceDAP(Device device);
 
         /// <summary>
         /// Enumerates and logs all devices in the current project.

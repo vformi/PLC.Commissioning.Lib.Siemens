@@ -17,7 +17,7 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.Handlers
     public class HardwareHandler : IHardwareHandler
     {
         private readonly IProjectHandlerService _projectHandler;
-
+        private bool _disposed;
         /// <summary>
         /// Initializes a new instance of the <see cref="HardwareHandler"/> class with the specified project handler service.
         /// </summary>
@@ -321,5 +321,39 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.Handlers
 
             return devices;
         }
+        #region IDisposable Implementation
+
+        /// <summary>
+        /// Disposes the resources used by the <see cref="HardwareHandler"/>.
+        /// </summary>
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        /// <summary>
+        /// Releases the unmanaged resources used by the <see cref="HardwareHandler"/> and optionally releases the managed resources.
+        /// </summary>
+        /// <param name="disposing">A boolean value indicating whether to release managed resources.</param>
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!_disposed)
+            {
+                if (disposing)
+                {
+                    // Dispose managed resources
+                    if (_projectHandler is IDisposable disposableHandler)
+                    {
+                        disposableHandler.Dispose();
+                    }
+                }
+
+                // Mark as disposed
+                _disposed = true;
+            }
+        }
+
+        #endregion
     }
 }

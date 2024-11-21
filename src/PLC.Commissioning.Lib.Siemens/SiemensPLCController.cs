@@ -176,47 +176,60 @@ namespace PLC.Commissioning.Lib.Siemens
             try
             {
                 Log.Information("Initialization started with safety mode: {SafetyMode}", safety);
+
+                // Set safety mode flag
                 _safety = safety;
 
+                // Step 1: Start the TIA Portal manager
+                Log.Debug("Starting TIA Portal Manager...");
                 _manager = new SiemensManagerService(_safety);
                 _manager.StartTIA();
+                _tiaPortalInstance = _manager.TiaPortal;
 
-                _tiaPortalInstance = _manager.tiaPortal;
+                // Step 2: Initialize the ProjectHandler
+                Log.Debug("Initializing ProjectHandlerService...");
                 _projectHandler = new ProjectHandlerService(_tiaPortalInstance);
 
-                // Check if the project file exists
+                // Step 3: Verify and handle the project file
                 if (string.IsNullOrEmpty(_projectPath) || !File.Exists(_projectPath))
                 {
-                    Log.Error("Initialization failed: Project file not found at path {ProjectPath}.", _projectPath);
+                    Log.Error("Project file not found at path: {ProjectPath}", _projectPath);
                     return false;
                 }
-
                 if (!_projectHandler.HandleProject(_projectPath))
                 {
+                    Log.Error("Failed to handle project at path: {ProjectPath}", _projectPath);
                     return false;
                 }
 
-                // Initialize UIDownloadHandler if safety mode is enabled
+                // Step 4: Initialize safety-related components (if applicable)
                 if (_safety)
                 {
+                    Log.Warning("Safety mode enabled. Initializing UIDownloadHandler...");
                     _uiDownloadHandler = new UIDownloadHandler();
-                    Log.Warning("Safety mode enabled. UIDownloadHandler initialized.");
                 }
 
+                // Step 5: Setup HardwareHandler and find CPU
+                Log.Debug("Setting up HardwareHandler...");
                 _hardwareHandler = new HardwareHandler(_projectHandler);
                 _cpu = _hardwareHandler.FindCPU();
 
+                // Enumerate devices in the project
                 _hardwareHandler.EnumerateProjectDevices();
 
+                // Step 6: Initialize services for online and download operations
+                Log.Debug("Initializing OnlineProvider and DownloadProvider...");
                 var onlineProvider = _cpu.GetService<OnlineProvider>();
                 _downloadProvider = _cpu.GetService<DownloadProvider>();
 
+                // Create helper services for controller configuration
                 var onlineProviderService = new OnlineProviderService(onlineProvider);
                 var plcOperationsService = new PLCOperationsService(_downloadProvider);
-
                 var projectCompiler = new CompilerService();
                 var networkConfigurator = new NetworkConfigurationService(onlineProvider, _downloadProvider);
 
+                // Step 7: Setup the main controller
+                Log.Debug("Configuring main controller...");
                 _controller = new Controller(
                     projectCompiler,
                     onlineProviderService,
@@ -224,6 +237,8 @@ namespace PLC.Commissioning.Lib.Siemens
                     plcOperationsService
                 );
 
+                // Step 8: Initialize or reuse IOSystemHandler
+                Log.Debug("Initializing IOSystemHandler...");
                 var ioSystemHandler = GetIoSystemHandler();
                 if (ioSystemHandler is null)
                 {
@@ -231,64 +246,53 @@ namespace PLC.Commissioning.Lib.Siemens
                     return false;
                 }
 
-                string cpuIP = ioSystemHandler.GetPLCIPAddress(_cpu);
+                // Step 9: Determine the CPU's IP address and validate network connectivity
+                string cpuIP = _ioSystemHandler.GetPLCIPAddress(_cpu);
                 if (!networkConfigurator.PingIpAddress(_networkCard, cpuIP))
                 {
+                    Log.Error("Unable to ping CPU at IP address: {CpuIP}", cpuIP);
                     return false;
                 }
 
+                // Configure the target network
                 var targetConfiguration = networkConfigurator.GetTargetConfiguration();
                 _controller.SetTargetConfiguration(targetConfiguration);
 
+                // Step 10: Configure the network card
                 if (string.IsNullOrEmpty(_networkCard))
                 {
-                    Log.Error("Initialization failed: Network card configuration is missing.");
+                    Log.Error("Network card configuration is missing.");
                     return false;
                 }
-
                 if (!_controller.TryConfigureNetwork(_networkCard, 1, "1 X1"))
                 {
-                    Log.Error("Initialization failed: Network configuration was unsuccessful.");
+                    Log.Error("Failed to configure network with card: {NetworkCard}", _networkCard);
                     return false;
                 }
 
-                // Initialize the RPCController synchronously
+                // Step 11: Initialize RPC Controller
+                Log.Debug("Initializing RPCController...");
                 _rpcController = InitializeRpcController(cpuIP);
-
-                // issue going from safety project to non safety and back ... implemented workaround to simply ping the PL
-                // keeping this here for a while
-                /*
-                _controller.GoOnline();
-                if (_controller.GetOnlineState() == OnlineState.Online)
+                if (_rpcController == null)
                 {
-                    _controller.GoOffline();
-                    return true;
+                    Log.Warning("RPCController initialization failed. Proceeding without RPC support.");
                 }
-                else
-                {
-                    Log.Error("Failed to go online with network card {NetworkCard}.", _networkCard);
-                    Log.Information("Is your network card correctly configured? Here are available connection possibilities:\n");
-                    _controller.DisplayPLCConnectionPossibilities();
-                    _controller.GoOffline();
-                    return false;
-                }
-                */
 
+                Log.Information("Initialization completed successfully.");
                 return true;
             }
             catch (EngineeringSecurityException ex)
             {
-                Log.Error(
-                    "EngineeringSecurityException: Ensure the user '{User}' is a member of the Siemens TIA Openness group.",
-                    Environment.UserName);
+                Log.Error("EngineeringSecurityException: Ensure the user '{User}' is a member of the Siemens TIA Openness group.", Environment.UserName);
                 return false;
             }
             catch (Exception ex)
             {
-                Log.Error("Initialization failed: {ErrorMessage} {ex}", ex.Message, ex);
+                Log.Error("Initialization failed: {ErrorMessage}", ex.Message);
                 return false;
             }
         }
+
 
         /// <summary>
         /// Imports a device configuration into the Siemens PLC project.
@@ -1036,31 +1040,86 @@ namespace PLC.Commissioning.Lib.Siemens
             {
                 if (disposing)
                 {
-                    // Clean up managed resources
+                    // Dispose ProjectHandlerService
                     if (_projectHandler != null)
                     {
-                        _projectHandler.CloseProject();
-                        if (_safety && _uiDownloadHandler != null)
+                        try
+                        {
+                            _projectHandler.Dispose();
+                        }
+                        catch (Exception ex)
+                        {
+                            Log.Warning("Error disposing ProjectHandlerService: {Message}", ex.Message);
+                        }
+                    }
+
+                    // Dispose UIDownloadHandler
+                    if (_safety && _uiDownloadHandler != null)
+                    {
+                        try
                         {
                             _uiDownloadHandler.CloseTIA();
                             _uiDownloadHandler.Dispose();
-                            _uiDownloadHandler = null;
                         }
-                        _projectHandler = null;
+                        catch (Exception ex)
+                        {
+                            Log.Warning("Error disposing UIDownloadHandler: {Message}", ex.Message);
+                        }
                     }
 
-                    if (_tiaPortalInstance != null)
+                    // Dispose HardwareHandler
+                    if (_hardwareHandler is IDisposable disposableHardwareHandler)
                     {
-                        _tiaPortalInstance.Dispose();
-                        _tiaPortalInstance = null;
+                        try
+                        {
+                            disposableHardwareHandler.Dispose();
+                        }
+                        catch (Exception ex)
+                        {
+                            Log.Warning("Error disposing HardwareHandler: {Message}", ex.Message);
+                        }
                     }
 
+                    // Dispose IOSystemHandler
+                    if (_ioSystemHandler is IDisposable disposableIOSystemHandler)
+                    {
+                        try
+                        {
+                            disposableIOSystemHandler.Dispose();
+                        }
+                        catch (Exception ex)
+                        {
+                            Log.Warning("Error disposing IOSystemHandler: {Message}", ex.Message);
+                        }
+                    }
+
+                    // Dispose SiemensManagerService
                     if (_manager != null)
                     {
-                        _manager.Dispose();
-                        _manager = null;
+                        try
+                        {
+                            _manager.Dispose();
+                        }
+                        catch (Exception ex)
+                        {
+                            Log.Warning("Error disposing SiemensManagerService: {Message}", ex.Message);
+                        }
+                    }
+
+                    // Dispose TIA Portal Instance
+                    if (_tiaPortalInstance != null)
+                    {
+                        try
+                        {
+                            _tiaPortalInstance.Dispose();
+                        }
+                        catch (Exception ex)
+                        {
+                            Log.Warning("Error disposing TIA Portal Instance: {Message}", ex.Message);
+                        }
                     }
                 }
+
                 _disposed = true;
             }
         }

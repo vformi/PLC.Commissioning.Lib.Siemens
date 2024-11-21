@@ -12,7 +12,7 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject
     /// </summary>
     public class SiemensManagerService : ISiemensManagerService
     {
-        public TiaPortal tiaPortal;
+        public TiaPortal TiaPortal { get; private set; }
         private bool _useUserInterface;
 
         // The AssemblyResolve method could be implemented here if dynamic loading is required.
@@ -39,35 +39,21 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject
         {
             Log.Information("Starting TIA Portal...");
 
-            // Additional logic before starting TIA Portal can be added here.
-            RunTiaPortal();
-        }
-        
-        /// <summary>
-        /// Retrieves and connects to a running instance of TIA Portal.
-        /// </summary>
-        /// <param name="processId">Optional: The process ID of the desired TIA Portal instance.</param>
-        /// <returns>A connected <see cref="TiaPortal"/> instance or null if no running instance is found.</returns>
-        public TiaPortal GetRunningTiaPortalInstance(int? processId = null)
-        {
+            if (TiaPortal != null)
+            {
+                Log.Warning("TIA Portal is already running. Reusing the existing instance.");
+                return;
+            }
+
+            // Try to connect to an existing instance
             foreach (TiaPortalProcess process in TiaPortal.GetProcesses())
             {
                 try
                 {
                     Log.Information("Found TIA Portal process with ID: {ProcessId} and Path: {Path}", process.Id, process.Path);
-
-                    // If a process ID is specified, only connect to that specific process
-                    if (processId.HasValue && process.Id != processId.Value)
-                        continue;
-
-                    Log.Information("Connecting to TIA Portal process ID: {ProcessId}", process.Id);
-
-                    tiaPortal = process.Attach();
-
-                    // Log additional attributes about the process
-                    Log.Information("Connected to TIA Portal:");
-
-                    return tiaPortal;
+                    TiaPortal = process.Attach();
+                    Log.Information("Connected to existing TIA Portal process.");
+                    return;
                 }
                 catch (EngineeringSecurityException ex)
                 {
@@ -79,33 +65,12 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject
                 }
             }
 
-            Log.Warning("No running TIA Portal instance found.");
-            return null;
-        }
-        
-        /// <summary>
-        /// Starts new TIA Portal instance in the specified mode (with or without user interface).
-        /// </summary>
-        private void RunTiaPortal()
-        {
+            // If no existing instance is found, start a new one
             TiaPortalMode mode = _useUserInterface ? TiaPortalMode.WithUserInterface : TiaPortalMode.WithoutUserInterface;
-            tiaPortal = new TiaPortal(mode);
+            TiaPortal = new TiaPortal(mode);
+
             Log.Information(
                 $"TIA Portal started with{(mode == TiaPortalMode.WithUserInterface ? "" : "out")} user interface.");
-        }
-
-        /// <summary>
-        /// Gets the current <see cref="TiaPortal"/> instance.
-        /// </summary>
-        /// <returns>The current <see cref="TiaPortal"/> instance.</returns>
-        /// <exception cref="InvalidOperationException">Thrown if the TIA Portal instance has not been started or connected.</exception>
-        public TiaPortal GetTiaPortal()
-        {
-            if (tiaPortal == null)
-            {
-                throw new InvalidOperationException("TIA Portal has not been started.");
-            }
-            return tiaPortal;
         }
 
         /// <summary>
@@ -113,7 +78,7 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject
         /// </summary>
         public void Dispose()
         {
-            tiaPortal?.Dispose();
+            TiaPortal?.Dispose();
             // Unregister the AssemblyResolve event if previously registered.
             AppDomain.CurrentDomain.AssemblyResolve -= MyResolver;
         }

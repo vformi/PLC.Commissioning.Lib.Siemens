@@ -1,5 +1,6 @@
 ﻿using Siemens.Engineering.HW;
 using Siemens.Engineering.HW.Features;
+using System;
 using System.Collections.Generic;
 
 namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.Abstractions
@@ -7,7 +8,7 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.Abstractions
     /// <summary>
     /// Provides methods for handling IO systems, subnets, and their connections within a TIA Portal project hardware configuration.
     /// </summary>
-    public interface IIOSystemHandler
+    public interface IIOSystemHandler : IDisposable
     {
         /// <summary>
         /// Finds and returns the first subnet and its associated IO system in the current project.
@@ -53,6 +54,13 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.Abstractions
         /// </summary>
         /// <param name="device">The <see cref="Device"/> for which to retrieve the identification attributes.</param>
         /// <returns>A dictionary containing the identification attributes and their corresponding values.</returns>
-        Dictionary<string, string> GetDeviceIdentificationAttributes(Device device); 
+        Dictionary<string, string> GetDeviceIdentificationAttributes(Device device);
+
+        /// <summary>
+        /// Gets the IP address for the PLC by identifying the appropriate <see cref="DeviceItem"/> based on the 'InterfaceOperatingMode' attribute.
+        /// </summary>
+        /// <param name="cpu">The <see cref="DeviceItem"/> that represents the PLC device.</param>
+        /// <returns>The IP address as a string if found; otherwise, null.</returns>
+        string GetPLCIPAddress(DeviceItem cpu);
     }
 }

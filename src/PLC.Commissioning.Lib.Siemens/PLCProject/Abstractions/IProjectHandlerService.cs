@@ -1,4 +1,5 @@
 ﻿using Siemens.Engineering;
+using System;
 using System.IO;
 
 namespace PLC.Commissioning.Lib.Siemens.PLCProject.Abstractions
@@ -6,7 +7,7 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Abstractions
     /// <summary>
     /// Defines methods for handling Siemens TIA Portal projects.
     /// </summary>
-    public interface IProjectHandlerService
+    public interface IProjectHandlerService : IDisposable
     {
         /// <summary>
         /// Attempts to open or retrieve and open a TIA Portal project based on the file extension.
@@ -26,6 +27,7 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Abstractions
 
         /// <summary>
         /// Saves the currently opened TIA Portal project with a new name and then closes it.
+        /// </summary>
         /// <param name="projectName">The new name for the saved project.</param>
         void SaveProjectAs(string projectName);
 
