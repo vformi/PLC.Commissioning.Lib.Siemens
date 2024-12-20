@@ -104,6 +104,17 @@ namespace PLC.Commissioning.Lib.Siemens
         /// </summary>
         private bool _safety = false;
         #endregion
+        
+        public SiemensPLCController()
+        {
+            // Initialize the logger configuration
+            string logFileName = $"logs/log_{DateTime.Now:yyyyMMdd_HHmmss}.txt";
+            Log.Logger = new LoggerConfiguration()
+                .MinimumLevel.Debug()
+                .WriteTo.Console()
+                .WriteTo.File(logFileName, rollingInterval: RollingInterval.Day)
+                .CreateLogger();
+        }
 
         /// <summary>
         /// Gets the instance of <see cref="IOSystemHandler"/> for managing IO systems within the PLC project.
@@ -288,7 +299,13 @@ namespace PLC.Commissioning.Lib.Siemens
             }
             catch (Exception ex)
             {
-                Log.Error("Initialization failed: {ErrorMessage}", ex.Message);
+                Log.Error("Initialization failed:\n" +
+                          "Exception Type: {ExceptionType}\n" +
+                          "Message: {ErrorMessage}\n" +
+                          "Stack Trace:\n{StackTrace}", 
+                    ex.GetType().Name, 
+                    ex.Message, 
+                    ex.StackTrace);
                 return false;
             }
         }
@@ -971,19 +988,16 @@ namespace PLC.Commissioning.Lib.Siemens
                     return false;
                 }
 
-                // TODO: figure out how to use the ToString methods in the Serilog debug 
-                // Print general module information
+                // Use the ToString methods with Serilog for debugging
                 ModuleInfo moduleInfo = new ModuleInfo(gsdHandler);
-                Console.WriteLine(moduleInfo.ToString());
+                Log.Information(moduleInfo.ToString());
 
-                // Print DAP information
                 DeviceAccessPointList dapList = new DeviceAccessPointList(gsdHandler);
-                Console.WriteLine(dapList.ToString());
+                Log.Information(dapList.ToString());
 
-                // Print the list of modules
                 ModuleList moduleList = new ModuleList(gsdHandler);
-                Console.WriteLine(moduleList.ToString());
-                
+                Log.Information(moduleList.ToString());
+
                 // If a specific module name is provided, print its information
                 if (!string.IsNullOrEmpty(moduleName))
                 {
@@ -992,11 +1006,11 @@ namespace PLC.Commissioning.Lib.Siemens
                         (DeviceAccessPointItem dapItem, _) = dapList.GetDeviceAccessPointItemByID(moduleName);
                         if (dapItem != null)
                         {
-                            Console.WriteLine(dapItem.ToString());
+                            Log.Information(dapItem.ToString());
                         }
                         else
                         {
-                            Log.Warning($"'{moduleName}' not found in the GSD file.");
+                            Log.Warning("'{ModuleName}' not found in the GSD file.", moduleName);
                         }
                     }
                     else
@@ -1004,22 +1018,24 @@ namespace PLC.Commissioning.Lib.Siemens
                         (ModuleItem moduleItem, _) = moduleList.GetModuleItemByName(moduleName);
                         if (moduleItem != null)
                         {
-                            Console.WriteLine(moduleItem.ToString());
+                            Log.Information(moduleItem.ToString());
                         }
                         else
                         {
-                            Log.Warning($"Module with name '{moduleName}' not found in the GSD file.");
+                            Log.Warning("Module with name '{ModuleName}' not found in the GSD file.", moduleName);
                         }
                     }
                 }
+
                 return true;
             }
             catch (Exception ex)
             {
-                Log.Error($"An error occurred while printing GSD information: {ex.Message}");
+                Log.Error("An error occurred while printing GSD information: {ErrorMessage}", ex.Message);
                 return false;
             }
         }
+
 
         /// <summary>
         /// Releases all resources used by the <see cref="SiemensPLCController"/>.
@@ -1028,6 +1044,7 @@ namespace PLC.Commissioning.Lib.Siemens
         {
             Dispose(true);
             GC.SuppressFinalize(this);
+            Log.CloseAndFlush();
         }
 
         /// <summary>

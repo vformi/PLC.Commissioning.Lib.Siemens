@@ -3,12 +3,14 @@
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
 	<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
-	<Platforms>AnyCPU;x64</Platforms>
+	<Platforms>x64</Platforms>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="FlaUI.UIA3" Version="4.0.0" />
     <PackageReference Include="Serilog" Version="4.0.1" />
+    <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
+    <PackageReference Include="Serilog.Sinks.File" Version="6.0.0" />
     <PackageReference Include="Siemens.Collaboration.Net.TiaPortal.Packages.Openness" Version="17.0.1685432625" />
   </ItemGroup>
 

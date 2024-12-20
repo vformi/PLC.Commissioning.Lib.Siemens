@@ -23,6 +23,10 @@
   <ItemGroup>
     <Content Include="TestData\**\*" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="TestData\Export\" />
+  </ItemGroup>
 	
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
       <Exec Command="xcopy /Y &quot;C:\Program Files\Siemens\Automation\Portal V17\PublicAPI\V17\*.dll&quot; &quot;$(TargetDir)&quot;&#xD;&#xA;" />
