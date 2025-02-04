@@ -46,7 +46,7 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.GSD
         }
 
         /// <summary>
-        /// Retrieves a module item by its name and checks if it has changeable parameters.
+        /// Retrieves a module item by its name and checks if it has changeable parameters or F parameters.
         /// </summary>
         /// <param name="name">The name of the module item to retrieve.</param>
         /// <returns>A tuple containing the <see cref="ModuleItem"/> and a boolean indicating if it has changeable parameters.</returns>
@@ -56,7 +56,10 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.GSD
 
             if (moduleItem != null)
             {
-                bool hasChangeableParameters = moduleItem.Model.ParameterRecordDataItem != null;
+                bool hasChangeableParameters = 
+                    moduleItem.Model.ParameterRecordDataItem != null || 
+                    moduleItem.Model.FParameterRecordDataItem != null;
+
                 return (moduleItem, hasChangeableParameters);
             }
 

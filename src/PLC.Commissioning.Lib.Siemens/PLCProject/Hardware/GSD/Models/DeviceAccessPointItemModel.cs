@@ -29,5 +29,6 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.GSD.Models
         public bool AdaptsRealIdentification { get; set; }
         public string PNIO_Version { get; set; }
         public ParameterRecordDataItem ParameterRecordDataItem { get; set; }
+        public FParameterRecordDataItem FParameterRecordDataItem { get; set; }
     }
 }

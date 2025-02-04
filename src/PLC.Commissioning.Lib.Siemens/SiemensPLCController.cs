@@ -766,7 +766,8 @@ namespace PLC.Commissioning.Lib.Siemens
                         Log.Error($"Module '{moduleName}' not found in the device.");
                         return false;
                     }
-
+                    
+                    Log.Information($"Setting device parameters succeeded for module '{moduleName}'.");
                     // Handle safety or regular parameters
                     return safety ? SetSafetyParameters(module, parametersToSet) : SetRegularParameters(moduleItem, module, parametersToSet);
                 }

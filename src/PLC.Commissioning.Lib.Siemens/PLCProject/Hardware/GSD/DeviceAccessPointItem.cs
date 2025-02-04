@@ -27,6 +27,11 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.GSD
         /// Gets the parameter record data item associated with the device access point model.
         /// </summary>
         public ParameterRecordDataItem ParameterRecordDataItem => Model.ParameterRecordDataItem;
+        
+        /// <summary>
+        /// Gets the F parameter record data item associated with the device access point model.
+        /// </summary>
+        public FParameterRecordDataItem FParameterRecordDataItem => Model.FParameterRecordDataItem;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="DeviceAccessPointItem"/> class with the specified GSD handler.
@@ -67,7 +72,7 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.GSD
             Model.AdaptsRealIdentification = bool.Parse(dapItemNode.Attributes["AdaptsRealIdentification"]?.Value ?? "false");
             Model.PNIO_Version = dapItemNode.Attributes["PNIO_Version"]?.Value;
 
-            // Parsing ParameterRecordDataItems inside this DAP Item
+            // Parse ParameterRecordDataItem
             XmlNode parameterRecordDataItemNode = dapItemNode.SelectSingleNode("gsd:VirtualSubmoduleList/gsd:VirtualSubmoduleItem/gsd:RecordDataList/gsd:ParameterRecordDataItem", _gsdHandler.nsmgr);
             if (parameterRecordDataItemNode != null)
             {
@@ -77,6 +82,18 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.GSD
             else
             {
                 Model.ParameterRecordDataItem = null;
+            }
+
+            // Parse FParameterRecordDataItem
+            XmlNode fParameterRecordDataItemNode = dapItemNode.SelectSingleNode("gsd:VirtualSubmoduleList/gsd:VirtualSubmoduleItem/gsd:RecordDataList/gsd:F_ParameterRecordDataItem", _gsdHandler.nsmgr);
+            if (fParameterRecordDataItemNode != null)
+            {
+                Model.FParameterRecordDataItem = new FParameterRecordDataItem(_gsdHandler);
+                Model.FParameterRecordDataItem.ParseFParameterRecordDataItem(fParameterRecordDataItemNode);
+            }
+            else
+            {
+                Model.FParameterRecordDataItem = null;
             }
         }
 
