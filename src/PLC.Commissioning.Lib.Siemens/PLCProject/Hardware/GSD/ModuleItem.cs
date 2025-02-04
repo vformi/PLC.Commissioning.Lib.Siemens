@@ -1,9 +1,9 @@
-﻿using PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.GSD.Abstractions;
-using PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.GSD.Models;
-using Serilog;
 using System;
 using System.Text;
 using System.Xml;
+using PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.GSD.Abstractions;
+using PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.GSD.Models;
+using PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.GSD.Models.IOTags;
 
 namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.GSD
 {
@@ -21,16 +21,11 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.GSD
         /// Gets the model containing the parsed module item information.
         /// </summary>
         public ModuleItemModel Model { get; private set; }
-        
+
         /// <summary>
-        /// Gets the parameter record data item associated with the device access point model.
+        /// Gets the parameter record data item associated with the module item model.
         /// </summary>
         public ParameterRecordDataItem ParameterRecordDataItem => Model.ParameterRecordDataItem;
-        
-        /// <summary>
-        /// Gets the F parameter record data item associated with the device access point model.
-        /// </summary>
-        public FParameterRecordDataItem FParameterRecordDataItem => Model.FParameterRecordDataItem;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ModuleItem"/> class with the specified GSD handler.
@@ -55,14 +50,19 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.GSD
             XmlNode moduleInfoNode = moduleItemNode.SelectSingleNode("gsd:ModuleInfo", _gsdHandler.nsmgr);
             if (moduleInfoNode != null)
             {
-                string nameTextId = moduleInfoNode.SelectSingleNode("gsd:Name", _gsdHandler.nsmgr)?.Attributes["TextId"]?.Value;
-                string infoTextId = moduleInfoNode.SelectSingleNode("gsd:InfoText", _gsdHandler.nsmgr)?.Attributes["TextId"]?.Value;
+                string nameTextId = moduleInfoNode.SelectSingleNode("gsd:Name", _gsdHandler.nsmgr)?.Attributes["TextId"]
+                    ?.Value;
+                string infoTextId = moduleInfoNode.SelectSingleNode("gsd:InfoText", _gsdHandler.nsmgr)
+                    ?.Attributes["TextId"]?.Value;
                 Model.Name = _gsdHandler.GetExternalText(nameTextId);
                 Model.InfoText = _gsdHandler.GetExternalText(infoTextId);
             }
 
-            // Parse ParameterRecordDataItem
-            XmlNode parameterRecordDataItemNode = moduleItemNode.SelectSingleNode("gsd:VirtualSubmoduleList/gsd:VirtualSubmoduleItem/gsd:RecordDataList/gsd:ParameterRecordDataItem", _gsdHandler.nsmgr);
+            XmlNode parameterRecordDataItemNode = moduleItemNode.SelectSingleNode(
+                "gsd:VirtualSubmoduleList/gsd:VirtualSubmoduleItem/gsd:RecordDataList/gsd:ParameterRecordDataItem",
+                _gsdHandler.nsmgr);
+
+            // Check if parameters exist
             if (parameterRecordDataItemNode != null)
             {
                 Model.ParameterRecordDataItem = new ParameterRecordDataItem(_gsdHandler);
@@ -70,24 +70,88 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.GSD
             }
             else
             {
+                // Handle case where no parameters are available
                 Model.ParameterRecordDataItem = null;
             }
 
-            // Parse FParameterRecordDataItem
-            XmlNode fParameterRecordDataItemNode = moduleItemNode.SelectSingleNode("gsd:VirtualSubmoduleList/gsd:VirtualSubmoduleItem/gsd:RecordDataList/gsd:F_ParameterRecordDataItem", _gsdHandler.nsmgr);
-            if (fParameterRecordDataItemNode != null)
+            // Parse IO Data
+            XmlNode ioDataNode = moduleItemNode.SelectSingleNode("gsd:VirtualSubmoduleList/gsd:VirtualSubmoduleItem/gsd:IOData", _gsdHandler.nsmgr);
+            if (ioDataNode != null)
             {
-                Model.FParameterRecordDataItem = new FParameterRecordDataItem(_gsdHandler);
-                Model.FParameterRecordDataItem.ParseFParameterRecordDataItem(fParameterRecordDataItemNode);
-            }
-            else
-            {
-                Model.FParameterRecordDataItem = null;
+                var ioData = new IOData();
+
+                // Parse Outputs
+                XmlNode outputNode = ioDataNode.SelectSingleNode("gsd:Output", _gsdHandler.nsmgr);
+                if (outputNode != null)
+                {
+                    foreach (XmlNode dataItemNode in outputNode.SelectNodes("gsd:DataItem", _gsdHandler.nsmgr))
+                    {
+                        var dataItem = new DataItem
+                        {
+                            DataType = dataItemNode.Attributes["DataType"]?.Value,
+                            UseAsBits = bool.TryParse(dataItemNode.Attributes["UseAsBits"]?.Value, out var useAsBits) &&
+                                        useAsBits,
+                            TextId = _gsdHandler.GetExternalText(dataItemNode.Attributes["TextId"]?.Value)
+                        };
+
+                        foreach (XmlNode bitDataItemNode in dataItemNode.SelectNodes("gsd:BitDataItem",
+                                     _gsdHandler.nsmgr))
+                        {
+                            dataItem.BitDataItems.Add(new BitDataItem
+                            {
+                                BitOffset = int.TryParse(bitDataItemNode.Attributes["BitOffset"]?.Value,
+                                    out var bitOffset)
+                                    ? bitOffset
+                                    : 0,
+                                TextId = _gsdHandler.GetExternalText(bitDataItemNode.Attributes["TextId"]?.Value)
+                            });
+                        }
+
+                        ioData.Outputs.Add(dataItem);
+                    }
+                }
+
+                // Parse Inputs (if applicable)
+                XmlNode inputNode = ioDataNode.SelectSingleNode("gsd:Input", _gsdHandler.nsmgr);
+                if (inputNode != null)
+                {
+                    foreach (XmlNode dataItemNode in inputNode.SelectNodes("gsd:DataItem", _gsdHandler.nsmgr))
+                    {
+                        var dataItem = new DataItem
+                        {
+                            DataType = dataItemNode.Attributes["DataType"]?.Value,
+                            UseAsBits = bool.TryParse(dataItemNode.Attributes["UseAsBits"]?.Value, out var useAsBits) &&
+                                        useAsBits,
+                            TextId = _gsdHandler.GetExternalText(dataItemNode.Attributes["TextId"]?.Value)
+                        };
+
+                        foreach (XmlNode bitDataItemNode in dataItemNode.SelectNodes("gsd:BitDataItem",
+                                     _gsdHandler.nsmgr))
+                        {
+                            dataItem.BitDataItems.Add(new BitDataItem
+                            {
+                                BitOffset = int.TryParse(bitDataItemNode.Attributes["BitOffset"]?.Value,
+                                    out var bitOffset)
+                                    ? bitOffset
+                                    : 0,
+                                TextId = _gsdHandler.GetExternalText(bitDataItemNode.Attributes["TextId"]?.Value)
+                            });
+                        }
+
+                        ioData.Inputs.Add(dataItem);
+                    }
+                }
+
+                // Add IOData to Model only if it contains data
+                if (ioData.Inputs.Count > 0 || ioData.Outputs.Count > 0)
+                {
+                    Model.IOData = ioData;
+                }
             }
         }
 
         /// <summary>
-        /// Returns a string representation of the module item, including its name, info text, and parameter record data.
+        /// Returns a string representation of the module item, including its name, info text, IO data, and parameters.
         /// </summary>
         /// <returns>A string describing the module item.</returns>
         public override string ToString()
@@ -96,16 +160,50 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.GSD
 
             sb.AppendLine($"Name: {Model.Name}");
             sb.AppendLine($"Info Text: {Model.InfoText}");
-            
-            if (Model.ParameterRecordDataItem != null) sb.AppendLine($"Parameters:");
+
+            // IO Data Section
+            if (Model.IOData != null && (Model.IOData.Outputs.Count > 0 || Model.IOData.Inputs.Count > 0))
+            {
+                sb.AppendLine("IO Data:");
+
+                // Outputs
+                if (Model.IOData.Outputs.Count > 0)
+                {
+                    sb.AppendLine("  Outputs:");
+                    foreach (var output in Model.IOData.Outputs)
+                    {
+                        sb.AppendLine($"    DataItem: {_gsdHandler.GetExternalText(output.TextId) ?? output.TextId}, DataType: {output.DataType}");
+                        foreach (var bitDataItem in output.BitDataItems)
+                        {
+                            sb.AppendLine($"      BitOffset: {bitDataItem.BitOffset}, Text: {_gsdHandler.GetExternalText(bitDataItem.TextId) ?? bitDataItem.TextId}");
+                        }
+                    }
+                }
+
+                // Inputs
+                if (Model.IOData.Inputs.Count > 0)
+                {
+                    sb.AppendLine("  Inputs:");
+                    foreach (var input in Model.IOData.Inputs)
+                    {
+                        sb.AppendLine($"    DataItem: {_gsdHandler.GetExternalText(input.TextId) ?? input.TextId}, DataType: {input.DataType}");
+                        foreach (var bitDataItem in input.BitDataItems)
+                        {
+                            sb.AppendLine($"      BitOffset: {bitDataItem.BitOffset}, Text: {_gsdHandler.GetExternalText(bitDataItem.TextId) ?? bitDataItem.TextId}");
+                        }
+                    }
+                }
+            }
+
+            // Parameters Section
             if (Model.ParameterRecordDataItem != null)
             {
+                sb.AppendLine("Parameters:");
                 sb.AppendLine(Model.ParameterRecordDataItem.ToString());
             }
-            if (Model.FParameterRecordDataItem != null) sb.AppendLine($"Safety Parameters:");
-            if (Model.FParameterRecordDataItem != null)
+            else
             {
-                sb.AppendLine(Model.FParameterRecordDataItem.ToString());
+                sb.AppendLine("No parameters available.");
             }
 
             return sb.ToString();

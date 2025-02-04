@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using Newtonsoft.Json;
 using Serilog;
 using PLC.Commissioning.Lib.Siemens.PLCProject;
@@ -103,8 +104,10 @@ namespace PLC.Commissioning.Lib.Siemens
         /// Indicates whether safety features are enabled.
         /// </summary>
         private bool _safety = false;
+        
+        private bool _onlineInitialized = false;
         #endregion
-
+        
         /// <summary>
         /// Gets the instance of <see cref="IOSystemHandler"/> for managing IO systems within the PLC project.
         /// </summary>
@@ -167,7 +170,7 @@ namespace PLC.Commissioning.Lib.Siemens
         }
 
         /// <summary>
-        /// Initializes the Siemens PLC controller.
+        /// Initializes the Siemens PLC controller in offline mode.
         /// </summary>
         /// <param name="safety">Indicates whether safety mode is enabled.</param>
         /// <returns><c>true</c> if the initialization was successful; otherwise, <c>false</c>.</returns>
@@ -175,7 +178,7 @@ namespace PLC.Commissioning.Lib.Siemens
         {
             try
             {
-                Log.Information("Initialization started with safety mode: {SafetyMode}", safety);
+                Log.Information("Offline Initialization started with safety mode: {SafetyMode}", safety);
 
                 // Set safety mode flag
                 _safety = safety;
@@ -217,36 +220,67 @@ namespace PLC.Commissioning.Lib.Siemens
                 // Enumerate devices in the project
                 _hardwareHandler.EnumerateProjectDevices();
 
-                // Step 6: Initialize services for online and download operations
+                // Step 6: Setup the main controller in offline mode
+                Log.Debug("Configuring main controller in offline mode...");
+                var projectCompiler = new CompilerService();
+                _controller = new Controller(
+                    projectCompiler,
+                    null, // No OnlineProviderService for offline mode
+                    null, // No NetworkConfigurationService for offline mode
+                    null  // No PLCOperationsService for offline mode
+                );
+
+                Log.Information("Offline initialization completed successfully.");
+                return true;
+            }
+            catch (EngineeringSecurityException ex)
+            {
+                Log.Error("EngineeringSecurityException: Ensure the user '{User}' is a member of the Siemens TIA Openness group.", Environment.UserName);
+                return false;
+            }
+            catch (Exception ex)
+            {
+                Log.Error("Offline initialization failed:\n" +
+                          "Exception Type: {ExceptionType}\n" +
+                          "Message: {ErrorMessage}\n" +
+                          "Stack Trace:\n{StackTrace}", 
+                    ex.GetType().Name, 
+                    ex.Message, 
+                    ex.StackTrace);
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Initializes online mode for the Siemens PLC controller.
+        /// </summary>
+        /// <returns><c>true</c> if the online initialization was successful; otherwise, <c>false</c>.</returns>
+        private bool InitializeOnline()
+        {
+            if (_onlineInitialized)
+            {
+                Log.Warning("Online mode has already been initialized.");
+                return true;
+            }
+
+            try
+            {
+                Log.Information("Initializing online mode...");
+
+                // Initialize services for online and download operations
                 Log.Debug("Initializing OnlineProvider and DownloadProvider...");
                 var onlineProvider = _cpu.GetService<OnlineProvider>();
                 _downloadProvider = _cpu.GetService<DownloadProvider>();
 
                 // Create helper services for controller configuration
                 var onlineProviderService = new OnlineProviderService(onlineProvider);
-                var plcOperationsService = new PLCOperationsService(_downloadProvider);
-                var projectCompiler = new CompilerService();
                 var networkConfigurator = new NetworkConfigurationService(onlineProvider, _downloadProvider);
+                var plcOperationsService = new PLCOperationsService(_downloadProvider);
 
-                // Step 7: Setup the main controller
-                Log.Debug("Configuring main controller...");
-                _controller = new Controller(
-                    projectCompiler,
-                    onlineProviderService,
-                    networkConfigurator,
-                    plcOperationsService
-                );
-
-                // Step 8: Initialize or reuse IOSystemHandler
-                Log.Debug("Initializing IOSystemHandler...");
-                var ioSystemHandler = GetIoSystemHandler();
-                if (ioSystemHandler is null)
-                {
-                    Log.Error("Failed to initialize IOSystemHandler.");
-                    return false;
-                }
-
-                // Step 9: Determine the CPU's IP address and validate network connectivity
+                // Inject online services into the controller
+                _controller.SetOnlineServices(onlineProviderService, networkConfigurator, plcOperationsService);
+                
+                // Determine the CPU's IP address and validate network connectivity
                 string cpuIP = _ioSystemHandler.GetPLCIPAddress(_cpu);
                 if (!networkConfigurator.PingIpAddress(_networkCard, cpuIP))
                 {
@@ -258,7 +292,7 @@ namespace PLC.Commissioning.Lib.Siemens
                 var targetConfiguration = networkConfigurator.GetTargetConfiguration();
                 _controller.SetTargetConfiguration(targetConfiguration);
 
-                // Step 10: Configure the network card
+                // Configure the network card
                 if (string.IsNullOrEmpty(_networkCard))
                 {
                     Log.Error("Network card configuration is missing.");
@@ -270,25 +304,26 @@ namespace PLC.Commissioning.Lib.Siemens
                     return false;
                 }
 
-                // Step 11: Initialize RPC Controller
+                // Initialize RPC Controller
                 Log.Debug("Initializing RPCController...");
                 _rpcController = InitializeRpcController(cpuIP);
                 if (_rpcController == null)
                 {
                     Log.Warning("RPCController initialization failed. Proceeding without RPC support.");
                 }
-
-                Log.Information("Initialization completed successfully.");
+                _onlineInitialized = true;
+                Log.Information("Online initialization completed successfully.");
                 return true;
-            }
-            catch (EngineeringSecurityException ex)
-            {
-                Log.Error("EngineeringSecurityException: Ensure the user '{User}' is a member of the Siemens TIA Openness group.", Environment.UserName);
-                return false;
             }
             catch (Exception ex)
             {
-                Log.Error("Initialization failed: {ErrorMessage}", ex.Message);
+                Log.Error("Offline initialization failed:\n" +
+                          "Exception Type: {ExceptionType}\n" +
+                          "Message: {ErrorMessage}\n" +
+                          "Stack Trace:\n{StackTrace}", 
+                    ex.GetType().Name, 
+                    ex.Message, 
+                    ex.StackTrace);
                 return false;
             }
         }
@@ -298,7 +333,11 @@ namespace PLC.Commissioning.Lib.Siemens
         /// Imports a device configuration into the Siemens PLC project.
         /// </summary>
         /// <param name="filePath">The path to the device configuration file.</param>
-        /// <returns>A dictionary with device names as keys and corresponding <see cref="Device"/> objects as values, or <c>null</c> if the import fails.</returns>
+        /// <returns>
+        /// A single <see cref="Device"/> if only one device is found; 
+        /// otherwise, a dictionary with device names as keys and corresponding <see cref="Device"/> objects as values.
+        /// Returns <c>null</c> if the import fails.
+        /// </returns>
         public object ImportDevice(string filePath)
         {
             try
@@ -335,6 +374,7 @@ namespace PLC.Commissioning.Lib.Siemens
                     Log.Error("Failed to initialize IOSystemHandler.");
                     return null;
                 }
+
                 var (subnet, ioSystem) = ioSystemHandler.FindSubnetAndIoSystem();
                 var devices = _hardwareHandler.GetDevices();
                 var deviceDictionary = new Dictionary<string, Device>();
@@ -355,6 +395,13 @@ namespace PLC.Commissioning.Lib.Siemens
                 }
 
                 Log.Information("Device import was successful.");
+
+                // Return single device if only one is found
+                if (deviceDictionary.Count == 1)
+                {
+                    return deviceDictionary.Values.First();
+                }
+
                 return deviceDictionary;
             }
             catch (Exception ex)
@@ -738,6 +785,8 @@ namespace PLC.Commissioning.Lib.Siemens
         /// <returns><c>true</c> if the PLC was started successfully; otherwise, <c>false</c>.</returns>
         public bool Start()
         {
+            if (!InitializeOnline())
+                return false;
             try
             {
                 if (_rpcController != null)
@@ -784,6 +833,8 @@ namespace PLC.Commissioning.Lib.Siemens
         /// <returns><c>true</c> if the PLC was stopped successfully; otherwise, <c>false</c>.</returns>
         public bool Stop()
         {
+            if (!InitializeOnline())
+                return false;
             try
             {
                 if (_rpcController != null)
@@ -848,6 +899,8 @@ namespace PLC.Commissioning.Lib.Siemens
         /// <returns><c>true</c> if the download was successful; otherwise, <c>false</c>.</returns>
         public bool Download(object options)
         {
+            if (!InitializeOnline())
+                return false;
             try
             {
                 var downloadProvider = _cpu.GetService<DownloadProvider>();
@@ -972,19 +1025,16 @@ namespace PLC.Commissioning.Lib.Siemens
                     return false;
                 }
 
-                // TODO: figure out how to use the ToString methods in the Serilog debug 
-                // Print general module information
+                // Use the ToString methods with Serilog for debugging
                 ModuleInfo moduleInfo = new ModuleInfo(gsdHandler);
-                Console.WriteLine(moduleInfo.ToString());
+                Log.Information(moduleInfo.ToString());
 
-                // Print DAP information
                 DeviceAccessPointList dapList = new DeviceAccessPointList(gsdHandler);
-                Console.WriteLine(dapList.ToString());
+                Log.Information(dapList.ToString());
 
-                // Print the list of modules
                 ModuleList moduleList = new ModuleList(gsdHandler);
-                Console.WriteLine(moduleList.ToString());
-                
+                Log.Information(moduleList.ToString());
+
                 // If a specific module name is provided, print its information
                 if (!string.IsNullOrEmpty(moduleName))
                 {
@@ -993,11 +1043,11 @@ namespace PLC.Commissioning.Lib.Siemens
                         (DeviceAccessPointItem dapItem, _) = dapList.GetDeviceAccessPointItemByID(moduleName);
                         if (dapItem != null)
                         {
-                            Console.WriteLine(dapItem.ToString());
+                            Log.Information(dapItem.ToString());
                         }
                         else
                         {
-                            Log.Warning($"'{moduleName}' not found in the GSD file.");
+                            Log.Warning("'{ModuleName}' not found in the GSD file.", moduleName);
                         }
                     }
                     else
@@ -1005,22 +1055,24 @@ namespace PLC.Commissioning.Lib.Siemens
                         (ModuleItem moduleItem, _) = moduleList.GetModuleItemByName(moduleName);
                         if (moduleItem != null)
                         {
-                            Console.WriteLine(moduleItem.ToString());
+                            Log.Information(moduleItem.ToString());
                         }
                         else
                         {
-                            Log.Warning($"Module with name '{moduleName}' not found in the GSD file.");
+                            Log.Warning("Module with name '{ModuleName}' not found in the GSD file.", moduleName);
                         }
                     }
                 }
+
                 return true;
             }
             catch (Exception ex)
             {
-                Log.Error($"An error occurred while printing GSD information: {ex.Message}");
+                Log.Error("An error occurred while printing GSD information: {ErrorMessage}", ex.Message);
                 return false;
             }
         }
+
 
         /// <summary>
         /// Releases all resources used by the <see cref="SiemensPLCController"/>.
@@ -1029,6 +1081,7 @@ namespace PLC.Commissioning.Lib.Siemens
         {
             Dispose(true);
             GC.SuppressFinalize(this);
+            Log.CloseAndFlush();
         }
 
         /// <summary>

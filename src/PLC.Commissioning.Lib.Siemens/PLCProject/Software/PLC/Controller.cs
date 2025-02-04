@@ -16,16 +16,17 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Software.PLC
     public class Controller : IController
     {
         private readonly ICompilerService _compiler;
-        private readonly OnlineProviderService _onlineProvider;
-        private readonly NetworkConfigurationService _networkConfigurator;
-        private readonly PLCOperationsService _plcOperations;
+        private OnlineProviderService _onlineProvider;
+        private NetworkConfigurationService _networkConfigurator;
+        private PLCOperationsService _plcOperations;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Controller"/> class with the specified services.
+        /// Allows null for online-related services to enable offline operation.
         /// </summary>
         /// <param name="compiler">The compiler service to use for compiling PLC projects.</param>
-        /// <param name="onlineProvider">The online provider service to manage PLC online/offline states.</param>
-        /// <param name="networkConfigurator">The network configurator service to manage network settings.</param>
+        /// <param name="onlineProvider">The online provider service to manage PLC online/offline states. Can be null for offline mode.</param>
+        /// <param name="networkConfigurator">The network configurator service to manage network settings. Can be null for offline mode.</param>
         /// <param name="plcOperations">The PLC operations service to control PLC operations.</param>
         public Controller(
             ICompilerService compiler,
@@ -33,10 +34,25 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Software.PLC
             NetworkConfigurationService networkConfigurator,
             PLCOperationsService plcOperations)
         {
-            _compiler = compiler;
-            _onlineProvider = onlineProvider;
-            _networkConfigurator = networkConfigurator;
-            _plcOperations = plcOperations;
+            _compiler = compiler ?? throw new ArgumentNullException(nameof(compiler));
+            _onlineProvider = onlineProvider; // Can be null for offline mode
+            _networkConfigurator = networkConfigurator; // Can be null for offline mode
+            _plcOperations = plcOperations; // Can be null for offline mode 
+        }
+        
+        /// <summary>
+        /// Injects the online services for online mode.
+        /// </summary>
+        /// <param name="onlineProvider">The online provider service.</param>
+        /// <param name="networkConfigurator">The network configurator service.</param>
+        /// <param name="plcOperationsService">The plc operations service.</param>
+        public void SetOnlineServices(OnlineProviderService onlineProvider, 
+            NetworkConfigurationService networkConfigurator, PLCOperationsService plcOperationsService)
+        {
+            _onlineProvider = onlineProvider ?? throw new ArgumentNullException(nameof(onlineProvider));
+            _networkConfigurator = networkConfigurator ?? throw new ArgumentNullException(nameof(networkConfigurator));
+            _plcOperations = plcOperationsService ?? throw new ArgumentNullException(nameof(plcOperationsService));
+            Log.Information("Online services have been set.");
         }
 
         /// <summary>
