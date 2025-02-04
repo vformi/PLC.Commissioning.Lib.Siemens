@@ -23,6 +23,12 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.GSD.Models.IOTags
         public string TextId { get; set; }
 
         /// <summary>
+        /// Gets or sets an optional length (in bytes) for data types that support it.
+        /// For example, for OctetString.
+        /// </summary>
+        public int? Length { get; set; }
+
+        /// <summary>
         /// Gets or sets the list of bit data items associated with this data item.
         /// </summary>
         public List<BitDataItem> BitDataItems { get; set; }

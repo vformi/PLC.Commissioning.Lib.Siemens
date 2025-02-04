@@ -264,6 +264,32 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware
                             logicalAddress = $"{addressPrefix}D{startAddress + byteOffset}";
                             dataSize = 8;
                             break;
+                        
+                        case "OctetString":
+                        {
+                            // Determine the number of bytes to map.
+                            int length = dataItem.Length.HasValue ? dataItem.Length.Value : 1;
+                            // Loop for each byte in the OctetString.
+                            for (int i = 0; i < length; i++)
+                            {
+                                string currentLogicalAddress = $"{addressPrefix}B{startAddress + byteOffset + i}";
+                                string currentTagName = $"{moduleName}_{dataItem.TextId.Replace(" ", "_")}_{i}";
+                            
+                                tagTable.Tags.Add(new TagModel
+                                {
+                                    Name = currentTagName,
+                                    DataType = "Byte", 
+                                    Address = currentLogicalAddress,
+                                });
+                            
+                                Log.Debug("Added OctetString Byte Tag: {TagName}, Address: {LogicalAddress}, DataType: Byte",
+                                    currentTagName, currentLogicalAddress);
+                            }
+                            // Advance the offset by the full length.
+                            byteOffset += length;
+                            // Continue with next DataItem so no further tag is added for OctetString.
+                            continue;
+                        }
 
                         default:
                             Log.Warning("Unhandled data type {DataType} for DataItem {TextId}. Skipping.",

@@ -129,6 +129,11 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.GSD
                                         useAsBits,
                             TextId = _gsdHandler.GetExternalText(dataItemNode.Attributes["TextId"]?.Value)
                         };
+                        
+                        if (int.TryParse(dataItemNode.Attributes["Length"]?.Value, out int lengthValue))
+                        {
+                            dataItem.Length = lengthValue;
+                        }
 
                         foreach (XmlNode bitDataItemNode in dataItemNode.SelectNodes("gsd:BitDataItem",
                                      _gsdHandler.nsmgr))
