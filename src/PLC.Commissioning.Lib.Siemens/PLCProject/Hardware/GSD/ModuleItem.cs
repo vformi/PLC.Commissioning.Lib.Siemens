@@ -26,6 +26,11 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.GSD
         /// Gets the parameter record data item associated with the module item model.
         /// </summary>
         public ParameterRecordDataItem ParameterRecordDataItem => Model.ParameterRecordDataItem;
+        
+        /// <summary>
+        /// Gets the safety parameter record data item associated with the module item model.
+        /// </summary>
+        public FParameterRecordDataItem FParameterRecordDataItem => Model.FParameterRecordDataItem;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ModuleItem"/> class with the specified GSD handler.
@@ -157,8 +162,9 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.GSD
         public override string ToString()
         {
             var sb = new StringBuilder();
-
+            
             sb.AppendLine($"Name: {Model.Name}");
+            sb.AppendLine($"ID: {Model.ID}");
             sb.AppendLine($"Info Text: {Model.InfoText}");
 
             // IO Data Section
@@ -172,10 +178,14 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.GSD
                     sb.AppendLine("  Outputs:");
                     foreach (var output in Model.IOData.Outputs)
                     {
-                        sb.AppendLine($"    DataItem: {_gsdHandler.GetExternalText(output.TextId) ?? output.TextId}, DataType: {output.DataType}");
+                        sb.AppendLine($"    DataItem: {_gsdHandler.GetExternalText(output.TextId) ?? output.TextId}, " +
+                                      $"DataType: {output.DataType}, " +
+                                      $"Used as Bits: {output.UseAsBits}");
+
                         foreach (var bitDataItem in output.BitDataItems)
                         {
-                            sb.AppendLine($"      BitOffset: {bitDataItem.BitOffset}, Text: {_gsdHandler.GetExternalText(bitDataItem.TextId) ?? bitDataItem.TextId}");
+                            sb.AppendLine($"      BitOffset: {bitDataItem.BitOffset}, " +
+                                          $"Text: {_gsdHandler.GetExternalText(bitDataItem.TextId) ?? bitDataItem.TextId}");
                         }
                     }
                 }
@@ -186,10 +196,14 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.GSD
                     sb.AppendLine("  Inputs:");
                     foreach (var input in Model.IOData.Inputs)
                     {
-                        sb.AppendLine($"    DataItem: {_gsdHandler.GetExternalText(input.TextId) ?? input.TextId}, DataType: {input.DataType}");
+                        sb.AppendLine($"    DataItem: {_gsdHandler.GetExternalText(input.TextId) ?? input.TextId}, " +
+                                      $"DataType: {input.DataType}, " +
+                                      $"Used as Bits: {input.UseAsBits}");
+
                         foreach (var bitDataItem in input.BitDataItems)
                         {
-                            sb.AppendLine($"      BitOffset: {bitDataItem.BitOffset}, Text: {_gsdHandler.GetExternalText(bitDataItem.TextId) ?? bitDataItem.TextId}");
+                            sb.AppendLine($"      BitOffset: {bitDataItem.BitOffset}, " +
+                                          $"Text: {_gsdHandler.GetExternalText(bitDataItem.TextId) ?? bitDataItem.TextId}");
                         }
                     }
                 }

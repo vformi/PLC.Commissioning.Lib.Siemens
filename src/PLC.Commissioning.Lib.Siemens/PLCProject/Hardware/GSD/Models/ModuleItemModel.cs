@@ -32,6 +32,11 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.GSD.Models
         /// Gets or sets the parameter record data item associated with the module.
         /// </summary>
         public ParameterRecordDataItem ParameterRecordDataItem { get; set; }
+        
+        /// <summary>
+        /// Gets or sets the safety parameter record data item associated with the module.
+        /// </summary>
+        public FParameterRecordDataItem FParameterRecordDataItem { get; set; }
 
         /// <summary>
         /// Gets or sets the IO data associated with the module.

@@ -10,13 +10,16 @@ using PLC.Commissioning.Lib.Siemens.PLCProject.Software.PLC;
 using PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.Handlers;
 using PLC.Commissioning.Lib.Siemens.PLCProject.UI;
 using PLC.Commissioning.Lib.Abstractions;
+using PLC.Commissioning.Lib.Siemens.PLCProject.Hardware;
 using Siemens.Engineering;
 using Siemens.Engineering.Download;
 using Siemens.Engineering.Online;
 using Siemens.Engineering.HW;
 using Siemens.Engineering.HW.Features;
 using PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.GSD.Abstractions;
+using PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.Models;
 using PLC.Commissioning.Lib.Siemens.Webserver.Controllers;
+using Siemens.Engineering.SW;
 using Siemens.Simatic.S7.Webserver.API.Enums;
 
 namespace PLC.Commissioning.Lib.Siemens
@@ -59,6 +62,11 @@ namespace PLC.Commissioning.Lib.Siemens
         /// Represents the CPU device item in the hardware configuration.
         /// </summary>
         private DeviceItem _cpu;
+        
+        /// <summary>
+        /// Represents the plcSoftware for working with the software configuration.
+        /// </summary>
+        private PlcSoftware _plcSoftware;
 
         /// <summary>
         /// Provides download functionalities to the PLC.
@@ -215,7 +223,7 @@ namespace PLC.Commissioning.Lib.Siemens
                 // Step 5: Setup HardwareHandler and find CPU
                 Log.Debug("Setting up HardwareHandler...");
                 _hardwareHandler = new HardwareHandler(_projectHandler);
-                _cpu = _hardwareHandler.FindCPU();
+                (_cpu, _plcSoftware) = _hardwareHandler.FindCPU();
 
                 // Enumerate devices in the project
                 _hardwareHandler.EnumerateProjectDevices();
@@ -333,12 +341,9 @@ namespace PLC.Commissioning.Lib.Siemens
         /// Imports a device configuration into the Siemens PLC project.
         /// </summary>
         /// <param name="filePath">The path to the device configuration file.</param>
-        /// <returns>
-        /// A single <see cref="Device"/> if only one device is found; 
-        /// otherwise, a dictionary with device names as keys and corresponding <see cref="Device"/> objects as values.
-        /// Returns <c>null</c> if the import fails.
-        /// </returns>
-        public object ImportDevice(string filePath)
+        /// <param name="gsdmlFiles">List of available GSDML files for mapping.</param>
+        /// <returns>Dictionary of `ImportedDevices` mapped by device name.</returns>
+        public Dictionary<string, object> ImportDevices(string filePath, List<string> gsdmlFiles)
         {
             try
             {
@@ -377,29 +382,82 @@ namespace PLC.Commissioning.Lib.Siemens
 
                 var (subnet, ioSystem) = ioSystemHandler.FindSubnetAndIoSystem();
                 var devices = _hardwareHandler.GetDevices();
-                var deviceDictionary = new Dictionary<string, Device>();
 
+                // Initialize PLC software before processing devices
+                if (_plcSoftware == null)
+                {
+                    Log.Error("PLC software is not initialized. Cannot create tag tables.");
+                    return null;
+                }
+
+                // Initialize IOTagsHandler
+                IOTagsHandler ioTagsHandler = new IOTagsHandler(_plcSoftware);
+
+                var deviceDictionary = new Dictionary<string, object>(); // object for python better operability 
+                
                 foreach (var device in devices)
                 {
+                    string deviceName = device.DeviceItems[1].Name;
+
+                    // Find the corresponding GSDML file for the device
+                    string gsdmlFile = gsdmlFiles.FirstOrDefault(f => f.Contains(deviceName));
+                    if (string.IsNullOrEmpty(gsdmlFile))
+                    {
+                        Log.Warning($"No GSDML file found for device: {deviceName}");
+                        continue;
+                    }
+                    
+                    // Create an ImportedDevice instance
+                    ImportedDevice importedDevice = new ImportedDevice(deviceName, gsdmlFile, device);
+
                     // Connect the device to the IO system
                     ioSystemHandler.ConnectDeviceToIoSystem(device, subnet, ioSystem);
-                    Log.Information($"Device '{device.DeviceItems[1].Name}' was successfully connected to the IO system.");
-                    // Add the device to the dictionary with its name as the key
-                    deviceDictionary[device.DeviceItems[1].Name] = device;
+                    Log.Information($"Device '{deviceName}' was successfully connected to the IO system.");
+
+                    // Enumerate modules and add them to the ImportedDevice
+                    List<IOModuleInfoModel> modules = _hardwareHandler.EnumerateDeviceModules(device);
+                    foreach (var module in modules)
+                    {
+                        importedDevice.AddModule(module);
+                    }
+                    // importedDevice.PrintModulesFromGSDML();
+                    
+                    // Create tag tables in TIA Portal
+                    ioTagsHandler.CreateTagTables(importedDevice);
+
+                    // Add the device to the dictionary
+                    deviceDictionary[deviceName] = importedDevice;
                 }
 
                 Log.Debug("Devices in the dictionary:");
                 foreach (var i in deviceDictionary)
                 {
-                    Log.Debug($"Device {i}: {i.Value}");
+                    Log.Debug($"Device {i.Key}: {i.Value}");
                 }
 
                 Log.Information("Device import was successful.");
 
-                // Return single device if only one is found
-                if (deviceDictionary.Count == 1)
+                Log.Debug("Devices in the dictionary:");
+                foreach (var i in deviceDictionary)
                 {
-                    return deviceDictionary.Values.First();
+                    Log.Debug($"Device {i.Key}: {i.Value}");
+                }
+
+                Log.Information("Device import was successful.");
+
+                // Read back created tag tables
+                List<string> tagTablesList = ioTagsHandler.ReadTagTables();
+                if (tagTablesList.Count > 0)
+                {
+                    Log.Information("Tag Tables found:");
+                    foreach (var tableName in tagTablesList)
+                    {
+                        Log.Information($" - {tableName}");
+                    }
+                }
+                else
+                {
+                    Log.Warning("No PLC Tag Tables found.");
                 }
 
                 return deviceDictionary;
@@ -442,7 +500,14 @@ namespace PLC.Commissioning.Lib.Siemens
                 }
 
                 // Attempt to cast the device to the expected Device type
-                var specificDevice = device as Device;
+                // Ensure the object is an `ImportedDevice`
+                if (!(device is ImportedDevice importedDevice))
+                {
+                    Log.Error("Invalid device type. Expected an ImportedDevice.");
+                    return false;
+                }
+
+                Device specificDevice = importedDevice.Device;
                 if (specificDevice is null)
                 {
                     Log.Error($"The provided object could not be cast to a Device. Ensure that the correct object type is being used.");
@@ -525,12 +590,11 @@ namespace PLC.Commissioning.Lib.Siemens
         /// Retrieves device parameters for a specified module.
         /// </summary>
         /// <param name="device">The device object to retrieve parameters for.</param>
-        /// <param name="gsdFilePath">The file path to the GSD file.</param>
         /// <param name="moduleName">The name of the module to retrieve parameters for.</param>
         /// <param name="parameterSelections">Optional list of parameters to retrieve.</param>
         /// <param name="safety">Indicates whether safety parameters are required.</param>
         /// <returns><c>true</c> if the parameters were retrieved successfully; otherwise, <c>false</c>.</returns>
-        public bool GetDeviceParameters(object device, string gsdFilePath, string moduleName, List<string> parameterSelections = null, bool safety = false)
+        public bool GetDeviceParameters(object device, string moduleName, List<string> parameterSelections = null, bool safety = false)
         {
             try
             {
@@ -540,7 +604,7 @@ namespace PLC.Commissioning.Lib.Siemens
                     Log.Error("Device is null.");
                     return false;
                 }
-
+                        
                 IOSystemHandler ioSystemHandler = GetIoSystemHandler();
                 if (ioSystemHandler is null)
                 {
@@ -548,12 +612,15 @@ namespace PLC.Commissioning.Lib.Siemens
                     return false;
                 }
 
-                // Cast the device to the expected type
-                if (!(device is Device specificDevice))
+                // Ensure the object is an `ImportedDevice`
+                if (!(device is ImportedDevice importedDevice))
                 {
-                    Log.Error("Failed to cast device to the expected type.");
+                    Log.Error("Invalid device type. Expected an ImportedDevice.");
                     return false;
                 }
+
+                Device specificDevice = importedDevice.Device;
+                string gsdFilePath = importedDevice.GsdmlFilePath;
 
                 // Read and initialize GSD file
                 string xmlContent = File.ReadAllText(gsdFilePath);
@@ -653,12 +720,11 @@ namespace PLC.Commissioning.Lib.Siemens
         /// Sets device parameters for a specified module.
         /// </summary>
         /// <param name="device">The device object to configure.</param>
-        /// <param name="gsdFilePath">The file path to the GSD file.</param>
         /// <param name="moduleName">The name of the module to configure.</param>
         /// <param name="parametersToSet">A dictionary of parameters to set.</param>
         /// <param name="safety">Indicates whether safety parameters are being set.</param>
         /// <returns><c>true</c> if the parameters were set successfully; otherwise, <c>false</c>.</returns>
-        public bool SetDeviceParameters(object device, string gsdFilePath, string moduleName, Dictionary<string, object> parametersToSet, bool safety = false)
+        public bool SetDeviceParameters(object device, string moduleName, Dictionary<string, object> parametersToSet, bool safety = false)
         {
             try
             {
@@ -676,12 +742,15 @@ namespace PLC.Commissioning.Lib.Siemens
                     return false;
                 }
 
-                // Cast the device to the expected type
-                if (!(device is Device specificDevice))
+                // Ensure the object is an `ImportedDevice`
+                if (!(device is ImportedDevice importedDevice))
                 {
-                    Log.Error("Failed to cast device to the expected type.");
+                    Log.Error("Invalid device type. Expected an ImportedDevice.");
                     return false;
                 }
+
+                Device specificDevice = importedDevice.Device;
+                string gsdFilePath = importedDevice.GsdmlFilePath;
 
                 // Read and initialize GSD file
                 string xmlContent = File.ReadAllText(gsdFilePath);
