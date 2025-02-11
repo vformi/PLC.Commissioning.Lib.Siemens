@@ -14,51 +14,39 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware
     /// </summary>
     public class ImportedDevice
     {
+        /// <summary>
+        /// Gets the unique name of the device instance in the TIA project.
+        /// </summary>
         public string DeviceName { get; private set; }
-        public string GsdmlFilePath { get; private set; }
-        public Device Device { get; private set; } // The TIA object representing the device
-        private GSDHandler GsdHandler { get; set; }
+        
+        /// <summary>
+        /// Gets the TIA Portal device object.
+        /// </summary>
+        public Device Device { get; private set; }
 
         /// <summary>
-        /// Modules as parsed from the project (hardware-side information).
+        /// Gets the list of hardware modules parsed from the TIA project.
         /// </summary>
         public List<IOModuleInfoModel> Modules { get; private set; } = new List<IOModuleInfoModel>();
 
         /// <summary>
-        /// Holds the merged device model information, including the GSDML module definitions.
+        /// Gets the merged device model containing GSDML definitions.
         /// </summary>
         public ImportedDeviceGSDMLModel DeviceGsdmlModel { get; private set; }
 
-        public ImportedDevice(string deviceName, string gsdmlFilePath, Device tiaDevice)
+        /// <summary>
+        /// Constructs an ImportedDevice with an already‑initialized GSDML model.
+        /// </summary>
+        /// <param name="deviceName">The unique TIA device instance name.</param>
+        /// <param name="tiaDevice">The TIA device object.</param>
+        /// <param name="deviceGsdmlModel">The pre‑built GSDML model (ImportedDeviceGSDMLModel).</param>
+        public ImportedDevice(string deviceName, Device tiaDevice, ImportedDeviceGSDMLModel deviceGsdmlModel)
         {
             DeviceName = deviceName ?? throw new ArgumentNullException(nameof(deviceName));
-            GsdmlFilePath = gsdmlFilePath ?? throw new ArgumentNullException(nameof(gsdmlFilePath));
             Device = tiaDevice ?? throw new ArgumentNullException(nameof(tiaDevice));
+            DeviceGsdmlModel = deviceGsdmlModel ?? throw new ArgumentNullException(nameof(deviceGsdmlModel));
 
-            InitializeGsdmlHandler();
-        }
-
-        /// <summary>
-        /// Initializes the GSDML handler and the GSDML model for the device.
-        /// </summary>
-        private void InitializeGsdmlHandler()
-        {
-            GsdHandler = new GSDHandler();
-
-            if (!GsdHandler.Initialize(GsdmlFilePath))
-            {
-                Log.Error("Failed to initialize GSDHandler with file: {FilePath}", GsdmlFilePath);
-                return;
-            }
-
-            DeviceGsdmlModel = new ImportedDeviceGSDMLModel
-            {
-                ModuleInfo = new ModuleInfo(GsdHandler),
-                Dap = new DeviceAccessPointList(GsdHandler),
-                ModuleList = new ModuleList(GsdHandler)
-            };
-
-            Log.Information("GSDML Model initialized for device: {DeviceName}", DeviceName);
+            Log.Information("GSDML Model assigned for device: {DeviceName}", DeviceName);
         }
 
         /// <summary>
@@ -105,6 +93,7 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware
 
         /// <summary>
         /// Generates tag table definitions, extracting bit-level and byte/word-based information for PLC tag creation.
+        /// Both the tag table and tag names are prefixed with the device name to ensure uniqueness.
         /// </summary>
         /// <returns>A list of tag table definitions.</returns>
         public List<TagTableModel> GetTagTableDefinitions()
@@ -135,16 +124,16 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware
                     continue; // Skip this module entirely
                 }
 
-                // Use GSDML-defined name
+                // Use GSDML-defined name (replace spaces with underscores)
                 string gsdmlModuleName = gsdmlModule.Model.Name.Replace(" ", "_");
 
                 Log.Debug("Using GSDML Module Name: {GsdmlModuleName} instead of TIA name: {ModuleName}",
                     gsdmlModuleName, hwModule.ModuleName);
 
-                // Create a tag table for this module only if it has IOData
+                // Create a tag table using the device name plus the GSDML module name to ensure uniqueness
                 var tagTable = new TagTableModel
                 {
-                    TableName = gsdmlModuleName, // Use the GSDML Name
+                    TableName = $"{DeviceName}_{gsdmlModuleName}",
                     Tags = new List<TagModel>()
                 };
 
@@ -176,9 +165,15 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware
 
             return tagTables;
         }
-
-
-
+    
+        /// <summary>
+        /// Processes IO data items to extract tag details.
+        /// </summary>
+        /// <param name="ioData">The IO data list.</param>
+        /// <param name="addressPrefix">The prefix for memory addresses (%I or %Q).</param>
+        /// <param name="tagTable">The tag table to populate.</param>
+        /// <param name="startAddress">The starting address for the module.</param>
+        /// <param name="moduleName">The module's name for tag identification.</param>
         private void ProcessIOData(List<DataItem> ioData, string addressPrefix, TagTableModel tagTable,
             ref int startAddress, string moduleName)
         {
@@ -192,7 +187,8 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware
                     foreach (var bitDataItem in dataItem.BitDataItems)
                     {
                         string logicalAddress = $"{addressPrefix}{startAddress + byteOffset}.{bitDataItem.BitOffset}";
-                        string tagName = $"{moduleName}_{bitDataItem.TextId.Replace(" ", "_")}"; // Prefix and format
+                        // Include DeviceName, moduleName, and the text ID in the tag name
+                        string tagName = $"{DeviceName}_{moduleName}_{bitDataItem.TextId.Replace(" ", "_")}";
 
                         tagTable.Tags.Add(new TagModel
                         {
@@ -264,7 +260,7 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware
                             logicalAddress = $"{addressPrefix}D{startAddress + byteOffset}";
                             dataSize = 8;
                             break;
-                        
+
                         case "OctetString":
                         {
                             // Determine the number of bytes to map.
@@ -273,18 +269,22 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware
                             for (int i = 0; i < length; i++)
                             {
                                 string currentLogicalAddress = $"{addressPrefix}B{startAddress + byteOffset + i}";
-                                string currentTagName = $"{moduleName}_{dataItem.TextId.Replace(" ", "_")}_{i}";
-                            
+                                // Build a unique tag name by adding an index for each byte
+                                string currentTagName =
+                                    $"{DeviceName}_{moduleName}_{dataItem.TextId.Replace(" ", "_")}_{i}";
+
                                 tagTable.Tags.Add(new TagModel
                                 {
                                     Name = currentTagName,
-                                    DataType = "Byte", 
+                                    DataType = "Byte",
                                     Address = currentLogicalAddress,
                                 });
-                            
-                                Log.Debug("Added OctetString Byte Tag: {TagName}, Address: {LogicalAddress}, DataType: Byte",
+
+                                Log.Debug(
+                                    "Added OctetString Byte Tag: {TagName}, Address: {LogicalAddress}, DataType: Byte",
                                     currentTagName, currentLogicalAddress);
                             }
+
                             // Advance the offset by the full length.
                             byteOffset += length;
                             // Continue with next DataItem so no further tag is added for OctetString.
@@ -297,7 +297,8 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware
                             continue; // Skip unhandled data types
                     }
 
-                    string tagName = $"{moduleName}_{dataItem.TextId.Replace(" ", "_")}"; // Prefix and format
+                    // Build a unique tag name for non-bit items
+                    string tagName = $"{DeviceName}_{moduleName}_{dataItem.TextId.Replace(" ", "_")}";
 
                     tagTable.Tags.Add(new TagModel
                     {

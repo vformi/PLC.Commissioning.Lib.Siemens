@@ -11,6 +11,9 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.Handlers
     /// </summary>
     public class IOTagsHandler
     {
+        /// <summary>
+        /// The PLC software instance associated with this handler.
+        /// </summary>
         private readonly PlcSoftware _plcSoftware;
 
         /// <summary>
@@ -102,7 +105,41 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.Handlers
                 }
             }
         }
+        
+        /// <summary>
+        /// Deletes the tag table group (and all tag tables within) for the specified device.
+        /// Assumes that the group was created using the device's unique DeviceName.
+        /// </summary>
+        /// <param name="device">The ImportedDevice whose tags are to be deleted.</param>
+        public void DeleteDeviceTagTables(ImportedDevice device)
+        {
+            if (_plcSoftware == null)
+            {
+                Log.Error("PLC Software instance is null. Cannot delete tag tables.");
+                return;
+            }
 
+            Log.Information("Deleting PLC tag tables for device: {DeviceName}", device.DeviceName);
+
+            // Find the user group that was created with the device name.
+            PlcTagTableUserGroup group = _plcSoftware.TagTableGroup.Groups.Find(device.DeviceName);
+            if (group != null)
+            {
+                Log.Debug("Found tag table group '{DeviceName}'. Deleting group...", device.DeviceName);
+                group.Delete();
+            }
+            else
+            {
+                Log.Warning("Tag table group for device '{DeviceName}' not found. Nothing to delete.", device.DeviceName);
+            }
+        }
+
+        #region Private methods
+        /// <summary>
+        /// Creates a tag table user group in the PLC software, ensuring it does not already exist.
+        /// </summary>
+        /// <param name="groupName">The name of the group to create.</param>
+        /// <returns>The created or existing <see cref="PlcTagTableUserGroup"/>.</returns>
         private PlcTagTableUserGroup CreateTagTableGroup(string groupName)
         {
             PlcTagTableSystemGroup systemGroup = _plcSoftware.TagTableGroup;
@@ -121,7 +158,13 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.Handlers
 
             return group;
         }
-
+        
+        /// <summary>
+        /// Creates a new PLC tag table inside the specified user group.
+        /// </summary>
+        /// <param name="parentGroup">The parent group where the tag table will be created.</param>
+        /// <param name="tableName">The name of the tag table.</param>
+        /// <returns>The created or existing <see cref="PlcTagTable"/>.</returns>
         private PlcTagTable CreateTagTable(PlcTagTableUserGroup parentGroup, string tableName)
         {
             PlcTagTable tagTable = parentGroup.TagTables.Find(tableName);
@@ -137,11 +180,19 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.Handlers
 
             return tagTable;
         }
-
+        
+        /// <summary>
+        /// Creates a new tag inside the specified tag table.
+        /// </summary>
+        /// <param name="tagTable">The tag table where the tag will be created.</param>
+        /// <param name="tagName">The name of the tag.</param>
+        /// <param name="dataType">The data type of the tag.</param>
+        /// <param name="address">The memory address associated with the tag.</param>
         private void CreateTag(PlcTagTable tagTable, string tagName, string dataType, string address)
         {
             Log.Debug("Creating tag: {TagName} at {Address} with type {DataType}", tagName, address, dataType);
             tagTable.Tags.Create(tagName, dataType, address);
         }
+        #endregion
     }
 }

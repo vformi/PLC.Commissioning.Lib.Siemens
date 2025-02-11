@@ -441,8 +441,49 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.Handlers
 
             return modules;
         }
-
-
+        
+        /// <summary>
+        /// Deletes the specified device from the project.
+        /// </summary>
+        /// <param name="device">The device to be deleted.</param>
+        /// <returns>
+        /// <c>true</c> if the device was successfully deleted; otherwise, <c>false</c>.
+        /// </returns>
+        /// <remarks>
+        /// This method logs an error and returns <c>false</c> if the device is null or if an exception occurs during deletion.
+        /// </remarks>
+        /// <exception cref="EngineeringException">
+        /// Thrown if the device cannot be deleted due to project constraints.
+        /// </exception>
+        /// <exception cref="Exception">
+        /// Thrown if an unexpected error occurs.
+        /// </exception>
+        public bool DeleteDevice(Device device)
+        {
+            try
+            {
+                if (device == null)
+                {
+                    Log.Error("DeleteDevice: Device is null.");
+                    return false;
+                }
+                string deviceName = device.DeviceItems[1].Name;
+                Log.Information("Delete call for device '{DeviceName}'", deviceName);
+                device.Delete();
+                Log.Information("Device '{DeviceName}' was deleted successfully.", deviceName);
+                return true;
+            }
+            catch (EngineeringException ex)
+            {
+                Log.Error($"DeleteDevice: Failed to delete device. {ex.Message}");
+                return false;
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"DeleteDevice: Unexpected error. {ex.Message}");
+                return false;
+            }
+        }
         
         #region IDisposable Implementation
 

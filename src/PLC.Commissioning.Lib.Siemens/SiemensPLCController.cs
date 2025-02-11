@@ -115,39 +115,61 @@ namespace PLC.Commissioning.Lib.Siemens
         
         private bool _onlineInitialized = false;
         #endregion
-        
+
+        #region Lazy Handler Getters
+
         /// <summary>
-        /// Gets the instance of <see cref="IOSystemHandler"/> for managing IO systems within the PLC project.
+        /// Gets a valid IOSystemHandler. Uses lazy initialization.
         /// </summary>
-        /// <returns>
-        /// The <see cref="IOSystemHandler"/> instance. If the instance does not exist, it is created;
-        /// otherwise, the existing instance is reused. Returns <c>null</c> if the project handler is not initialized.
-        /// </returns>
-        /// <remarks>
-        /// This method ensures that the <see cref="IOSystemHandler"/> is created only once (singleton pattern) and
-        /// reused across multiple method calls. If the <see cref="_projectHandler"/> is not initialized,
-        /// the method logs an error and returns <c>null</c>.
-        /// </remarks>
-        private IOSystemHandler GetIoSystemHandler()
+        private IOSystemHandler IoSystemHandler
         {
-            if (_ioSystemHandler is null)
+            get
             {
-                if (_projectHandler is null)
+                if (_ioSystemHandler == null)
                 {
-                    Log.Error("Project handler is not initialized. Cannot create IOSystemHandler.");
-                    return null;
+                    if (_projectHandler == null)
+                    {
+                        Log.Error("Project handler is not initialized. Cannot create IOSystemHandler.");
+                        return null;
+                    }
+                    _ioSystemHandler = new IOSystemHandler(_projectHandler);
+                    Log.Information("IOSystemHandler created.");
                 }
-
-                _ioSystemHandler = new IOSystemHandler(_projectHandler);
-                Log.Information("IOSystemHandler was successfully created.");
+                else
+                {
+                    Log.Information("Reusing existing IOSystemHandler instance.");
+                }
+                return _ioSystemHandler;
             }
-            else
-            {
-                Log.Information("Reusing existing IOSystemHandler instance.");
-            }
-
-            return _ioSystemHandler;
         }
+
+        /// <summary>
+        /// Gets a valid HardwareHandler. If it is null or disposed, it is reinitialized.
+        /// </summary>
+        private HardwareHandler HardwareHandler
+        {
+            get
+            {
+                // Assuming HardwareHandler exposes an IsDisposed property.
+                if (_hardwareHandler == null)
+                {
+                    _hardwareHandler = new HardwareHandler(_projectHandler);
+                    Log.Information("HardwareHandler created.");
+                }
+                else
+                {
+                    Log.Information("Reusing existing HardwareHandler instance.");
+                }
+                return _hardwareHandler;
+            }
+        }
+
+        /// <summary>
+        /// Gets an IOTagsHandler instance based on the current PlcSoftware.
+        /// </summary>
+        private IOTagsHandler IOTagsHandler => new IOTagsHandler(_plcSoftware);
+
+        #endregion
 
         /// <summary>
         /// Configures the controller using a JSON configuration file.
@@ -222,11 +244,10 @@ namespace PLC.Commissioning.Lib.Siemens
 
                 // Step 5: Setup HardwareHandler and find CPU
                 Log.Debug("Setting up HardwareHandler...");
-                _hardwareHandler = new HardwareHandler(_projectHandler);
-                (_cpu, _plcSoftware) = _hardwareHandler.FindCPU();
+                (_cpu, _plcSoftware) = HardwareHandler.FindCPU();
 
                 // Enumerate devices in the project
-                _hardwareHandler.EnumerateProjectDevices();
+                HardwareHandler.EnumerateProjectDevices();
 
                 // Step 6: Setup the main controller in offline mode
                 Log.Debug("Configuring main controller in offline mode...");
@@ -371,9 +392,9 @@ namespace PLC.Commissioning.Lib.Siemens
                     return null;
                 }
 
-                _hardwareHandler.EnumerateProjectDevices();
+                HardwareHandler.EnumerateProjectDevices();
 
-                var ioSystemHandler = GetIoSystemHandler();
+                var ioSystemHandler = IoSystemHandler;
                 if (ioSystemHandler is null)
                 {
                     Log.Error("Failed to initialize IOSystemHandler.");
@@ -381,7 +402,7 @@ namespace PLC.Commissioning.Lib.Siemens
                 }
 
                 var (subnet, ioSystem) = ioSystemHandler.FindSubnetAndIoSystem();
-                var devices = _hardwareHandler.GetDevices();
+                var devices = HardwareHandler.GetDevices();
 
                 // Initialize PLC software before processing devices
                 if (_plcSoftware == null)
@@ -391,35 +412,45 @@ namespace PLC.Commissioning.Lib.Siemens
                 }
 
                 // Initialize IOTagsHandler
-                IOTagsHandler ioTagsHandler = new IOTagsHandler(_plcSoftware);
-
+                IOTagsHandler ioTagsHandler = IOTagsHandler;
+                
+                // Build a map of GSDML models keyed by device model (TypeName)
+                var gsdModelMap = BuildGsdModelMap(gsdmlFiles);
                 var deviceDictionary = new Dictionary<string, object>(); // object for python better operability 
                 
                 foreach (var device in devices)
                 {
+                    // Use the TIA device’s TypeName for matching (e.g. "BCL248i")
+                    string typeName = device.DeviceItems[1].GetAttribute("TypeName").ToString();
+                    // Use the TIA device’s unique Name for dictionary indexing (e.g. "BCL248i" or "BCL248i_1")
                     string deviceName = device.DeviceItems[1].Name;
 
-                    // Find the corresponding GSDML file for the device
-                    string gsdmlFile = gsdmlFiles.FirstOrDefault(f => f.Contains(deviceName));
-                    if (string.IsNullOrEmpty(gsdmlFile))
+                    if (string.IsNullOrEmpty(typeName) || string.IsNullOrEmpty(deviceName))
                     {
-                        Log.Warning($"No GSDML file found for device: {deviceName}");
+                        Log.Warning("Device has an invalid TypeName or Name. Skipping device.");
                         continue;
                     }
                     
-                    // Create an ImportedDevice instance
-                    ImportedDevice importedDevice = new ImportedDevice(deviceName, gsdmlFile, device);
+                    if (!gsdModelMap.TryGetValue(typeName, out var importedDeviceGsdmlModel))
+                    {
+                        Log.Warning("No GSD model found for device type {TypeName}", typeName);
+                        continue;
+                    }
 
-                    // Connect the device to the IO system
+                    // Create the ImportedDevice using the pre-built GSDML model.
+                    var importedDevice = new ImportedDevice(deviceName, device, importedDeviceGsdmlModel);
+
+                    // Connect the device to the IO system.
                     ioSystemHandler.ConnectDeviceToIoSystem(device, subnet, ioSystem);
-                    Log.Information($"Device '{deviceName}' was successfully connected to the IO system.");
+                    Log.Information("Device '{DeviceName}' (Type: {TypeName}) connected to IO system.", deviceName, typeName);
 
-                    // Enumerate modules and add them to the ImportedDevice
-                    List<IOModuleInfoModel> modules = _hardwareHandler.EnumerateDeviceModules(device);
+                    // Enumerate and add hardware modules.
+                    List<IOModuleInfoModel> modules = HardwareHandler.EnumerateDeviceModules(device);
                     foreach (var module in modules)
                     {
                         importedDevice.AddModule(module);
                     }
+                    
                     // importedDevice.PrintModulesFromGSDML();
                     
                     // Create tag tables in TIA Portal
@@ -428,22 +459,13 @@ namespace PLC.Commissioning.Lib.Siemens
                     // Add the device to the dictionary
                     deviceDictionary[deviceName] = importedDevice;
                 }
-
+                Log.Information("Device import was successful.");
+                
                 Log.Debug("Devices in the dictionary:");
                 foreach (var i in deviceDictionary)
                 {
                     Log.Debug($"Device {i.Key}: {i.Value}");
                 }
-
-                Log.Information("Device import was successful.");
-
-                Log.Debug("Devices in the dictionary:");
-                foreach (var i in deviceDictionary)
-                {
-                    Log.Debug($"Device {i.Key}: {i.Value}");
-                }
-
-                Log.Information("Device import was successful.");
 
                 // Read back created tag tables
                 List<string> tagTablesList = ioTagsHandler.ReadTagTables();
@@ -514,7 +536,7 @@ namespace PLC.Commissioning.Lib.Siemens
                     return false;
                 }
 
-                var ioSystemHandler = GetIoSystemHandler();
+                var ioSystemHandler = IoSystemHandler;
                 if (ioSystemHandler is null)
                 {
                     Log.Error("Failed to initialize IOSystemHandler.");
@@ -566,7 +588,7 @@ namespace PLC.Commissioning.Lib.Siemens
         {
             try
             {
-                Device device = _hardwareHandler.GetDeviceByName(deviceName);
+                Device device = HardwareHandler.GetDeviceByName(deviceName);
 
                 if (device is null)
                 {
@@ -585,7 +607,7 @@ namespace PLC.Commissioning.Lib.Siemens
                 return null;
             }
         }
-
+        
         /// <summary>
         /// Retrieves device parameters for a specified module.
         /// </summary>
@@ -598,21 +620,20 @@ namespace PLC.Commissioning.Lib.Siemens
         {
             try
             {
-                // Validate the input device
                 if (device is null)
                 {
                     Log.Error("Device is null.");
                     return false;
                 }
-                        
-                IOSystemHandler ioSystemHandler = GetIoSystemHandler();
+
+                IOSystemHandler ioSystemHandler = IoSystemHandler;
                 if (ioSystemHandler is null)
                 {
                     Log.Error("Failed to initialize IOSystemHandler.");
                     return false;
                 }
 
-                // Ensure the object is an `ImportedDevice`
+                // Ensure the object is an ImportedDevice
                 if (!(device is ImportedDevice importedDevice))
                 {
                     Log.Error("Invalid device type. Expected an ImportedDevice.");
@@ -620,18 +641,17 @@ namespace PLC.Commissioning.Lib.Siemens
                 }
 
                 Device specificDevice = importedDevice.Device;
-                string gsdFilePath = importedDevice.GsdmlFilePath;
 
-                // Read and initialize GSD file
-                string xmlContent = File.ReadAllText(gsdFilePath);
-                var gsdHandler = new GSDHandler();
-                if (!gsdHandler.Initialize(gsdFilePath))
+                // *** Use the pre-built GSDML model from the imported device ***
+                ImportedDeviceGSDMLModel gsdModel = importedDevice.DeviceGsdmlModel;
+                if (gsdModel == null)
                 {
+                    Log.Error("DeviceGsdmlModel is not initialized for device {DeviceName}", importedDevice.DeviceName);
                     return false;
                 }
+                ModuleInfo moduleInfo = gsdModel.ModuleInfo;
 
-                // Retrieve and validate module information
-                ModuleInfo moduleInfo = new ModuleInfo(gsdHandler);
+                // Retrieve device attributes from the IO system
                 var deviceAttributes = ioSystemHandler.GetDeviceIdentificationAttributes(specificDevice);
                 if (deviceAttributes is null)
                 {
@@ -639,7 +659,7 @@ namespace PLC.Commissioning.Lib.Siemens
                     return false;
                 }
 
-                // Validate the device name, firmware version, and order number
+                // Validate the device info
                 if (!IsDeviceInfoMatching(moduleInfo, deviceAttributes))
                 {
                     return false;
@@ -654,8 +674,8 @@ namespace PLC.Commissioning.Lib.Siemens
                         return false;
                     }
 
-                    // Use DeviceAccessPointList to retrieve the DAP item
-                    var dapList = new DeviceAccessPointList(gsdHandler);
+                    // Use the DeviceAccessPointList from the pre-built model
+                    var dapList = gsdModel.Dap;
                     var (dapItem, hasChangeableParameters) = dapList.GetDeviceAccessPointItemByID(moduleName);
 
                     if (dapItem is null)
@@ -670,8 +690,8 @@ namespace PLC.Commissioning.Lib.Siemens
                         return false;
                     }
 
-                    // Retrieve module from the hardware handler
-                    GsdDeviceItem module = _hardwareHandler.GetDeviceDAP(specificDevice);
+                    // Retrieve the module (DAP) from the hardware handler
+                    GsdDeviceItem module = HardwareHandler.GetDeviceDAP(specificDevice);
                     if (module is null)
                     {
                         return false;
@@ -682,8 +702,8 @@ namespace PLC.Commissioning.Lib.Siemens
                 }
                 else
                 {
-                    // Retrieve module item and check for changeable parameters
-                    ModuleList moduleList = new ModuleList(gsdHandler);
+                    // For non-DAP modules, use the ModuleList from the pre-built model
+                    ModuleList moduleList = gsdModel.ModuleList;
                     var (moduleItem, hasChangeableParameters) = moduleList.GetModuleItemByName(moduleName);
 
                     if (moduleItem is null)
@@ -698,15 +718,17 @@ namespace PLC.Commissioning.Lib.Siemens
                         return false;
                     }
 
-                    // Retrieve module from the hardware handler
-                    GsdDeviceItem module = _hardwareHandler.GetDeviceModuleByName(specificDevice, moduleName);
+                    // Retrieve the module from the hardware handler
+                    GsdDeviceItem module = HardwareHandler.GetDeviceModuleByName(specificDevice, moduleName);
                     if (module is null)
                     {
                         return false;
                     }
 
                     // Handle safety or regular parameters
-                    return safety ? HandleSafetyParameters(module, parameterSelections) : HandleRegularParameters(moduleItem, module, parameterSelections);
+                    return safety 
+                        ? HandleSafetyParameters(module, parameterSelections) 
+                        : HandleRegularParameters(moduleItem, module, parameterSelections);
                 }
             }
             catch (Exception ex)
@@ -728,21 +750,20 @@ namespace PLC.Commissioning.Lib.Siemens
         {
             try
             {
-                // Validate the input device
                 if (device is null)
                 {
                     Log.Error("Device is null.");
                     return false;
                 }
 
-                IOSystemHandler ioSystemHandler = GetIoSystemHandler();
+                IOSystemHandler ioSystemHandler = IoSystemHandler;
                 if (ioSystemHandler is null)
                 {
                     Log.Error("Failed to initialize IOSystemHandler.");
                     return false;
                 }
 
-                // Ensure the object is an `ImportedDevice`
+                // Ensure the object is an ImportedDevice
                 if (!(device is ImportedDevice importedDevice))
                 {
                     Log.Error("Invalid device type. Expected an ImportedDevice.");
@@ -750,18 +771,17 @@ namespace PLC.Commissioning.Lib.Siemens
                 }
 
                 Device specificDevice = importedDevice.Device;
-                string gsdFilePath = importedDevice.GsdmlFilePath;
 
-                // Read and initialize GSD file
-                string xmlContent = File.ReadAllText(gsdFilePath);
-                var gsdHandler = new GSDHandler();
-                if (!gsdHandler.Initialize(gsdFilePath))
+                // *** Use the pre-built GSDML model from the imported device ***
+                ImportedDeviceGSDMLModel gsdModel = importedDevice.DeviceGsdmlModel;
+                if (gsdModel == null)
                 {
+                    Log.Error("DeviceGsdmlModel is not initialized for device {DeviceName}", importedDevice.DeviceName);
                     return false;
                 }
+                ModuleInfo moduleInfo = gsdModel.ModuleInfo;
 
-                // Retrieve and validate module information
-                ModuleInfo moduleInfo = new ModuleInfo(gsdHandler);
+                // Retrieve device attributes from the IO system
                 var deviceAttributes = ioSystemHandler.GetDeviceIdentificationAttributes(specificDevice);
                 if (deviceAttributes is null)
                 {
@@ -769,7 +789,7 @@ namespace PLC.Commissioning.Lib.Siemens
                     return false;
                 }
 
-                // Validate the device name, firmware version, and order number
+                // Validate the device info
                 if (!IsDeviceInfoMatching(moduleInfo, deviceAttributes))
                 {
                     return false;
@@ -784,8 +804,8 @@ namespace PLC.Commissioning.Lib.Siemens
                         return false;
                     }
 
-                    // Use DeviceAccessPointList to retrieve the DAP item
-                    var dapList = new DeviceAccessPointList(gsdHandler);
+                    // Use the DeviceAccessPointList from the pre-built model
+                    var dapList = gsdModel.Dap;
                     var (dapItem, hasChangeableParameters) = dapList.GetDeviceAccessPointItemByID(moduleName);
 
                     if (dapItem is null)
@@ -800,8 +820,8 @@ namespace PLC.Commissioning.Lib.Siemens
                         return false;
                     }
 
-                    // Retrieve module from the hardware handler
-                    GsdDeviceItem module = _hardwareHandler.GetDeviceDAP(specificDevice);
+                    // Retrieve the module (DAP) from the hardware handler
+                    GsdDeviceItem module = HardwareHandler.GetDeviceDAP(specificDevice);
                     if (module is null)
                     {
                         return false;
@@ -812,8 +832,8 @@ namespace PLC.Commissioning.Lib.Siemens
                 }
                 else
                 {
-                    // Retrieve module item and check for changeable parameters
-                    ModuleList moduleList = new ModuleList(gsdHandler);
+                    // For non-DAP modules, use the ModuleList from the pre-built model
+                    ModuleList moduleList = gsdModel.ModuleList;
                     var (moduleItem, hasChangeableParameters) = moduleList.GetModuleItemByName(moduleName);
 
                     if (moduleItem is null)
@@ -828,17 +848,19 @@ namespace PLC.Commissioning.Lib.Siemens
                         return false;
                     }
 
-                    // Retrieve module from the hardware handler
-                    GsdDeviceItem module = _hardwareHandler.GetDeviceModuleByName(specificDevice, moduleName);
+                    // Retrieve the module from the hardware handler
+                    GsdDeviceItem module = HardwareHandler.GetDeviceModuleByName(specificDevice, moduleName);
                     if (module is null)
                     {
                         Log.Error($"Module '{moduleName}' not found in the device.");
                         return false;
                     }
-                    
+
                     Log.Information($"Setting device parameters succeeded for module '{moduleName}'.");
                     // Handle safety or regular parameters
-                    return safety ? SetSafetyParameters(module, parametersToSet) : SetRegularParameters(moduleItem, module, parametersToSet);
+                    return safety 
+                        ? SetSafetyParameters(module, parametersToSet) 
+                        : SetRegularParameters(moduleItem, module, parametersToSet);
                 }
             }
             catch (Exception ex)
@@ -847,7 +869,7 @@ namespace PLC.Commissioning.Lib.Siemens
                 return false;
             }
         }
-
+        
         /// <summary>
         /// Starts the PLC.
         /// </summary>
@@ -1141,7 +1163,49 @@ namespace PLC.Commissioning.Lib.Siemens
                 return false;
             }
         }
+        
+        /// <summary>
+        /// Deletes the specified device and all of its associated PLC tags from the project.
+        /// </summary>
+        /// <param name="device">The device object to delete. Must be an ImportedDevice.</param>
+        /// <returns><c>true</c> if deletion was successful; otherwise, <c>false</c>.</returns>
+        public bool DeleteDevice(object device)
+        {
+            try
+            {
+                if (device == null)
+                {
+                    Log.Error("DeleteDevice: Device is null.");
+                    return false;
+                }
 
+                if (!(device is ImportedDevice importedDevice))
+                {
+                    Log.Error("DeleteDevice: Invalid device type. Expected an ImportedDevice.");
+                    return false;
+                }
+
+                // Delete the tag tables (i.e. tags and tag groups) using the IOTagsHandler.
+                IOTagsHandler tagsHandler = IOTagsHandler;
+                tagsHandler.DeleteDeviceTagTables(importedDevice);
+                
+                // Delete the hardware device from the project.
+                bool hardwareDeletionSuccess = HardwareHandler.DeleteDevice(importedDevice.Device);
+                if (!hardwareDeletionSuccess)
+                {
+                    Log.Error("DeleteDevice: Failed to delete hardware device from project.");
+                    return false;
+                }
+
+                Log.Information("Device '{DeviceName}' and its associated tags were deleted successfully.", importedDevice.DeviceName);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "DeleteDevice: Error deleting device: {Message}", ex.Message);
+                return false;
+            }
+        }
 
         /// <summary>
         /// Releases all resources used by the <see cref="SiemensPLCController"/>.
@@ -1163,86 +1227,14 @@ namespace PLC.Commissioning.Lib.Siemens
             {
                 if (disposing)
                 {
-                    // Dispose ProjectHandlerService
-                    if (_projectHandler != null)
-                    {
-                        try
-                        {
-                            _projectHandler.Dispose();
-                        }
-                        catch (Exception ex)
-                        {
-                            Log.Warning("Error disposing ProjectHandlerService: {Message}", ex.Message);
-                        }
-                    }
-
-                    // Dispose UIDownloadHandler
-                    if (_safety && _uiDownloadHandler != null)
-                    {
-                        try
-                        {
-                            _uiDownloadHandler.CloseTIA();
-                            _uiDownloadHandler.Dispose();
-                        }
-                        catch (Exception ex)
-                        {
-                            Log.Warning("Error disposing UIDownloadHandler: {Message}", ex.Message);
-                        }
-                    }
-
-                    // Dispose HardwareHandler
-                    if (_hardwareHandler is IDisposable disposableHardwareHandler)
-                    {
-                        try
-                        {
-                            disposableHardwareHandler.Dispose();
-                        }
-                        catch (Exception ex)
-                        {
-                            Log.Warning("Error disposing HardwareHandler: {Message}", ex.Message);
-                        }
-                    }
-
-                    // Dispose IOSystemHandler
-                    if (_ioSystemHandler is IDisposable disposableIOSystemHandler)
-                    {
-                        try
-                        {
-                            disposableIOSystemHandler.Dispose();
-                        }
-                        catch (Exception ex)
-                        {
-                            Log.Warning("Error disposing IOSystemHandler: {Message}", ex.Message);
-                        }
-                    }
-
-                    // Dispose SiemensManagerService
-                    if (_manager != null)
-                    {
-                        try
-                        {
-                            _manager.Dispose();
-                        }
-                        catch (Exception ex)
-                        {
-                            Log.Warning("Error disposing SiemensManagerService: {Message}", ex.Message);
-                        }
-                    }
-
-                    // Dispose TIA Portal Instance
-                    if (_tiaPortalInstance != null)
-                    {
-                        try
-                        {
-                            _tiaPortalInstance.Dispose();
-                        }
-                        catch (Exception ex)
-                        {
-                            Log.Warning("Error disposing TIA Portal Instance: {Message}", ex.Message);
-                        }
-                    }
+                    // Dispose handlers in proper order.
+                    try { _projectHandler?.Dispose(); } catch (Exception ex) { Log.Warning("Error disposing ProjectHandler: {Message}", ex.Message); }
+                    try { _uiDownloadHandler?.Dispose(); } catch (Exception ex) { Log.Warning("Error disposing UIDownloadHandler: {Message}", ex.Message); }
+                    try { (_hardwareHandler as IDisposable)?.Dispose(); } catch (Exception ex) { Log.Warning("Error disposing HardwareHandler: {Message}", ex.Message); }
+                    try { (_ioSystemHandler as IDisposable)?.Dispose(); } catch (Exception ex) { Log.Warning("Error disposing IOSystemHandler: {Message}", ex.Message); }
+                    try { _manager?.Dispose(); } catch (Exception ex) { Log.Warning("Error disposing SiemensManagerService: {Message}", ex.Message); }
+                    try { _tiaPortalInstance?.Dispose(); } catch (Exception ex) { Log.Warning("Error disposing TiaPortal instance: {Message}", ex.Message); }
                 }
-
                 _disposed = true;
             }
         }
@@ -1389,6 +1381,55 @@ namespace PLC.Commissioning.Lib.Siemens
                 Log.Error($"Failed to initialize RPCController: {ex.Message}");
                 return null;
             }
+        }
+        
+        /// <summary>
+        /// Builds a dictionary of pre‐initialized GSDML models keyed by device model (TypeName).
+        /// Each model is built by initializing a single GSDHandler per file and then extracting the
+        /// relevant data into an ImportedDeviceGSDMLModel.
+        /// </summary>
+        /// <param name="gsdmlFiles">List of GSDML file paths.</param>
+        /// <returns>A dictionary mapping device model to the corresponding ImportedDeviceGSDMLModel.</returns>
+        private Dictionary<string, ImportedDeviceGSDMLModel> BuildGsdModelMap(IEnumerable<string> gsdmlFiles)
+        {
+            var map = new Dictionary<string, ImportedDeviceGSDMLModel>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var filePath in gsdmlFiles)
+            {
+                var gsdHandler = new GSDHandler();
+                if (!gsdHandler.Initialize(filePath))
+                {
+                    Log.Warning("Failed to initialize GSDHandler for file {FilePath}", filePath);
+                    continue;
+                }
+
+                // Use the existing ModuleInfo class to extract the device model (TypeName)
+                var moduleInfo = new ModuleInfo(gsdHandler);
+                string deviceModel = moduleInfo.Model.Name;
+                if (string.IsNullOrEmpty(deviceModel))
+                {
+                    Log.Warning("No valid device model found in GSD file {FilePath}", filePath);
+                    continue;
+                }
+
+                if (map.ContainsKey(deviceModel))
+                {
+                    Log.Warning("Duplicate device model {DeviceModel} found in file {FilePath}. Skipping duplicate.", deviceModel, filePath);
+                    continue;
+                }
+
+                // Build the merged GSDML model once.
+                var importedDeviceGSDMLModel = new ImportedDeviceGSDMLModel
+                {
+                    ModuleInfo = moduleInfo,
+                    Dap = new DeviceAccessPointList(gsdHandler),
+                    ModuleList = new ModuleList(gsdHandler)
+                };
+
+                map[deviceModel] = importedDeviceGSDMLModel;
+            }
+
+            return map;
         }
         #endregion
     }
