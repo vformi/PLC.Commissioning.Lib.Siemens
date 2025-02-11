@@ -60,13 +60,7 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Software.PLC
         /// </summary>
         public void DisplayPLCConnectionPossibilities() => _networkConfigurator.DisplayPLCConnectionPossibilities();
 
-        /// <summary>
-        /// Configures the network settings for the PLC using the specified network card and interface.
-        /// </summary>
-        /// <param name="networkCardName">The name of the network card to use.</param>
-        /// <param="interfaceNumber">The interface number to use.</param>
-        /// <param name="targetInterfaceName">The name of the target interface.</param>
-        /// <returns><c>true</c> if the configuration succeeds; otherwise, <c>false</c>.</returns>
+        /// <inheritdoc />
         public bool TryConfigureNetwork(string networkCardName, int interfaceNumber, string targetInterfaceName)
         {
             var result = _networkConfigurator.ConfigureNetwork(networkCardName, interfaceNumber, targetInterfaceName);

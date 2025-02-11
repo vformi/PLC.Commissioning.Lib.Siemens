@@ -30,12 +30,7 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.Handlers
             _projectHandler = projectHandler ?? throw new ArgumentNullException(nameof(projectHandler));
         }
 
-        /// <summary>
-        /// Finds and returns the CPU device item from the project along with its PLC software.
-        /// </summary>
-        /// <returns>A tuple containing the CPU <see cref="DeviceItem"/> and its <see cref="PlcSoftware"/>.
-        /// If no CPU is found, throws an exception.</returns>
-        /// <exception cref="InvalidOperationException">Thrown if no CPU is found in the project or if the project is null.</exception>
+        /// <inheritdoc />
         public (DeviceItem cpuItem, PlcSoftware plcSoftware) FindCPU()
         {
             var project = _projectHandler.Project;
@@ -70,43 +65,8 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.Handlers
 
             throw new InvalidOperationException("No CPU found in the project");
         }
-        
-        /// <summary>
-        /// Retrieves the PLC software from a given device.
-        /// </summary>
-        /// <param name="device">The device to extract software from.</param>
-        /// <returns>The <see cref="PlcSoftware"/> if found; otherwise, <c>null</c>.</returns>
-        private PlcSoftware GetPlcSoftware(Device device)
-        {
-            if (device == null)
-            {
-                Log.Error("Device is null. Cannot retrieve PLC software.");
-                return null;
-            }
 
-            foreach (DeviceItem deviceItem in device.DeviceItems)
-            {
-                SoftwareContainer softwareContainer = deviceItem.GetService<SoftwareContainer>();
-                if (softwareContainer != null)
-                {
-                    global::Siemens.Engineering.HW.Software softwareBase = softwareContainer.Software;
-                    PlcSoftware plcSoftware = softwareBase as PlcSoftware;
-
-                    if (plcSoftware != null)
-                    {
-                        return plcSoftware;
-                    }
-                }
-            }
-
-            return null;
-        }
-
-        /// <summary>
-        /// Gets a device by its name from the project.
-        /// </summary>
-        /// <param name="deviceName">The name of the device to search for.</param>
-        /// <returns>The <see cref="Device"/> if found; otherwise, <c>null</c>.</returns>
+        /// <inheritdoc />
         public Device GetDeviceByName(string deviceName)
         {
             var project = _projectHandler.Project;
@@ -165,12 +125,7 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.Handlers
             }
         }
 
-        /// <summary>
-        /// Gets a specific module by its name from a given device. 
-        /// </summary>
-        /// <param name="device">The device to search within.</param>
-        /// <param name="moduleName">The name of the module to search for.</param>
-        /// <returns>The <see cref="GsdDeviceItem"/> representing the module if found; otherwise, <c>null</c>.</returns>
+        /// <inheritdoc />
         public GsdDeviceItem GetDeviceModuleByName(Device device, string moduleName)
         {
             var project = _projectHandler.Project;
@@ -221,11 +176,7 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.Handlers
             return module;
         }
 
-        /// <summary>
-        /// Gets DAP from a given device. 
-        /// </summary>
-        /// <param name="device">The device to search within.</param>
-        /// <returns>The <see cref="GsdDeviceItem"/> representing the module if found; otherwise, <c>null</c>.</returns>
+        /// <inheritdoc />
         public GsdDeviceItem GetDeviceDAP(Device device)
         {
             var project = _projectHandler.Project;
@@ -271,9 +222,7 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.Handlers
             return module;
         }
 
-        /// <summary>
-        /// Enumerates and logs all devices in the current project.
-        /// </summary>
+        /// <inheritdoc />
         public void EnumerateProjectDevices()
         {
             var project = _projectHandler.Project;
@@ -317,10 +266,7 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.Handlers
             }
         }
 
-        /// <summary>
-        /// Retrieves all non-CPU devices in the current project, including both grouped and ungrouped devices.
-        /// </summary>
-        /// <returns>A list of all non-CPU <see cref="Device"/> objects in the project.</returns>
+        /// <inheritdoc />
         public List<Device> GetDevices()
         {
             var devices = new List<Device>();
@@ -368,11 +314,7 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.Handlers
             return devices;
         }
         
-        /// <summary>
-        /// Enumerates device modules, identifies modules, and retrieves address information.
-        /// </summary>
-        /// <param name="device">The device to scan for modules.</param>
-        /// <returns>A list of module details, including their addresses.</returns>
+        /// <inheritdoc />
         public List<IOModuleInfoModel> EnumerateDeviceModules(Device device)
         {
             var modules = new List<IOModuleInfoModel>();
@@ -442,22 +384,7 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.Handlers
             return modules;
         }
         
-        /// <summary>
-        /// Deletes the specified device from the project.
-        /// </summary>
-        /// <param name="device">The device to be deleted.</param>
-        /// <returns>
-        /// <c>true</c> if the device was successfully deleted; otherwise, <c>false</c>.
-        /// </returns>
-        /// <remarks>
-        /// This method logs an error and returns <c>false</c> if the device is null or if an exception occurs during deletion.
-        /// </remarks>
-        /// <exception cref="EngineeringException">
-        /// Thrown if the device cannot be deleted due to project constraints.
-        /// </exception>
-        /// <exception cref="Exception">
-        /// Thrown if an unexpected error occurs.
-        /// </exception>
+        /// <inheritdoc />
         public bool DeleteDevice(Device device)
         {
             try
@@ -518,6 +445,39 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.Handlers
             }
         }
 
+        #endregion
+
+        #region Private methods
+        /// <summary>
+        /// Retrieves the PLC software from a given device.
+        /// </summary>
+        /// <param name="device">The device to extract software from.</param>
+        /// <returns>The <see cref="PlcSoftware"/> if found; otherwise, <c>null</c>.</returns>
+        private PlcSoftware GetPlcSoftware(Device device)
+        {
+            if (device == null)
+            {
+                Log.Error("Device is null. Cannot retrieve PLC software.");
+                return null;
+            }
+
+            foreach (DeviceItem deviceItem in device.DeviceItems)
+            {
+                SoftwareContainer softwareContainer = deviceItem.GetService<SoftwareContainer>();
+                if (softwareContainer != null)
+                {
+                    global::Siemens.Engineering.HW.Software softwareBase = softwareContainer.Software;
+                    PlcSoftware plcSoftware = softwareBase as PlcSoftware;
+
+                    if (plcSoftware != null)
+                    {
+                        return plcSoftware;
+                    }
+                }
+            }
+
+            return null;
+        }
         #endregion
     }
 }

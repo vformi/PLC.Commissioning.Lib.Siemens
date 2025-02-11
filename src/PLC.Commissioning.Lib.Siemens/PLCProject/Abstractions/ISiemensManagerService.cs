@@ -9,8 +9,9 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Abstractions
     public interface ISiemensManagerService : IDisposable
     {
         /// <summary>
-        /// Starts the TIA Portal with the configured mode (with or without a user interface).
+        /// Starts a new instance of TIA Portal.
         /// </summary>
+        /// <exception cref="InvalidOperationException">Thrown if TIA Portal cannot be started.</exception>
         void StartTIA();
 
         /// <summary>

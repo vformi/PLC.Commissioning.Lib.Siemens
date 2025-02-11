@@ -12,7 +12,9 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject
     /// </summary>
     public class SiemensManagerService : ISiemensManagerService
     {
+        /// <inheritdoc />
         public TiaPortal TiaPortal { get; private set; }
+        
         private bool _useUserInterface;
 
         // The AssemblyResolve method could be implemented here if dynamic loading is required.

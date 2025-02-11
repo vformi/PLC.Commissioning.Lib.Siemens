@@ -62,5 +62,12 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.Abstractions
         /// <param name="cpu">The <see cref="DeviceItem"/> that represents the PLC device.</param>
         /// <returns>The IP address as a string if found; otherwise, null.</returns>
         string GetPLCIPAddress(DeviceItem cpu);
+
+        /// <summary>
+        /// Gets the IP address for the specified device and returns it.
+        /// </summary>
+        /// <param name="device">The <see cref="Device"/> for which to set the IP address.</param>
+        /// <returns>the IP address as string if it was possible to get it othervise null.</returns>
+        string GetDeviceIPAddress(Device device);
     }
 }

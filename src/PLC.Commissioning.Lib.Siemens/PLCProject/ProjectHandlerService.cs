@@ -36,25 +36,13 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject
             _tiaPortal = tiaPortal ?? throw new ArgumentNullException(nameof(tiaPortal));
         }
 
-        /// <summary>
-        /// Gets the currently opened TIA Portal project.
-        /// </summary>
+        /// <inheritdoc />
         public Project Project => _project;
 
-        /// <summary>
-        /// Gets the current TIA Portal instance associated with the service.
-        /// </summary>
+        /// <inheritdoc />
         public TiaPortal TiaPortal => _tiaPortal;
 
-        /// <summary>
-        /// Attempts to open or retrieve and open a TIA Portal project based on the file extension.
-        /// </summary>
-        /// <param name="projectPath">The full path to the TIA Portal project file (.apX or .zapX, where X is any number).</param>
-        /// <returns>
-        /// <c>true</c> if the project was opened or retrieved successfully; otherwise, <c>false</c> if the project could not be opened 
-        /// (e.g., due to the project being locked or in use by another process).
-        /// </returns>
-        /// <exception cref="FileNotFoundException">Thrown when the specified project file is not found at the given path.</exception>
+        /// <inheritdoc />
         public bool HandleProject(string projectPath)
         {
             if (!File.Exists(projectPath))
@@ -103,76 +91,7 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject
             }
         }
 
-
-        /// <summary>
-        /// Opens a TIA Portal project from the specified file path.
-        /// </summary>
-        /// <param name="projectPath">The full path to the TIA Portal project file (.ap17).</param>
-        private void OpenProject(string projectPath)
-        {
-            try
-            {
-                _project = _tiaPortal.Projects.Open(new FileInfo(projectPath));
-                Log.Information($"Project '{projectPath}' opened successfully.");
-            }
-            catch (Exception ex)
-            {
-                Log.Error($"Failed to open project '{projectPath}': {ex.Message}");
-                throw;
-            }
-        }
-
-        private void RetrieveAndOpenProject(string archivePath)
-        {
-            // Convert relative path to absolute
-            string absoluteArchivePath = Path.GetFullPath(archivePath);
-            if (!File.Exists(absoluteArchivePath))
-            {
-                Log.Error($"Project archive file not found at '{absoluteArchivePath}'.");
-                throw new FileNotFoundException("Project archive file not found.", absoluteArchivePath);
-            }
-
-            string retrievedProjectsDirectory = Path.GetDirectoryName(absoluteArchivePath);
-            string projectName =
-                Path.GetFileNameWithoutExtension(
-                    absoluteArchivePath); // Assume the project folder is named after the archive file without the extension
-            string targetDirectory = Path.Combine(retrievedProjectsDirectory, projectName);
-
-            // Ensure only the specific directory that would be created by the Retrieve operation is deleted
-            if (Directory.Exists(targetDirectory))
-            {
-                Log.Information($"Project directory '{targetDirectory}' already exists. Deleting...");
-                try
-                {
-                    Directory.Delete(targetDirectory, true); // Recursively delete the specific directory
-                    Log.Information($"Existing project directory '{targetDirectory}' deleted successfully.");
-                }
-                catch (Exception ex)
-                {
-                    Log.Error($"Failed to delete existing project directory '{targetDirectory}': {ex.Message}");
-                    throw new IOException($"Failed to delete existing project directory '{targetDirectory}'.", ex);
-                }
-            }
-
-            try
-            {
-                DirectoryInfo retrievedDir = new DirectoryInfo(retrievedProjectsDirectory);
-                _project = _tiaPortal.Projects.Retrieve(new FileInfo(absoluteArchivePath), retrievedDir);
-                Log.Information(
-                    $"Project '{absoluteArchivePath}' retrieved and opened successfully in directory '{targetDirectory}'.");
-            }
-            catch (Exception ex)
-            {
-                Log.Error($"Failed to retrieve project from '{absoluteArchivePath}': {ex.Message}");
-                throw;
-            }
-        }
-
-        /// <summary>
-        /// Imports an AML file into the currently opened TIA Portal project.
-        /// </summary>
-        /// <param name="amlFilePath">The full path to the AML file.</param>
-        /// <returns><c>true</c> if the import was successful; otherwise, <c>false</c>.</returns>
+        /// <inheritdoc />
         public bool ImportAmlFile(string amlFilePath)
         {
             Log.Information("Attempting to import DUT from a file.");
@@ -229,10 +148,7 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject
             }
         }
 
-        /// <summary>
-        /// Saves the currently opened TIA Portal project with a new name and then closes it.
-        /// </summary>
-        /// <param name="projectName">The new name for the saved project.</param>
+        /// <inheritdoc />
         public void SaveProjectAs(string projectName)
         {
             string documentsPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
@@ -303,7 +219,8 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject
                 _disposed = true;
             }
         }
-
+        
+        /// <inheritdoc />
         public void CloseProject()
         {
             if (_project != null)
@@ -325,6 +242,72 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject
             else
             {
                 Log.Debug("No project to close.");
+            }
+        }
+        #endregion
+        
+        # region Private methods 
+        /// <summary>
+        /// Opens a TIA Portal project from the specified file path.
+        /// </summary>
+        /// <param name="projectPath">The full path to the TIA Portal project file (.ap17).</param>
+        private void OpenProject(string projectPath)
+        {
+            try
+            {
+                _project = _tiaPortal.Projects.Open(new FileInfo(projectPath));
+                Log.Information($"Project '{projectPath}' opened successfully.");
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"Failed to open project '{projectPath}': {ex.Message}");
+                throw;
+            }
+        }
+        
+        private void RetrieveAndOpenProject(string archivePath)
+        {
+            // Convert relative path to absolute
+            string absoluteArchivePath = Path.GetFullPath(archivePath);
+            if (!File.Exists(absoluteArchivePath))
+            {
+                Log.Error($"Project archive file not found at '{absoluteArchivePath}'.");
+                throw new FileNotFoundException("Project archive file not found.", absoluteArchivePath);
+            }
+
+            string retrievedProjectsDirectory = Path.GetDirectoryName(absoluteArchivePath);
+            string projectName =
+                Path.GetFileNameWithoutExtension(
+                    absoluteArchivePath); // Assume the project folder is named after the archive file without the extension
+            string targetDirectory = Path.Combine(retrievedProjectsDirectory, projectName);
+
+            // Ensure only the specific directory that would be created by the Retrieve operation is deleted
+            if (Directory.Exists(targetDirectory))
+            {
+                Log.Information($"Project directory '{targetDirectory}' already exists. Deleting...");
+                try
+                {
+                    Directory.Delete(targetDirectory, true); // Recursively delete the specific directory
+                    Log.Information($"Existing project directory '{targetDirectory}' deleted successfully.");
+                }
+                catch (Exception ex)
+                {
+                    Log.Error($"Failed to delete existing project directory '{targetDirectory}': {ex.Message}");
+                    throw new IOException($"Failed to delete existing project directory '{targetDirectory}'.", ex);
+                }
+            }
+
+            try
+            {
+                DirectoryInfo retrievedDir = new DirectoryInfo(retrievedProjectsDirectory);
+                _project = _tiaPortal.Projects.Retrieve(new FileInfo(absoluteArchivePath), retrievedDir);
+                Log.Information(
+                    $"Project '{absoluteArchivePath}' retrieved and opened successfully in directory '{targetDirectory}'.");
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"Failed to retrieve project from '{absoluteArchivePath}': {ex.Message}");
+                throw;
             }
         }
         #endregion
