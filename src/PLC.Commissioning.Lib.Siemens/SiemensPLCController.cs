@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using FluentResults;
 using Newtonsoft.Json;
 using Serilog;
 using PLC.Commissioning.Lib.Siemens.PLCProject;
@@ -10,6 +11,7 @@ using PLC.Commissioning.Lib.Siemens.PLCProject.Software.PLC;
 using PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.Handlers;
 using PLC.Commissioning.Lib.Siemens.PLCProject.UI;
 using PLC.Commissioning.Lib.Abstractions;
+using PLC.Commissioning.Lib.Abstractions.Enums;
 using PLC.Commissioning.Lib.Siemens.PLCProject.Hardware;
 using Siemens.Engineering;
 using Siemens.Engineering.Download;
@@ -171,12 +173,8 @@ namespace PLC.Commissioning.Lib.Siemens
 
         #endregion
 
-        /// <summary>
-        /// Configures the controller using a JSON configuration file.
-        /// </summary>
-        /// <param name="jsonFilePath">The path to the JSON configuration file.</param>
-        /// <returns><c>true</c> if the configuration was successful; otherwise, <c>false</c>.</returns>
-        public bool Configure(string jsonFilePath)
+        /// <inheritdoc />
+        public Result Configure(string jsonFilePath)
         {
             try
             {
@@ -190,21 +188,22 @@ namespace PLC.Commissioning.Lib.Siemens
                 Log.Debug($"Project Path: {_projectPath}");
                 Log.Debug($"Network Card: {_networkCard}");
 
-                return true;
+                return Result.Ok();
             }
             catch (Exception ex)
             {
-                Log.Error($"Error during configuration: {ex.Message}");
-                return false;
+                var errorMessage = $"Error during configuration: {ex.Message}";
+                Log.Error(errorMessage);
+
+                return Result.Fail(new Error(errorMessage)
+                {
+                    Metadata = { ["ErrorCode"] = OperationErrorCode.ConfigurationFailed }
+                });
             }
         }
 
-        /// <summary>
-        /// Initializes the Siemens PLC controller in offline mode.
-        /// </summary>
-        /// <param name="safety">Indicates whether safety mode is enabled.</param>
-        /// <returns><c>true</c> if the initialization was successful; otherwise, <c>false</c>.</returns>
-        public bool Initialize(bool safety = false)
+        /// <inheritdoc />
+        public Result Initialize(bool safety = false)
         {
             try
             {
@@ -226,13 +225,22 @@ namespace PLC.Commissioning.Lib.Siemens
                 // Step 3: Verify and handle the project file
                 if (string.IsNullOrEmpty(_projectPath) || !File.Exists(_projectPath))
                 {
-                    Log.Error("Project file not found at path: {ProjectPath}", _projectPath);
-                    return false;
+                    var errorMessage = $"Project file not found at path: {_projectPath}";
+                    Log.Error(errorMessage);
+                    return Result.Fail(new Error(errorMessage)
+                    {
+                        Metadata = { ["ErrorCode"] = OperationErrorCode.InitializationFailed }
+                    });
                 }
+
                 if (!_projectHandler.HandleProject(_projectPath))
                 {
-                    Log.Error("Failed to handle project at path: {ProjectPath}", _projectPath);
-                    return false;
+                    var errorMessage = $"Failed to handle project at path: {_projectPath}";
+                    Log.Error(errorMessage);
+                    return Result.Fail(new Error(errorMessage)
+                    {
+                        Metadata = { ["ErrorCode"] = OperationErrorCode.InitializationFailed }
+                    });
                 }
 
                 // Step 4: Initialize safety-related components (if applicable)
@@ -256,16 +264,21 @@ namespace PLC.Commissioning.Lib.Siemens
                     projectCompiler,
                     null, // No OnlineProviderService for offline mode
                     null, // No NetworkConfigurationService for offline mode
-                    null  // No PLCOperationsService for offline mode
+                    null // No PLCOperationsService for offline mode
                 );
 
                 Log.Information("Offline initialization completed successfully.");
-                return true;
+                return Result.Ok();
             }
             catch (EngineeringSecurityException ex)
             {
-                Log.Error("EngineeringSecurityException: Ensure the user '{User}' is a member of the Siemens TIA Openness group.", Environment.UserName);
-                return false;
+                var errorMessage =
+                    $"EngineeringSecurityException: Ensure the user '{Environment.UserName}' is a member of the Siemens TIA Openness group.";
+                Log.Error(errorMessage);
+                return Result.Fail(new Error(errorMessage)
+                {
+                    Metadata = { ["ErrorCode"] = OperationErrorCode.InitializationFailed }
+                });
             }
             catch (Exception ex)
             {
@@ -276,153 +289,104 @@ namespace PLC.Commissioning.Lib.Siemens
                     ex.GetType().Name, 
                     ex.Message, 
                     ex.StackTrace);
-                return false;
+                return Result.Fail(new Error("Offline initialization failed.")
+                {
+                    Metadata = { ["ErrorCode"] = OperationErrorCode.InitializationFailed }
+                });
             }
         }
-
-        /// <summary>
-        /// Initializes online mode for the Siemens PLC controller.
-        /// </summary>
-        /// <returns><c>true</c> if the online initialization was successful; otherwise, <c>false</c>.</returns>
-        private bool InitializeOnline()
-        {
-            if (_onlineInitialized)
-            {
-                Log.Warning("Online mode has already been initialized.");
-                return true;
-            }
-
-            try
-            {
-                Log.Information("Initializing online mode...");
-
-                // Initialize services for online and download operations
-                Log.Debug("Initializing OnlineProvider and DownloadProvider...");
-                var onlineProvider = _cpu.GetService<OnlineProvider>();
-                _downloadProvider = _cpu.GetService<DownloadProvider>();
-
-                // Create helper services for controller configuration
-                var onlineProviderService = new OnlineProviderService(onlineProvider);
-                var networkConfigurator = new NetworkConfigurationService(onlineProvider, _downloadProvider);
-                var plcOperationsService = new PLCOperationsService(_downloadProvider);
-
-                // Inject online services into the controller
-                _controller.SetOnlineServices(onlineProviderService, networkConfigurator, plcOperationsService);
-                
-                // Determine the CPU's IP address and validate network connectivity
-                string cpuIP = _ioSystemHandler.GetPLCIPAddress(_cpu);
-                if (!networkConfigurator.PingIpAddress(_networkCard, cpuIP))
-                {
-                    Log.Error("Unable to ping CPU at IP address: {CpuIP}", cpuIP);
-                    return false;
-                }
-
-                // Configure the target network
-                var targetConfiguration = networkConfigurator.GetTargetConfiguration();
-                _controller.SetTargetConfiguration(targetConfiguration);
-
-                // Configure the network card
-                if (string.IsNullOrEmpty(_networkCard))
-                {
-                    Log.Error("Network card configuration is missing.");
-                    return false;
-                }
-                if (!_controller.TryConfigureNetwork(_networkCard, 1, "1 X1"))
-                {
-                    Log.Error("Failed to configure network with card: {NetworkCard}", _networkCard);
-                    return false;
-                }
-
-                // Initialize RPC Controller
-                Log.Debug("Initializing RPCController...");
-                _rpcController = InitializeRpcController(cpuIP);
-                if (_rpcController == null)
-                {
-                    Log.Warning("RPCController initialization failed. Proceeding without RPC support.");
-                }
-                _onlineInitialized = true;
-                Log.Information("Online initialization completed successfully.");
-                return true;
-            }
-            catch (Exception ex)
-            {
-                Log.Error("Offline initialization failed:\n" +
-                          "Exception Type: {ExceptionType}\n" +
-                          "Message: {ErrorMessage}\n" +
-                          "Stack Trace:\n{StackTrace}", 
-                    ex.GetType().Name, 
-                    ex.Message, 
-                    ex.StackTrace);
-                return false;
-            }
-        }
-
-
-        /// <summary>
-        /// Imports a device configuration into the Siemens PLC project.
-        /// </summary>
-        /// <param name="filePath">The path to the device configuration file.</param>
-        /// <param name="gsdmlFiles">List of available GSDML files for mapping.</param>
-        /// <returns>Dictionary of `ImportedDevices` mapped by device name.</returns>
-        public Dictionary<string, object> ImportDevices(string filePath, List<string> gsdmlFiles)
+        
+        /// <inheritdoc />
+        public Result<Dictionary<string, object>> ImportDevices(string filePath, List<string> gsdmlFiles)
         {
             try
             {
                 if (string.IsNullOrEmpty(filePath))
                 {
-                    Log.Error("The device configuration file path is null or empty.");
-                    return null;
+                    var errorMessage = "The device configuration file path is null or empty.";
+                    Log.Error(errorMessage);
+                    var error = new Error(errorMessage)
+                    {
+                        Metadata = { ["ErrorCode"] = OperationErrorCode.ImportFailed }
+                    };
+                    return Result.Fail<Dictionary<string, object>>(error);
                 }
 
                 if (!File.Exists(filePath))
                 {
-                    Log.Error($"The device configuration file '{filePath}' does not exist.");
-                    return null;
+                    var errorMessage = $"The device configuration file '{filePath}' does not exist.";
+                    Log.Error(errorMessage);
+                    var error = new Error(errorMessage)
+                    {
+                        Metadata = { ["ErrorCode"] = OperationErrorCode.ImportFailed }
+                    };
+                    return Result.Fail<Dictionary<string, object>>(error);
                 }
 
-                if (_projectHandler is null)
+                if (_projectHandler == null)
                 {
-                    Log.Error("Device import failed: project is not Initialized.");
-                    return null;
+                    var errorMessage = "Device import failed: project is not Initialized.";
+                    Log.Error(errorMessage);
+                    var error = new Error(errorMessage)
+                    {
+                        Metadata = { ["ErrorCode"] = OperationErrorCode.ImportFailed }
+                    };
+                    return Result.Fail<Dictionary<string, object>>(error);
                 }
 
                 if (!_projectHandler.ImportAmlFile(filePath))
                 {
-                    Log.Error("Failed to import AML file.");
-                    return null;
+                    var errorMessage = "Failed to import AML file.";
+                    Log.Error(errorMessage);
+                    var error = new Error(errorMessage)
+                    {
+                        Metadata = { ["ErrorCode"] = OperationErrorCode.ImportFailed }
+                    };
+                    return Result.Fail<Dictionary<string, object>>(error);
                 }
 
+                // Enumerate devices
                 HardwareHandler.EnumerateProjectDevices();
 
                 var ioSystemHandler = IoSystemHandler;
-                if (ioSystemHandler is null)
+                if (ioSystemHandler == null)
                 {
-                    Log.Error("Failed to initialize IOSystemHandler.");
-                    return null;
+                    var errorMessage = "Failed to initialize IOSystemHandler.";
+                    Log.Error(errorMessage);
+                    var error = new Error(errorMessage)
+                    {
+                        Metadata = { ["ErrorCode"] = OperationErrorCode.ImportFailed }
+                    };
+                    return Result.Fail<Dictionary<string, object>>(error);
                 }
 
                 var (subnet, ioSystem) = ioSystemHandler.FindSubnetAndIoSystem();
                 var devices = HardwareHandler.GetDevices();
 
-                // Initialize PLC software before processing devices
+                // Check PLC software
                 if (_plcSoftware == null)
                 {
-                    Log.Error("PLC software is not initialized. Cannot create tag tables.");
-                    return null;
+                    var errorMessage = "PLC software is not initialized. Cannot create tag tables.";
+                    Log.Error(errorMessage);
+                    var error = new Error(errorMessage)
+                    {
+                        Metadata = { ["ErrorCode"] = OperationErrorCode.ImportFailed }
+                    };
+                    return Result.Fail<Dictionary<string, object>>(error);
                 }
 
                 // Initialize IOTagsHandler
                 IOTagsHandler ioTagsHandler = IOTagsHandler;
-                
+
                 // Build a map of GSDML models keyed by device model (TypeName)
                 var gsdModelMap = BuildGsdModelMap(gsdmlFiles);
-                var deviceDictionary = new Dictionary<string, object>(); // object for python better operability 
-                
+                var deviceDictionary = new Dictionary<string, object>();
+
                 foreach (var device in devices)
                 {
-                    // Use the TIA device’s TypeName for matching (e.g. "BCL248i")
+                    // Use TIA device’s TypeName for matching (e.g. "BCL248i")
                     string typeName = device.DeviceItems[1].GetAttribute("TypeName").ToString();
-                    // Use the TIA device’s unique Name for dictionary indexing (e.g. "BCL248i" or "BCL248i_1")
+                    // Use TIA device’s unique Name for dictionary indexing (e.g. "BCL248i" or "BCL248i_1")
                     string deviceName = device.DeviceItems[1].Name;
 
                     if (string.IsNullOrEmpty(typeName) || string.IsNullOrEmpty(deviceName))
@@ -430,7 +394,7 @@ namespace PLC.Commissioning.Lib.Siemens
                         Log.Warning("Device has an invalid TypeName or Name. Skipping device.");
                         continue;
                     }
-                    
+
                     if (!gsdModelMap.TryGetValue(typeName, out var importedDeviceGsdmlModel))
                     {
                         Log.Warning("No GSD model found for device type {TypeName}", typeName);
@@ -440,462 +404,642 @@ namespace PLC.Commissioning.Lib.Siemens
                     // Create the ImportedDevice using the pre-built GSDML model.
                     var importedDevice = new ImportedDevice(deviceName, device, importedDeviceGsdmlModel);
 
-                    // Connect the device to the IO system.
+                    // Connect the device to the IO system
                     ioSystemHandler.ConnectDeviceToIoSystem(device, subnet, ioSystem);
                     Log.Information("Device '{DeviceName}' (Type: {TypeName}) connected to IO system.", deviceName, typeName);
 
-                    // Enumerate and add hardware modules.
+                    // Enumerate hardware modules.
                     List<IOModuleInfoModel> modules = HardwareHandler.EnumerateDeviceModules(device);
                     foreach (var module in modules)
                     {
                         importedDevice.AddModule(module);
                     }
-                    
-                    // importedDevice.PrintModulesFromGSDML();
-                    
+
                     // Create tag tables in TIA Portal
                     ioTagsHandler.CreateTagTables(importedDevice);
 
                     // Add the device to the dictionary
                     deviceDictionary[deviceName] = importedDevice;
                 }
+
                 Log.Information("Device import was successful.");
-                
-                Log.Debug("Devices in the dictionary:");
-                foreach (var i in deviceDictionary)
-                {
-                    Log.Debug($"Device {i.Key}: {i.Value}");
-                }
-
-                // Read back created tag tables
-                List<string> tagTablesList = ioTagsHandler.ReadTagTables();
-                if (tagTablesList.Count > 0)
-                {
-                    Log.Information("Tag Tables found:");
-                    foreach (var tableName in tagTablesList)
-                    {
-                        Log.Information($" - {tableName}");
-                    }
-                }
-                else
-                {
-                    Log.Warning("No PLC Tag Tables found.");
-                }
-
-                return deviceDictionary;
+                return Result.Ok(deviceDictionary);
             }
             catch (Exception ex)
             {
-                Log.Error($"Device import failed: {ex.Message}");
-                return null;
+                var errorMessage = $"Device import failed: {ex.Message}";
+                Log.Error(errorMessage);
+                var error = new Error(errorMessage)
+                {
+                    Metadata = { ["ErrorCode"] = OperationErrorCode.ImportFailed }
+                };
+                return Result.Fail<Dictionary<string, object>>(error);
             }
         }
-
-        /// <summary>
-        /// Configures specific device parameters such as IP address and Profinet name.
-        /// </summary>
-        /// <param name="parametersToConfigure">A dictionary containing key-value pairs of parameters to configure.</param>
-        /// <returns><c>true</c> if the configuration was successful; otherwise, <c>false</c>.</returns>
-        /// <example>
-        /// Example JSON structure:
-        /// <code>
-        /// {
-        ///     "ipAddress": "192.168.0.1",
-        ///     "profinetName": "PLC_1"
-        /// }
-        /// </code>
-        /// </example>
-        public bool ConfigureDevice(object device, Dictionary<string, object> parametersToConfigure)
+        
+        /// <inheritdoc />
+        public Result ConfigureDevice(object device, Dictionary<string, object> parametersToConfigure)
         {
             try
             {
-                if (device is null)
+                if (device == null)
                 {
-                    Log.Error("Device can not be null.");
-                    return false;
+                    var errorMessage = "Device cannot be null.";
+                    Log.Error(errorMessage);
+                    var error = new Error(errorMessage)
+                    {
+                        Metadata = { ["ErrorCode"] = OperationErrorCode.ConfigurationFailed }
+                    };
+                    return Result.Fail(error);
                 }
 
                 if (parametersToConfigure == null || parametersToConfigure.Count == 0)
                 {
-                    Log.Error("Parameters to configure cannot be null or empty.");
-                    return false;
+                    var errorMessage = "Parameters to configure cannot be null or empty.";
+                    Log.Error(errorMessage);
+                    var error = new Error(errorMessage)
+                    {
+                        Metadata = { ["ErrorCode"] = OperationErrorCode.ConfigurationFailed }
+                    };
+                    return Result.Fail(error);
                 }
 
-                // Attempt to cast the device to the expected Device type
-                // Ensure the object is an `ImportedDevice`
+                // Check that device is an ImportedDevice
                 if (!(device is ImportedDevice importedDevice))
                 {
-                    Log.Error("Invalid device type. Expected an ImportedDevice.");
-                    return false;
+                    var errorMessage = "Invalid device type. Expected an ImportedDevice.";
+                    Log.Error(errorMessage);
+                    var error = new Error(errorMessage)
+                    {
+                        Metadata = { ["ErrorCode"] = OperationErrorCode.ConfigurationFailed }
+                    };
+                    return Result.Fail(error);
                 }
 
+                // Check that the ImportedDevice actually has a valid Device
                 Device specificDevice = importedDevice.Device;
-                if (specificDevice is null)
+                if (specificDevice == null)
                 {
-                    Log.Error($"The provided object could not be cast to a Device. Ensure that the correct object type is being used.");
-                    return false;
+                    var errorMessage = "The provided object could not be cast to a Device. Ensure the correct type is used.";
+                    Log.Error(errorMessage);
+                    var error = new Error(errorMessage)
+                    {
+                        Metadata = { ["ErrorCode"] = OperationErrorCode.ConfigurationFailed }
+                    };
+                    return Result.Fail(error);
+                }
+
+                // Attempt to initialize IoSystemHandler
+                var ioSystemHandler = IoSystemHandler;
+                if (ioSystemHandler == null)
+                {
+                    var errorMessage = "Failed to initialize IOSystemHandler.";
+                    Log.Error(errorMessage);
+                    var error = new Error(errorMessage)
+                    {
+                        Metadata = { ["ErrorCode"] = OperationErrorCode.ConfigurationFailed }
+                    };
+                    return Result.Fail(error);
+                }
+
+                // If "ipAddress" is specified, set it
+                if (parametersToConfigure.ContainsKey("ipAddress"))
+                {
+                    string ipAddress = parametersToConfigure["ipAddress"]?.ToString();
+                    if (!string.IsNullOrEmpty(ipAddress))
+                    {
+                        if (!ioSystemHandler.SetDeviceIPAddress(specificDevice, ipAddress))
+                        {
+                            var errorMessage = $"Failed to set IP address for device {specificDevice.DeviceItems[1].Name}.";
+                            Log.Error(errorMessage);
+                            var error = new Error(errorMessage)
+                            {
+                                Metadata = { ["ErrorCode"] = OperationErrorCode.ConfigurationFailed }
+                            };
+                            return Result.Fail(error);
+                        }
+                    }
+                }
+
+                // If "profinetName" is specified, set it
+                if (parametersToConfigure.ContainsKey("profinetName"))
+                {
+                    string profinetName = parametersToConfigure["profinetName"]?.ToString();
+                    if (!string.IsNullOrEmpty(profinetName))
+                    {
+                        if (!ioSystemHandler.SetProfinetName(specificDevice, profinetName))
+                        {
+                            var errorMessage = $"Failed to set Profinet name for device {specificDevice.DeviceItems[1].Name}.";
+                            Log.Error(errorMessage);
+                            var error = new Error(errorMessage)
+                            {
+                                Metadata = { ["ErrorCode"] = OperationErrorCode.ConfigurationFailed }
+                            };
+                            return Result.Fail(error);
+                        }
+                    }
+                }
+
+                // If we get this far, configuration is successful
+                return Result.Ok();
+            }
+            catch (Exception ex)
+            {
+                var errorMessage = $"Device configuration failed: {ex.Message}";
+                Log.Error(errorMessage);
+                var error = new Error(errorMessage)
+                {
+                    Metadata = { ["ErrorCode"] = OperationErrorCode.ConfigurationFailed }
+                };
+                return Result.Fail(error);
+            }
+        }
+
+        /// <inheritdoc />
+        public Result<object> GetDeviceByName(string deviceName)
+        {
+            try
+            {
+                var device = HardwareHandler.GetDeviceByName(deviceName);
+                if (device == null)
+                {
+                    var errorMessage = $"Device named '{deviceName}' was not found.";
+                    Log.Warning(errorMessage);
+                    var error = new Error(errorMessage)
+                    {
+                        Metadata = { ["ErrorCode"] = OperationErrorCode.GetParametersFailed }
+                    };
+                    return Result.Fail<object>(error);
+                }
+
+                Log.Information($"Device named '{deviceName}' found successfully.");
+                return Result.Ok<object>(device);
+            }
+            catch (Exception ex)
+            {
+                var errorMessage = $"An error occurred while retrieving the device named '{deviceName}': {ex.Message}";
+                Log.Error(errorMessage);
+                var error = new Error(errorMessage)
+                {
+                    Metadata = { ["ErrorCode"] = OperationErrorCode.GetParametersFailed }
+                };
+                return Result.Fail<object>(error);
+            }
+        }
+        
+        /// <inheritdoc/>
+        public Result GetDeviceParameters(
+            object device, 
+            string moduleName, 
+            List<string> parameterSelections = null, 
+            bool safety = false)
+        {
+            try
+            {
+                if (device == null)
+                {
+                    const string errorMsg = "Device is null.";
+                    Log.Error(errorMsg);
+                    var error = new Error(errorMsg)
+                    {
+                        Metadata = { ["ErrorCode"] = OperationErrorCode.GetParametersFailed }
+                    };
+                    return Result.Fail(error);
                 }
 
                 var ioSystemHandler = IoSystemHandler;
-                if (ioSystemHandler is null)
+                if (ioSystemHandler == null)
                 {
-                    Log.Error("Failed to initialize IOSystemHandler.");
-                    return false;
-                }
-
-                if (parametersToConfigure.ContainsKey("ipAddress") &&
-                    !string.IsNullOrEmpty(parametersToConfigure["ipAddress"]?.ToString()))
-                {
-                    if (!ioSystemHandler.SetDeviceIPAddress(specificDevice, parametersToConfigure["ipAddress"].ToString()))
+                    const string errorMsg = "Failed to initialize IOSystemHandler.";
+                    Log.Error(errorMsg);
+                    var error = new Error(errorMsg)
                     {
-                        Log.Error($"Failed to set IP address for device {specificDevice.DeviceItems[1].Name}.");
-                        return false;
-                    }
-                }
-
-                if (parametersToConfigure.ContainsKey("profinetName") &&
-                    !string.IsNullOrEmpty(parametersToConfigure["profinetName"]?.ToString()))
-                {
-                    if (!ioSystemHandler.SetProfinetName(specificDevice, parametersToConfigure["profinetName"].ToString()))
-                    {
-                        Log.Error($"Failed to set Profinet name for device {specificDevice.DeviceItems[1].Name}.");
-                        return false;
-                    }
-                }
-
-                return true;
-            }
-            catch (Exception ex)
-            {
-                Log.Error($"Device configuration failed: {ex.Message}");
-                return false;
-            }
-        }
-
-        /// <summary>
-        /// Retrieves a device object by its name.
-        /// </summary>
-        /// <param name="deviceName">The name of the device to retrieve.</param>
-        /// <returns>
-        /// An object representing the device with the specified name, 
-        /// or <c>null</c> if no such device is found. 
-        /// The returned object should be cast to a <see cref="Device"/>.
-        /// </returns>
-        /// <remarks>
-        /// Ensure that the returned object is cast to the <see cref="Device"/> type by the caller.
-        /// </remarks>
-        public object GetDeviceByName(string deviceName)
-        {
-            try
-            {
-                Device device = HardwareHandler.GetDeviceByName(deviceName);
-
-                if (device is null)
-                {
-                    Log.Warning($"Device named '{deviceName}' was not found.");
-                }
-                else
-                {
-                    Log.Information($"Device named '{deviceName}' found successfully.");
-                }
-
-                return device;
-            }
-            catch (Exception ex)
-            {
-                Log.Error($"An error occurred while retrieving the device named '{deviceName}': {ex.Message}");
-                return null;
-            }
-        }
-        
-        /// <summary>
-        /// Retrieves device parameters for a specified module.
-        /// </summary>
-        /// <param name="device">The device object to retrieve parameters for.</param>
-        /// <param name="moduleName">The name of the module to retrieve parameters for.</param>
-        /// <param name="parameterSelections">Optional list of parameters to retrieve.</param>
-        /// <param name="safety">Indicates whether safety parameters are required.</param>
-        /// <returns><c>true</c> if the parameters were retrieved successfully; otherwise, <c>false</c>.</returns>
-        public bool GetDeviceParameters(object device, string moduleName, List<string> parameterSelections = null, bool safety = false)
-        {
-            try
-            {
-                if (device is null)
-                {
-                    Log.Error("Device is null.");
-                    return false;
-                }
-
-                IOSystemHandler ioSystemHandler = IoSystemHandler;
-                if (ioSystemHandler is null)
-                {
-                    Log.Error("Failed to initialize IOSystemHandler.");
-                    return false;
+                        Metadata = { ["ErrorCode"] = OperationErrorCode.GetParametersFailed }
+                    };
+                    return Result.Fail(error);
                 }
 
                 // Ensure the object is an ImportedDevice
                 if (!(device is ImportedDevice importedDevice))
                 {
-                    Log.Error("Invalid device type. Expected an ImportedDevice.");
-                    return false;
+                    const string errorMsg = "Invalid device type. Expected an ImportedDevice.";
+                    Log.Error(errorMsg);
+                    var error = new Error(errorMsg)
+                    {
+                        Metadata = { ["ErrorCode"] = OperationErrorCode.GetParametersFailed }
+                    };
+                    return Result.Fail(error);
                 }
 
                 Device specificDevice = importedDevice.Device;
 
                 // *** Use the pre-built GSDML model from the imported device ***
-                ImportedDeviceGSDMLModel gsdModel = importedDevice.DeviceGsdmlModel;
+                var gsdModel = importedDevice.DeviceGsdmlModel;
                 if (gsdModel == null)
                 {
-                    Log.Error("DeviceGsdmlModel is not initialized for device {DeviceName}", importedDevice.DeviceName);
-                    return false;
+                    var errorMsg = $"DeviceGsdmlModel is not initialized for device '{importedDevice.DeviceName}'.";
+                    Log.Error(errorMsg);
+                    var error = new Error(errorMsg)
+                    {
+                        Metadata = { ["ErrorCode"] = OperationErrorCode.GetParametersFailed }
+                    };
+                    return Result.Fail(error);
                 }
-                ModuleInfo moduleInfo = gsdModel.ModuleInfo;
 
                 // Retrieve device attributes from the IO system
                 var deviceAttributes = ioSystemHandler.GetDeviceIdentificationAttributes(specificDevice);
-                if (deviceAttributes is null)
+                if (deviceAttributes == null)
                 {
-                    Log.Error("Failed to retrieve device identification attributes.");
-                    return false;
+                    const string errorMsg = "Failed to retrieve device identification attributes.";
+                    Log.Error(errorMsg);
+                    var error = new Error(errorMsg)
+                    {
+                        Metadata = { ["ErrorCode"] = OperationErrorCode.GetParametersFailed }
+                    };
+                    return Result.Fail(error);
                 }
 
                 // Validate the device info
-                if (!IsDeviceInfoMatching(moduleInfo, deviceAttributes))
+                if (!IsDeviceInfoMatching(gsdModel.ModuleInfo, deviceAttributes))
                 {
-                    return false;
+                    const string errorMsg = "Device information does not match the expected GSD data.";
+                    Log.Error(errorMsg);
+                    var error = new Error(errorMsg)
+                    {
+                        Metadata = { ["ErrorCode"] = OperationErrorCode.GetParametersFailed }
+                    };
+                    return Result.Fail(error);
                 }
 
-                // Handle the special case where the moduleName is "DAP"
+                // DAP special case
                 if (moduleName.Equals("DAP", StringComparison.OrdinalIgnoreCase))
                 {
                     if (safety)
                     {
-                        Log.Error("DAP cannot have safety parameters.");
-                        return false;
+                        const string errorMsg = "DAP cannot have safety parameters.";
+                        Log.Error(errorMsg);
+                        var error = new Error(errorMsg)
+                        {
+                            Metadata = { ["ErrorCode"] = OperationErrorCode.GetParametersFailed }
+                        };
+                        return Result.Fail(error);
                     }
 
-                    // Use the DeviceAccessPointList from the pre-built model
                     var dapList = gsdModel.Dap;
                     var (dapItem, hasChangeableParameters) = dapList.GetDeviceAccessPointItemByID(moduleName);
 
-                    if (dapItem is null)
+                    if (dapItem == null)
                     {
-                        Log.Error($"DAP '{moduleName}' not found in GSD file.");
-                        return false;
+                        var errorMsg = $"DAP '{moduleName}' not found in GSD file.";
+                        Log.Error(errorMsg);
+                        var error = new Error(errorMsg)
+                        {
+                            Metadata = { ["ErrorCode"] = OperationErrorCode.GetParametersFailed }
+                        };
+                        return Result.Fail(error);
                     }
 
                     if (!hasChangeableParameters)
                     {
-                        Log.Error($"DAP '{moduleName}' exists but has no changeable parameters.");
-                        return false;
+                        var errorMsg = $"DAP '{moduleName}' exists but has no changeable parameters.";
+                        Log.Error(errorMsg);
+                        var error = new Error(errorMsg)
+                        {
+                            Metadata = { ["ErrorCode"] = OperationErrorCode.GetParametersFailed }
+                        };
+                        return Result.Fail(error);
                     }
 
-                    // Retrieve the module (DAP) from the hardware handler
-                    GsdDeviceItem module = HardwareHandler.GetDeviceDAP(specificDevice);
-                    if (module is null)
+                    var module = HardwareHandler.GetDeviceDAP(specificDevice);
+                    if (module == null)
                     {
-                        return false;
+                        const string errorMsg = "Failed to retrieve the DAP from the device.";
+                        Log.Error(errorMsg);
+                        var error = new Error(errorMsg)
+                        {
+                            Metadata = { ["ErrorCode"] = OperationErrorCode.GetParametersFailed }
+                        };
+                        return Result.Fail(error);
                     }
 
-                    // Handle regular parameters for DAP
-                    return HandleRegularParameters(dapItem, module, parameterSelections);
+                    // Attempt to handle regular parameters for DAP
+                    bool success = HandleRegularParameters(dapItem, module, parameterSelections);
+                    return success
+                        ? Result.Ok()
+                        : Result.Fail(new Error("Failed to handle DAP parameters.")
+                            {
+                                Metadata = { ["ErrorCode"] = OperationErrorCode.GetParametersFailed }
+                            });
                 }
                 else
                 {
                     // For non-DAP modules, use the ModuleList from the pre-built model
-                    ModuleList moduleList = gsdModel.ModuleList;
+                    var moduleList = gsdModel.ModuleList;
                     var (moduleItem, hasChangeableParameters) = moduleList.GetModuleItemByName(moduleName);
 
-                    if (moduleItem is null)
+                    if (moduleItem == null)
                     {
-                        Log.Error($"Module '{moduleName}' not found in GSD file.");
-                        return false;
+                        var errorMsg = $"Module '{moduleName}' not found in GSD file.";
+                        Log.Error(errorMsg);
+                        var error = new Error(errorMsg)
+                        {
+                            Metadata = { ["ErrorCode"] = OperationErrorCode.GetParametersFailed }
+                        };
+                        return Result.Fail(error);
                     }
 
                     if (!hasChangeableParameters)
                     {
-                        Log.Error($"Module '{moduleName}' exists but has no changeable parameters.");
-                        return false;
+                        var errorMsg = $"Module '{moduleName}' exists but has no changeable parameters.";
+                        Log.Error(errorMsg);
+                        var error = new Error(errorMsg)
+                        {
+                            Metadata = { ["ErrorCode"] = OperationErrorCode.GetParametersFailed }
+                        };
+                        return Result.Fail(error);
                     }
 
-                    // Retrieve the module from the hardware handler
-                    GsdDeviceItem module = HardwareHandler.GetDeviceModuleByName(specificDevice, moduleName);
-                    if (module is null)
+                    var module = HardwareHandler.GetDeviceModuleByName(specificDevice, moduleName);
+                    if (module == null)
                     {
-                        return false;
+                        var errorMsg = $"Module '{moduleName}' not found in the device.";
+                        Log.Error(errorMsg);
+                        var error = new Error(errorMsg)
+                        {
+                            Metadata = { ["ErrorCode"] = OperationErrorCode.GetParametersFailed }
+                        };
+                        return Result.Fail(error);
                     }
 
                     // Handle safety or regular parameters
-                    return safety 
-                        ? HandleSafetyParameters(module, parameterSelections) 
+                    bool success = safety
+                        ? HandleSafetyParameters(module, parameterSelections)
                         : HandleRegularParameters(moduleItem, module, parameterSelections);
+
+                    return success 
+                        ? Result.Ok()
+                        : Result.Fail(new Error($"Failed to handle parameters for module '{moduleName}'.")
+                            {
+                                Metadata = { ["ErrorCode"] = OperationErrorCode.GetParametersFailed }
+                            });
                 }
             }
             catch (Exception ex)
             {
-                Log.Error($"Getting device parameters failed: {ex.Message} {ex}");
-                return false;
+                var errorMsg = $"Getting device parameters failed: {ex.Message}";
+                Log.Error(errorMsg);
+                var error = new Error(errorMsg)
+                {
+                    Metadata = { ["ErrorCode"] = OperationErrorCode.GetParametersFailed }
+                };
+                return Result.Fail(error);
             }
         }
-
-        /// <summary>
-        /// Sets device parameters for a specified module.
-        /// </summary>
-        /// <param name="device">The device object to configure.</param>
-        /// <param name="moduleName">The name of the module to configure.</param>
-        /// <param name="parametersToSet">A dictionary of parameters to set.</param>
-        /// <param name="safety">Indicates whether safety parameters are being set.</param>
-        /// <returns><c>true</c> if the parameters were set successfully; otherwise, <c>false</c>.</returns>
-        public bool SetDeviceParameters(object device, string moduleName, Dictionary<string, object> parametersToSet, bool safety = false)
+        
+        /// <inheritdoc />
+        public Result SetDeviceParameters(
+            object device, 
+            string moduleName, 
+            Dictionary<string, object> parametersToSet, 
+            bool safety = false)
         {
             try
             {
-                if (device is null)
+                if (device == null)
                 {
-                    Log.Error("Device is null.");
-                    return false;
+                    const string errorMsg = "Device is null.";
+                    Log.Error(errorMsg);
+                    var error = new Error(errorMsg)
+                    {
+                        Metadata = { ["ErrorCode"] = OperationErrorCode.SetParametersFailed }
+                    };
+                    return Result.Fail(error);
                 }
 
-                IOSystemHandler ioSystemHandler = IoSystemHandler;
-                if (ioSystemHandler is null)
+                var ioSystemHandler = IoSystemHandler;
+                if (ioSystemHandler == null)
                 {
-                    Log.Error("Failed to initialize IOSystemHandler.");
-                    return false;
+                    const string errorMsg = "Failed to initialize IOSystemHandler.";
+                    Log.Error(errorMsg);
+                    var error = new Error(errorMsg)
+                    {
+                        Metadata = { ["ErrorCode"] = OperationErrorCode.SetParametersFailed }
+                    };
+                    return Result.Fail(error);
                 }
 
-                // Ensure the object is an ImportedDevice
                 if (!(device is ImportedDevice importedDevice))
                 {
-                    Log.Error("Invalid device type. Expected an ImportedDevice.");
-                    return false;
+                    const string errorMsg = "Invalid device type. Expected an ImportedDevice.";
+                    Log.Error(errorMsg);
+                    var error = new Error(errorMsg)
+                    {
+                        Metadata = { ["ErrorCode"] = OperationErrorCode.SetParametersFailed }
+                    };
+                    return Result.Fail(error);
                 }
 
                 Device specificDevice = importedDevice.Device;
-
-                // *** Use the pre-built GSDML model from the imported device ***
-                ImportedDeviceGSDMLModel gsdModel = importedDevice.DeviceGsdmlModel;
+                var gsdModel = importedDevice.DeviceGsdmlModel;
                 if (gsdModel == null)
                 {
-                    Log.Error("DeviceGsdmlModel is not initialized for device {DeviceName}", importedDevice.DeviceName);
-                    return false;
+                    var errorMsg = $"DeviceGsdmlModel is not initialized for device '{importedDevice.DeviceName}'.";
+                    Log.Error(errorMsg);
+                    var error = new Error(errorMsg)
+                    {
+                        Metadata = { ["ErrorCode"] = OperationErrorCode.SetParametersFailed }
+                    };
+                    return Result.Fail(error);
                 }
-                ModuleInfo moduleInfo = gsdModel.ModuleInfo;
 
-                // Retrieve device attributes from the IO system
+                // Retrieve device attributes
                 var deviceAttributes = ioSystemHandler.GetDeviceIdentificationAttributes(specificDevice);
-                if (deviceAttributes is null)
+                if (deviceAttributes == null)
                 {
-                    Log.Error("Failed to retrieve device identification attributes.");
-                    return false;
+                    const string errorMsg = "Failed to retrieve device identification attributes.";
+                    Log.Error(errorMsg);
+                    var error = new Error(errorMsg)
+                    {
+                        Metadata = { ["ErrorCode"] = OperationErrorCode.SetParametersFailed }
+                    };
+                    return Result.Fail(error);
                 }
 
                 // Validate the device info
-                if (!IsDeviceInfoMatching(moduleInfo, deviceAttributes))
+                if (!IsDeviceInfoMatching(gsdModel.ModuleInfo, deviceAttributes))
                 {
-                    return false;
+                    const string errorMsg = "Device info does not match GSD data.";
+                    Log.Error(errorMsg);
+                    var error = new Error(errorMsg)
+                    {
+                        Metadata = { ["ErrorCode"] = OperationErrorCode.SetParametersFailed }
+                    };
+                    return Result.Fail(error);
                 }
 
-                // Handle the special case where the moduleName is "DAP"
+                // Special case: DAP
                 if (moduleName.Equals("DAP", StringComparison.OrdinalIgnoreCase))
                 {
                     if (safety)
                     {
-                        Log.Error("DAP cannot have safety parameters.");
-                        return false;
+                        const string errorMsg = "DAP cannot have safety parameters.";
+                        Log.Error(errorMsg);
+                        var error = new Error(errorMsg)
+                        {
+                            Metadata = { ["ErrorCode"] = OperationErrorCode.SetParametersFailed }
+                        };
+                        return Result.Fail(error);
                     }
 
-                    // Use the DeviceAccessPointList from the pre-built model
                     var dapList = gsdModel.Dap;
                     var (dapItem, hasChangeableParameters) = dapList.GetDeviceAccessPointItemByID(moduleName);
-
-                    if (dapItem is null)
+                    if (dapItem == null)
                     {
-                        Log.Error($"DAP '{moduleName}' not found in GSD file.");
-                        return false;
+                        var errorMsg = $"DAP '{moduleName}' not found in GSD file.";
+                        Log.Error(errorMsg);
+                        var error = new Error(errorMsg)
+                        {
+                            Metadata = { ["ErrorCode"] = OperationErrorCode.SetParametersFailed }
+                        };
+                        return Result.Fail(error);
                     }
 
                     if (!hasChangeableParameters)
                     {
-                        Log.Error($"DAP '{moduleName}' exists but has no changeable parameters.");
-                        return false;
+                        var errorMsg = $"DAP '{moduleName}' exists but has no changeable parameters.";
+                        Log.Error(errorMsg);
+                        var error = new Error(errorMsg)
+                        {
+                            Metadata = { ["ErrorCode"] = OperationErrorCode.SetParametersFailed }
+                        };
+                        return Result.Fail(error);
                     }
 
-                    // Retrieve the module (DAP) from the hardware handler
-                    GsdDeviceItem module = HardwareHandler.GetDeviceDAP(specificDevice);
-                    if (module is null)
+                    var dapModule = HardwareHandler.GetDeviceDAP(specificDevice);
+                    if (dapModule == null)
                     {
-                        return false;
+                        const string errorMsg = "Failed to retrieve the DAP module from the device.";
+                        Log.Error(errorMsg);
+                        var error = new Error(errorMsg)
+                        {
+                            Metadata = { ["ErrorCode"] = OperationErrorCode.SetParametersFailed }
+                        };
+                        return Result.Fail(error);
                     }
 
-                    // Handle regular parameters for DAP
-                    return SetRegularParameters(dapItem, module, parametersToSet);
+                    bool handled = SetRegularParameters(dapItem, dapModule, parametersToSet);
+                    return handled
+                        ? Result.Ok()
+                        : Result.Fail(new Error($"Failed to set parameters for DAP '{moduleName}'.")
+                            {
+                                Metadata = { ["ErrorCode"] = OperationErrorCode.SetParametersFailed }
+                            });
                 }
                 else
                 {
-                    // For non-DAP modules, use the ModuleList from the pre-built model
-                    ModuleList moduleList = gsdModel.ModuleList;
+                    // Non-DAP modules
+                    var moduleList = gsdModel.ModuleList;
                     var (moduleItem, hasChangeableParameters) = moduleList.GetModuleItemByName(moduleName);
-
-                    if (moduleItem is null)
+                    if (moduleItem == null)
                     {
-                        Log.Error($"Module '{moduleName}' not found in GSD file.");
-                        return false;
+                        var errorMsg = $"Module '{moduleName}' not found in GSD file.";
+                        Log.Error(errorMsg);
+                        var error = new Error(errorMsg)
+                        {
+                            Metadata = { ["ErrorCode"] = OperationErrorCode.SetParametersFailed }
+                        };
+                        return Result.Fail(error);
                     }
-
                     if (!hasChangeableParameters)
                     {
-                        Log.Error($"Module '{moduleName}' exists but has no changeable parameters.");
-                        return false;
+                        var errorMsg = $"Module '{moduleName}' exists but has no changeable parameters.";
+                        Log.Error(errorMsg);
+                        var error = new Error(errorMsg)
+                        {
+                            Metadata = { ["ErrorCode"] = OperationErrorCode.SetParametersFailed }
+                        };
+                        return Result.Fail(error);
                     }
 
-                    // Retrieve the module from the hardware handler
-                    GsdDeviceItem module = HardwareHandler.GetDeviceModuleByName(specificDevice, moduleName);
-                    if (module is null)
+                    var module = HardwareHandler.GetDeviceModuleByName(specificDevice, moduleName);
+                    if (module == null)
                     {
-                        Log.Error($"Module '{moduleName}' not found in the device.");
-                        return false;
+                        var errorMsg = $"Module '{moduleName}' not found in the device.";
+                        Log.Error(errorMsg);
+                        var error = new Error(errorMsg)
+                        {
+                            Metadata = { ["ErrorCode"] = OperationErrorCode.SetParametersFailed }
+                        };
+                        return Result.Fail(error);
                     }
 
-                    Log.Information($"Setting device parameters succeeded for module '{moduleName}'.");
-                    // Handle safety or regular parameters
-                    return safety 
-                        ? SetSafetyParameters(module, parametersToSet) 
+                    Log.Information($"Setting device parameters for module '{moduleName}'...");
+                    bool handled = safety
+                        ? SetSafetyParameters(module, parametersToSet)
                         : SetRegularParameters(moduleItem, module, parametersToSet);
+
+                    return handled
+                        ? Result.Ok()
+                        : Result.Fail(new Error($"Failed to set parameters for module '{moduleName}'.")
+                            {
+                                Metadata = { ["ErrorCode"] = OperationErrorCode.SetParametersFailed }
+                            });
                 }
             }
             catch (Exception ex)
             {
-                Log.Error($"Setting device parameters failed: {ex.Message} {ex}");
-                return false;
+                var errorMsg = $"Setting device parameters failed: {ex.Message}";
+                Log.Error(errorMsg);
+                var error = new Error(errorMsg)
+                {
+                    Metadata = { ["ErrorCode"] = OperationErrorCode.SetParametersFailed }
+                };
+                return Result.Fail(error);
             }
         }
         
-        /// <summary>
-        /// Starts the PLC.
-        /// </summary>
-        /// <returns><c>true</c> if the PLC was started successfully; otherwise, <c>false</c>.</returns>
-        public bool Start()
+        /// <inheritdoc />
+        public Result Start()
         {
-            if (!InitializeOnline())
-                return false;
+            // Attempt to initialize online
+            var initOnlineResult = InitializeOnline();
+            if (initOnlineResult.IsFailed)
+            {
+                // If we can't go online, we fail Start too
+                var errorMessage = "Online initialization failed during Start().";
+                Log.Error(errorMessage);
+                var error = new Error(errorMessage)
+                {
+                    Metadata = { ["ErrorCode"] = OperationErrorCode.StartFailed }
+                };
+                error.Reasons.AddRange(initOnlineResult.Errors);
+                return Result.Fail(error);
+            }
+
             try
             {
                 if (_rpcController != null)
                 {
-                    // Attempt to start the PLC using the async method synchronously
-                    _rpcController.PlcController.ChangeOperatingModeAsync(ApiPlcOperatingMode.Run).GetAwaiter().GetResult();
+                    // Attempt to start the PLC using async method synchronously
+                    _rpcController.PlcController.ChangeOperatingModeAsync(ApiPlcOperatingMode.Run)
+                        .GetAwaiter().GetResult();
+
                     Log.Information("PLC started successfully using ChangeOperatingModeAsync.");
-                    return true;
+                    return Result.Ok();
                 }
                 else
                 {
-                    Log.Warning("RPCController is not initialized. Falling back to the original Start method.");
+                    const string warningMsg = "RPCController is not initialized. Falling back to the original Start method.";
+                    Log.Warning(warningMsg);
                 }
             }
             catch (Exception ex)
             {
-                Log.Error($"Async Start operation failed: {ex.Message}");
+                var errorMessage = $"Async Start operation failed: {ex.Message}";
+                Log.Error(errorMessage);
                 Log.Warning("Falling back to the original Start method.");
+
+                // We won't return yet; we attempt the fallback below.
             }
 
             // Fallback to the original Start method
@@ -903,46 +1047,96 @@ namespace PLC.Commissioning.Lib.Siemens
             {
                 if (_safety)
                 {
-                    _controller.GoOnline(); // Figure out how to handle this
-                    return _uiDownloadHandler.StartPLC();
+                    _controller.GoOnline(); // Possibly handle exceptions here too
+                    bool started = _uiDownloadHandler.StartPLC();
+                    if (started)
+                    {
+                        return Result.Ok();
+                    }
+                    else
+                    {
+                        var errorMessage =
+                            "Failed to start PLC using UIDownloadHandler in safety mode.";
+                        Log.Error(errorMessage);
+
+                        var error = new Error(errorMessage)
+                        {
+                            Metadata = { ["ErrorCode"] = OperationErrorCode.StartFailed }
+                        };
+                        return Result.Fail(error);
+                    }
                 }
                 else
                 {
-                    return _controller.Start();
+                    bool started = _controller.Start();
+                    if (started)
+                    {
+                        return Result.Ok();
+                    }
+                    else
+                    {
+                        var errorMessage =
+                            "Failed to start PLC using the standard method.";
+                        Log.Error(errorMessage);
+
+                        var error = new Error(errorMessage)
+                        {
+                            Metadata = { ["ErrorCode"] = OperationErrorCode.StartFailed }
+                        };
+                        return Result.Fail(error);
+                    }
                 }
             }
             catch (Exception ex)
             {
-                Log.Error($"Fallback Start operation failed: {ex.Message}");
-                return false;
+                var errorMessage = $"Fallback Start operation failed: {ex.Message}";
+                Log.Error(errorMessage);
+                var error = new Error(errorMessage)
+                {
+                    Metadata = { ["ErrorCode"] = OperationErrorCode.StartFailed }
+                };
+                return Result.Fail(error);
             }
         }
-
-        /// <summary>
-        /// Stops the PLC.
-        /// </summary>
-        /// <returns><c>true</c> if the PLC was stopped successfully; otherwise, <c>false</c>.</returns>
-        public bool Stop()
+        
+        /// <inheritdoc />
+        public Result Stop()
         {
-            if (!InitializeOnline())
-                return false;
+            // Attempt to initialize online
+            var initOnlineResult = InitializeOnline();
+            if (initOnlineResult.IsFailed)
+            {
+                var errorMessage = "Online initialization failed during Stop().";
+                Log.Error(errorMessage);
+                var error = new Error(errorMessage)
+                {
+                    Metadata = { ["ErrorCode"] = OperationErrorCode.StopFailed }
+                };
+                error.Reasons.AddRange(initOnlineResult.Errors);
+                return Result.Fail(error);
+            }
+
             try
             {
                 if (_rpcController != null)
                 {
                     // Attempt to stop the PLC using the async method synchronously
-                    _rpcController.PlcController.ChangeOperatingModeAsync(ApiPlcOperatingMode.Stop).GetAwaiter().GetResult();
+                    _rpcController.PlcController.ChangeOperatingModeAsync(ApiPlcOperatingMode.Stop)
+                        .GetAwaiter().GetResult();
+
                     Log.Information("PLC stopped successfully using ChangeOperatingModeAsync.");
-                    return true;
+                    return Result.Ok();
                 }
                 else
                 {
-                    Log.Warning("RPCController is not initialized. Falling back to the original Stop method.");
+                    const string warningMsg = "RPCController is not initialized. Falling back to the original Stop method.";
+                    Log.Warning(warningMsg);
                 }
             }
             catch (Exception ex)
             {
-                Log.Error($"Async Stop operation failed: {ex.Message}");
+                var errorMessage = $"Async Stop operation failed: {ex.Message}";
+                Log.Error(errorMessage);
                 Log.Warning("Falling back to the original Stop method.");
             }
 
@@ -951,185 +1145,285 @@ namespace PLC.Commissioning.Lib.Siemens
             {
                 if (_safety)
                 {
-                    _controller.GoOnline(); // Figure out how to handle this
-                    return _uiDownloadHandler.StopPLC();
+                    _controller.GoOnline();
+                    bool stopped = _uiDownloadHandler.StopPLC();
+                    if (stopped)
+                    {
+                        return Result.Ok();
+                    }
+                    else
+                    {
+                        var errorMessage =
+                            "Failed to stop PLC using UIDownloadHandler in safety mode.";
+                        Log.Error(errorMessage);
+
+                        var error = new Error(errorMessage)
+                        {
+                            Metadata = { ["ErrorCode"] = OperationErrorCode.StopFailed }
+                        };
+                        return Result.Fail(error);
+                    }
                 }
                 else
                 {
-                    return _controller.Stop();
+                    bool stopped = _controller.Stop();
+                    if (stopped)
+                    {
+                        return Result.Ok();
+                    }
+                    else
+                    {
+                        var errorMessage =
+                            "Failed to stop PLC using the standard method.";
+                        Log.Error(errorMessage);
+
+                        var error = new Error(errorMessage)
+                        {
+                            Metadata = { ["ErrorCode"] = OperationErrorCode.StopFailed }
+                        };
+                        return Result.Fail(error);
+                    }
                 }
             }
             catch (Exception ex)
             {
-                Log.Error($"Fallback Stop operation failed: {ex.Message}");
-                return false;
+                var errorMessage = $"Fallback Stop operation failed: {ex.Message}";
+                Log.Error(errorMessage);
+
+                var error = new Error(errorMessage)
+                {
+                    Metadata = { ["ErrorCode"] = OperationErrorCode.StopFailed }
+                };
+                return Result.Fail(error);
             }
         }
 
-        /// <summary>
-        /// Compiles the current PLC project.
-        /// </summary>
-        /// <returns><c>true</c> if the compilation was successful; otherwise, <c>false</c>.</returns>
-        public bool Compile()
-        {
-            try
-            {
-                return _controller.CompileDevice(_cpu);
-            }
-            catch (Exception ex)
-            {
-                Log.Error($"Compilation failed: {ex.Message}");
-                return false;
-            }
-        }
 
-        /// <summary>
-        /// Downloads the PLC project to the PLC device.
-        /// </summary>
-        /// <param name="options">Options for the download process.</param>
-        /// <returns><c>true</c> if the download was successful; otherwise, <c>false</c>.</returns>
-        public bool Download(object options)
+        /// <inheritdoc />
+        public Result Compile()
         {
-            if (!InitializeOnline())
-                return false;
             try
             {
-                var downloadProvider = _cpu.GetService<DownloadProvider>();
-                if (options is string optionString && optionString == "safety" && _safety)
+                bool compiled = _controller.CompileDevice(_cpu);
+                if (compiled)
                 {
-                    Log.Warning("Loading or overloading fail-safe data in Openness is not permitted.");
-                    Log.Warning("Proceeding to download fail-safe data using automated UI interaction...");
-                    return _uiDownloadHandler.DownloadProcedure();
-                }
-                else if (options is DownloadOptions downloadOptions)
-                {
-                    return _controller.Download(downloadOptions);
+                    return Result.Ok();
                 }
                 else
                 {
-                    Log.Error("Invalid options provided for download.");
-                    return false;
+                    const string errorMessage = "Compilation failed for unknown reasons.";
+                    Log.Error(errorMessage);
+
+                    var error = new Error(errorMessage)
+                    {
+                        Metadata = { ["ErrorCode"] = OperationErrorCode.CompileFailed }
+                    };
+                    return Result.Fail(error);
                 }
             }
             catch (Exception ex)
             {
-                Log.Error($"Download failed: {ex.Message}");
-                return false;
+                var errorMessage = $"Compilation failed: {ex.Message}";
+                Log.Error(errorMessage);
+
+                var error = new Error(errorMessage)
+                {
+                    Metadata = { ["ErrorCode"] = OperationErrorCode.CompileFailed }
+                };
+                return Result.Fail(error);
+            }
+        }
+        
+        /// <inheritdoc />
+        public Result Download(object options)
+        {
+            var initOnlineResult = InitializeOnline();
+            if (initOnlineResult.IsFailed)
+            {
+                var errorMessage = "Online initialization failed during Download().";
+                Log.Error(errorMessage);
+
+                var error = new Error(errorMessage)
+                {
+                    Metadata = { ["ErrorCode"] = OperationErrorCode.DownloadFailed }
+                };
+                error.Reasons.AddRange(initOnlineResult.Errors);
+                return Result.Fail(error);
+            }
+
+            try
+            {
+                switch (options)
+                {
+                    case string optionString when optionString == "safety" && _safety:
+                    {
+                        Log.Warning("Loading or overloading fail-safe data in Openness is not permitted.");
+                        Log.Warning("Proceeding to download fail-safe data using automated UI interaction...");
+
+                        bool downloaded = _uiDownloadHandler.DownloadProcedure();
+                        if (downloaded)
+                        {
+                            return Result.Ok();
+                        }
+                        else
+                        {
+                            const string errorMsg = "UI-based download of fail-safe data failed.";
+                            Log.Error(errorMsg);
+
+                            var error = new Error(errorMsg)
+                            {
+                                Metadata = { ["ErrorCode"] = OperationErrorCode.DownloadFailed }
+                            };
+                            return Result.Fail(error);
+                        }
+                    }
+                    case DownloadOptions downloadOptions:
+                    {
+                        bool downloaded = _controller.Download(downloadOptions);
+                        if (downloaded)
+                        {
+                            return Result.Ok();
+                        }
+                        else
+                        {
+                            const string errorMsg = "Download failed using provided download options.";
+                            Log.Error(errorMsg);
+
+                            var error = new Error(errorMsg)
+                            {
+                                Metadata = { ["ErrorCode"] = OperationErrorCode.DownloadFailed }
+                            };
+                            return Result.Fail(error);
+                        }
+                    }
+                    default:
+                    {
+                        const string errorMsg = "Invalid options provided for download.";
+                        Log.Error(errorMsg);
+
+                        var error = new Error(errorMsg)
+                        {
+                            Metadata = { ["ErrorCode"] = OperationErrorCode.DownloadFailed }
+                        };
+                        return Result.Fail(error);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                var errorMessage = $"Download failed: {ex.Message}";
+                Log.Error(errorMessage);
+
+                var error = new Error(errorMessage)
+                {
+                    Metadata = { ["ErrorCode"] = OperationErrorCode.DownloadFailed }
+                };
+                return Result.Fail(error);
             }
         }
 
-        /// <summary>
-        /// Imports additional items such as PLC tags or other helper files into the project.
-        /// </summary>
-        /// <param name="filesToImport">A dictionary where the key represents the type of import (e.g., "plcTags") and the value is the file path.</param>
-        /// <returns><c>true</c> if the import was successful; otherwise, <c>false</c>.</returns>
-        /// <example>
-        /// Example JSON structure:
-        /// <code>
-        /// {
-        ///     "plcTags": "C:\\path\\to\\tags.xml"
-        /// }
-        /// </code>
-        /// </example>
-        public bool AdditionalImport(Dictionary<string, object> filesToImport)
+
+        /// <inheritdoc />
+        public Result AdditionalImport(Dictionary<string, object> filesToImport)
         {
             try
             {
-                // Check if the dictionary contains the key "plcTags"
-                if (filesToImport.ContainsKey("plcTags") &&
+                if (filesToImport.ContainsKey("plcTags") && 
                     !string.IsNullOrEmpty(filesToImport["plcTags"]?.ToString()))
                 {
-                    PLCTagsService tagsService = new PLCTagsService();
+                    var tagsService = new PLCTagsService();
                     tagsService.ImportTagTable(_cpu, filesToImport["plcTags"].ToString());
                 }
-                return true;
+
+                return Result.Ok();
             }
             catch (Exception ex)
             {
-                Log.Error($"Additional import failed: {ex.Message}");
-                return false;
+                var errorMessage = $"Additional import failed: {ex.Message}";
+                Log.Error(errorMessage);
+
+                var error = new Error(errorMessage)
+                {
+                    Metadata = { ["ErrorCode"] = OperationErrorCode.ImportFailed }
+                };
+                return Result.Fail(error);
             }
         }
-
-        /// <summary>
-        /// Exports specified items such as all PLC tags or the project to a different directory.
-        /// </summary>
-        /// <param name="filesToExport">A dictionary where the key represents the type of export (e.g., "plcTags") and the value is the export path.</param>
-        /// <returns><c>true</c> if the export was successful; otherwise, <c>false</c>.</returns>
-        /// <example>
-        /// Example JSON structure:
-        /// <code>
-        /// {
-        ///     "plcTags": "C:\\export\\path\\tags.xml"
-        /// }
-        /// </code>
-        /// </example>
-        public bool Export(Dictionary<string, object> filesToExport)
+        
+        /// <inheritdoc />
+        public Result Export(Dictionary<string, object> filesToExport)
         {
             try
             {
-                PLCTagsService tagsService = new PLCTagsService();
+                var tagsService = new PLCTagsService();
                 tagsService.ExportAllTagTables(_cpu, filesToExport["plcTags"].ToString());
-                return true;
+                return Result.Ok();
             }
             catch (Exception ex)
             {
-                Log.Error($"Export failed: {ex.Message}");
-                return false;
+                var errorMessage = $"Export failed: {ex.Message}";
+                Log.Error(errorMessage);
+
+                var error = new Error(errorMessage)
+                {
+                    Metadata = { ["ErrorCode"] = OperationErrorCode.SaveProjectFailed }
+                };
+                return Result.Fail(error);
             }
         }
 
-        /// <summary>
-        /// Saves the current project to a specific Documents/Openness/Saved_Projects/ directory.
-        /// </summary>
-        /// <param name="projectName">The name of the project.</param>
-        /// <returns><c>true</c> if the project was saved successfully; otherwise, <c>false</c>.</returns>
-        public bool SaveProjectAs(string projectName)
+        /// <inheritdoc />
+        public Result SaveProjectAs(string projectName)
         {
             try
             {
                 _projectHandler.SaveProjectAs(projectName);
-                return true;
+                return Result.Ok();
             }
             catch (Exception ex)
             {
-                Log.Error($"Export failed: {ex.Message}");
-                return false;
+                var errorMessage = $"Save project failed: {ex.Message}";
+                Log.Error(errorMessage);
+
+                var error = new Error(errorMessage)
+                {
+                    Metadata = { ["ErrorCode"] = OperationErrorCode.SaveProjectFailed }
+                };
+                return Result.Fail(error);
             }
         }
 
-        /// <summary>
-        /// Prints GSD information for debugging purposes.
-        /// </summary>
-        /// <param name="gsdFilePath">The path to the GSD file to be processed.</param>
-        /// <param name="moduleName">Optional: The name of a specific module to print information for. If not provided, all modules will be printed.</param>
-        /// <returns><c>true</c> if the GSD information was printed successfully; otherwise, <c>false</c>.</returns>
-        public bool PrintGSDInformations(string gsdFilePath, string moduleName = null)
+        /// <inheritdoc />
+        public Result PrintGSDInformations(string gsdFilePath, string moduleName = null)
         {
             try
             {
-                // Initialize the GSD handler with the provided file path
-                GSDHandler gsdHandler = new GSDHandler();
+                var gsdHandler = new GSDHandler();
                 if (!gsdHandler.Initialize(gsdFilePath))
                 {
-                    Log.Error("Failed to initialize GSDHandler with the provided file path.");
-                    return false;
+                    const string errorMessage = "Failed to initialize GSDHandler with the provided file path.";
+                    Log.Error(errorMessage);
+
+                    var error = new Error(errorMessage)
+                    {
+                        Metadata = { ["ErrorCode"] = OperationErrorCode.GetParametersFailed }
+                    };
+                    return Result.Fail(error);
                 }
 
-                // Use the ToString methods with Serilog for debugging
-                ModuleInfo moduleInfo = new ModuleInfo(gsdHandler);
+                var moduleInfo = new ModuleInfo(gsdHandler);
                 Log.Information(moduleInfo.ToString());
 
-                DeviceAccessPointList dapList = new DeviceAccessPointList(gsdHandler);
+                var dapList = new DeviceAccessPointList(gsdHandler);
                 Log.Information(dapList.ToString());
 
-                ModuleList moduleList = new ModuleList(gsdHandler);
+                var moduleList = new ModuleList(gsdHandler);
                 Log.Information(moduleList.ToString());
 
                 // If a specific module name is provided, print its information
                 if (!string.IsNullOrEmpty(moduleName))
                 {
-                    if (moduleName == "DAP")
+                    if (moduleName.Equals("DAP", StringComparison.OrdinalIgnoreCase))
                     {
                         (DeviceAccessPointItem dapItem, _) = dapList.GetDeviceAccessPointItemByID(moduleName);
                         if (dapItem != null)
@@ -1155,57 +1449,81 @@ namespace PLC.Commissioning.Lib.Siemens
                     }
                 }
 
-                return true;
+                return Result.Ok();
             }
             catch (Exception ex)
             {
-                Log.Error("An error occurred while printing GSD information: {ErrorMessage}", ex.Message);
-                return false;
+                var errorMessage = $"An error occurred while printing GSD information: {ex.Message}";
+                Log.Error(errorMessage);
+
+                var error = new Error(errorMessage)
+                {
+                    Metadata = { ["ErrorCode"] = OperationErrorCode.GetParametersFailed }
+                };
+                return Result.Fail(error);
             }
         }
         
-        /// <summary>
-        /// Deletes the specified device and all of its associated PLC tags from the project.
-        /// </summary>
-        /// <param name="device">The device object to delete. Must be an ImportedDevice.</param>
-        /// <returns><c>true</c> if deletion was successful; otherwise, <c>false</c>.</returns>
-        public bool DeleteDevice(object device)
+        /// <inheritdoc />
+        public Result DeleteDevice(object device)
         {
             try
             {
                 if (device == null)
                 {
-                    Log.Error("DeleteDevice: Device is null.");
-                    return false;
+                    const string errorMsg = "DeleteDevice: Device is null.";
+                    Log.Error(errorMsg);
+                    var error = new Error(errorMsg)
+                    {
+                        Metadata = { ["ErrorCode"] = OperationErrorCode.DeleteDeviceFailed }
+                    };
+                    return Result.Fail(error);
                 }
 
                 if (!(device is ImportedDevice importedDevice))
                 {
-                    Log.Error("DeleteDevice: Invalid device type. Expected an ImportedDevice.");
-                    return false;
+                    const string errorMsg = "DeleteDevice: Invalid device type. Expected an ImportedDevice.";
+                    Log.Error(errorMsg);
+                    var error = new Error(errorMsg)
+                    {
+                        Metadata = { ["ErrorCode"] = OperationErrorCode.DeleteDeviceFailed }
+                    };
+                    return Result.Fail(error);
                 }
 
-                // Delete the tag tables (i.e. tags and tag groups) using the IOTagsHandler.
-                IOTagsHandler tagsHandler = IOTagsHandler;
+                // Delete the tag tables using the IOTagsHandler.
+                var tagsHandler = IOTagsHandler;
                 tagsHandler.DeleteDeviceTagTables(importedDevice);
-                
+
                 // Delete the hardware device from the project.
                 bool hardwareDeletionSuccess = HardwareHandler.DeleteDevice(importedDevice.Device);
                 if (!hardwareDeletionSuccess)
                 {
-                    Log.Error("DeleteDevice: Failed to delete hardware device from project.");
-                    return false;
+                    const string errorMsg = "DeleteDevice: Failed to delete hardware device from project.";
+                    Log.Error(errorMsg);
+                    var error = new Error(errorMsg)
+                    {
+                        Metadata = { ["ErrorCode"] = OperationErrorCode.DeleteDeviceFailed }
+                    };
+                    return Result.Fail(error);
                 }
 
                 Log.Information("Device '{DeviceName}' and its associated tags were deleted successfully.", importedDevice.DeviceName);
-                return true;
+                return Result.Ok();
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "DeleteDevice: Error deleting device: {Message}", ex.Message);
-                return false;
+                var errorMessage = $"DeleteDevice: Error deleting device: {ex.Message}";
+                Log.Error(errorMessage);
+
+                var error = new Error(errorMessage)
+                {
+                    Metadata = { ["ErrorCode"] = OperationErrorCode.DeleteDeviceFailed }
+                };
+                return Result.Fail(error);
             }
         }
+
 
         /// <summary>
         /// Releases all resources used by the <see cref="SiemensPLCController"/>.
@@ -1248,6 +1566,113 @@ namespace PLC.Commissioning.Lib.Siemens
         }
 
         #region Private Functions
+        /// <summary>
+        /// Initializes online mode for the Siemens PLC controller.
+        /// </summary>
+        /// <returns>
+        /// A <see cref="Result"/> indicating success or failure.
+        /// On failure, metadata "ErrorCode" is set to <see cref="OperationErrorCode.InitializationFailed"/>.
+        /// </returns>
+        private Result InitializeOnline()
+        {
+            // If we already initialized online mode, log a warning but return success
+            // (or optionally, you can treat this as a "no-op" success).
+            if (_onlineInitialized)
+            {
+                const string warningMessage = "Online mode has already been initialized.";
+                Log.Warning(warningMessage);
+                // For consistency, let's return a successful result, 
+                // because we are effectively already online.
+                return Result.Ok();
+            }
+
+            try
+            {
+                Log.Information("Initializing online mode...");
+
+                // Initialize services for online and download operations
+                Log.Debug("Initializing OnlineProvider and DownloadProvider...");
+                var onlineProvider = _cpu.GetService<OnlineProvider>();
+                _downloadProvider = _cpu.GetService<DownloadProvider>();
+
+                // Create helper services for controller configuration
+                var onlineProviderService = new OnlineProviderService(onlineProvider);
+                var networkConfigurator = new NetworkConfigurationService(onlineProvider, _downloadProvider);
+                var plcOperationsService = new PLCOperationsService(_downloadProvider);
+
+                // Inject online services into the controller
+                _controller.SetOnlineServices(onlineProviderService, networkConfigurator, plcOperationsService);
+
+                // Determine the CPU's IP address and validate network connectivity
+                string cpuIP = _ioSystemHandler.GetPLCIPAddress(_cpu);
+                if (!networkConfigurator.PingIpAddress(_networkCard, cpuIP))
+                {
+                    var errorMessage = $"Unable to ping CPU at IP address: {cpuIP}";
+                    Log.Error(errorMessage);
+                    var error = new Error(errorMessage)
+                    {
+                        Metadata = { ["ErrorCode"] = OperationErrorCode.InitializationFailed }
+                    };
+                    return Result.Fail(error);
+                }
+
+                // Configure the target network
+                var targetConfiguration = networkConfigurator.GetTargetConfiguration();
+                _controller.SetTargetConfiguration(targetConfiguration);
+
+                // Configure the network card
+                if (string.IsNullOrEmpty(_networkCard))
+                {
+                    var errorMessage = "Network card configuration is missing.";
+                    Log.Error(errorMessage);
+                    var error = new Error(errorMessage)
+                    {
+                        Metadata = { ["ErrorCode"] = OperationErrorCode.InitializationFailed }
+                    };
+                    return Result.Fail(error);
+                }
+                if (!_controller.TryConfigureNetwork(_networkCard, 1, "1 X1"))
+                {
+                    var errorMessage = $"Failed to configure network with card: {_networkCard}";
+                    Log.Error(errorMessage);
+                    var error = new Error(errorMessage)
+                    {
+                        Metadata = { ["ErrorCode"] = OperationErrorCode.InitializationFailed }
+                    };
+                    return Result.Fail(error);
+                }
+
+                // Initialize RPC Controller
+                Log.Debug("Initializing RPCController...");
+                _rpcController = InitializeRpcController(cpuIP);
+                if (_rpcController == null)
+                {
+                    Log.Warning("RPCController initialization failed. Proceeding without RPC support.");
+                }
+
+                // Mark that we are now online
+                _onlineInitialized = true;
+                Log.Information("Online initialization completed successfully.");
+                return Result.Ok();
+            }
+            catch (Exception ex)
+            {
+                Log.Error("Online initialization failed:\n" +
+                          "Exception Type: {ExceptionType}\n" +
+                          "Message: {ErrorMessage}\n" +
+                          "Stack Trace:\n{StackTrace}",
+                    ex.GetType().Name,
+                    ex.Message,
+                    ex.StackTrace);
+
+                var error = new Error("Online initialization failed.")
+                {
+                    Metadata = { ["ErrorCode"] = OperationErrorCode.InitializationFailed }
+                };
+                return Result.Fail(error);
+            }
+        }
+        
         /// <summary>
         /// Checks if the device information from the provided module matches the expected device attributes.
         /// </summary>
