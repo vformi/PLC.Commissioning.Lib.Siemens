@@ -135,11 +135,11 @@ namespace PLC.Commissioning.Lib.Siemens
                         return null;
                     }
                     _ioSystemHandler = new IOSystemHandler(_projectHandler);
-                    Log.Information("IOSystemHandler created.");
+                    Log.Debug("IOSystemHandler created.");
                 }
                 else
                 {
-                    Log.Information("Reusing existing IOSystemHandler instance.");
+                    Log.Debug("Reusing existing IOSystemHandler instance.");
                 }
                 return _ioSystemHandler;
             }
@@ -156,11 +156,11 @@ namespace PLC.Commissioning.Lib.Siemens
                 if (_hardwareHandler == null)
                 {
                     _hardwareHandler = new HardwareHandler(_projectHandler);
-                    Log.Information("HardwareHandler created.");
+                    Log.Debug("HardwareHandler created.");
                 }
                 else
                 {
-                    Log.Information("Reusing existing HardwareHandler instance.");
+                    Log.Debug("Reusing existing HardwareHandler instance.");
                 }
                 return _hardwareHandler;
             }
@@ -588,10 +588,10 @@ namespace PLC.Commissioning.Lib.Siemens
         }
         
         /// <inheritdoc/>
-        public Result GetDeviceParameters(
-            object device, 
-            string moduleName, 
-            List<string> parameterSelections = null, 
+        public Result<Dictionary<string, object>> GetDeviceParameters(
+            object device,
+            string moduleName,
+            List<string> parameterSelections = null,
             bool safety = false)
         {
             try
@@ -722,14 +722,18 @@ namespace PLC.Commissioning.Lib.Siemens
                         return Result.Fail(error);
                     }
 
-                    // Attempt to handle regular parameters for DAP
-                    bool success = HandleRegularParameters(dapItem, module, parameterSelections);
-                    return success
-                        ? Result.Ok()
-                        : Result.Fail(new Error("Failed to handle DAP parameters.")
+                    // Attempt to handle "regular" parameters for DAP
+                    var paramDict = HandleRegularParameters(dapItem, module, parameterSelections);
+                    if (paramDict == null)
+                    {
+                        return Result.Fail<Dictionary<string, object>>(
+                            new Error("Failed to handle DAP parameters.")
                             {
                                 Metadata = { ["ErrorCode"] = OperationErrorCode.GetParametersFailed }
-                            });
+                            }
+                        );
+                    }
+                    return Result.Ok(paramDict);
                 }
                 else
                 {
@@ -772,16 +776,20 @@ namespace PLC.Commissioning.Lib.Siemens
                     }
 
                     // Handle safety or regular parameters
-                    bool success = safety
-                        ? HandleSafetyParameters(module, parameterSelections)
-                        : HandleRegularParameters(moduleItem, module, parameterSelections);
+                    var paramDict = safety
+                        ? HandleSafetyParameters(module, parameterSelections)  
+                        : HandleRegularParameters(moduleItem, module, parameterSelections); 
 
-                    return success 
-                        ? Result.Ok()
-                        : Result.Fail(new Error($"Failed to handle parameters for module '{moduleName}'.")
+                    // If the returned dictionary is null, it means retrieval failed.
+                    if (paramDict == null)
+                    {
+                        return Result.Fail<Dictionary<string, object>>(
+                            new Error($"Failed to handle parameters for module '{moduleName}'.")
                             {
                                 Metadata = { ["ErrorCode"] = OperationErrorCode.GetParametersFailed }
                             });
+                    }
+                    return Result.Ok(paramDict);
                 }
             }
             catch (Exception ex)
@@ -1706,20 +1714,35 @@ namespace PLC.Commissioning.Lib.Siemens
         }
 
         /// <summary>
-        /// Handles the safety parameters by displaying the safety module data for the provided module.
+        /// Handles the safety parameters by retrieving and optionally logging the safety module data.
         /// </summary>
-        /// <param name="module">The GSD device item representing the module.</param>
-        /// <param name="parameterSelections">A list of parameter selections for the module.</param>
-        /// <returns><c>true</c> if the safety parameters were handled successfully; otherwise, <c>false</c>.</returns>
-        private bool HandleSafetyParameters(GsdDeviceItem module, List<string> parameterSelections)
-
+        /// <param name="module">The GSD device item representing the safety module.</param>
+        /// <param name="parameterSelections">A list of parameter selections for the safety module.</param>
+        /// <returns>
+        /// A <see cref="Dictionary{string, object}"/> of retrieved safety parameters if successful; <c>null</c> otherwise.
+        /// </returns>
+        private Dictionary<string, object> HandleSafetyParameters(
+            GsdDeviceItem module,
+            List<string> parameterSelections)
         {
             var safetyHandler = new SafetyParameterHandler();
-            if (!safetyHandler.DisplaySafetyModuleData(module, parameterSelections))
+
+            // Retrieve the safety module data; returns null if something fails
+            var moduleData = safetyHandler.GetSafetyModuleData(module, parameterSelections);
+            if (moduleData == null)
             {
-                return false;
+                Log.Error("Safety parameter reading failed due to invalid or unsupported parameters. Aborting operation.");
+                return null;
             }
-            return true;
+    
+            // Optionally log them
+            foreach (var kvp in moduleData)
+            {
+                Log.Debug($"Safety Parameter: {kvp.Key}, Value: {kvp.Value}");
+            }
+
+            // Return the dictionary for further processing
+            return moduleData;
         }
 
         /// <summary>
@@ -1729,23 +1752,28 @@ namespace PLC.Commissioning.Lib.Siemens
         /// <param name="module">The GSD device item representing the module or DAP.</param>
         /// <param name="parameterSelections">A list of parameter selections to be retrieved for the module or DAP.</param>
         /// <returns><c>true</c> if the regular parameters were handled successfully; otherwise, <c>false</c>.</returns>
-        private bool HandleRegularParameters(IDeviceItem moduleItem, GsdDeviceItem module, List<string> parameterSelections)
+        private Dictionary<string, object> HandleRegularParameters(
+            IDeviceItem moduleItem,
+            GsdDeviceItem module,
+            List<string> parameterSelections)
         {
             var parameterHandler = new ParameterHandler(moduleItem);
             var moduleData = parameterHandler.GetModuleData(module, parameterSelections);
-
             if (moduleData is null)
             {
                 Log.Error("Parameter reading failed due to invalid parameters. Aborting operation.");
-                return false;
+                return null;
             }
 
+            // Build a dictionary from the retrieved moduleData
+            var resultDict = new Dictionary<string, object>();
             foreach (var parsedValue in moduleData)
             {
-                Log.Information($"Parameter: {parsedValue.Parameter}, Value: {parsedValue.Value}");
+                resultDict[parsedValue.Parameter] = parsedValue.Value;
+                Log.Debug($"Parameter: {parsedValue.Parameter}, Value: {parsedValue.Value}");
             }
 
-            return true;
+            return resultDict;
         }
 
         /// <summary>

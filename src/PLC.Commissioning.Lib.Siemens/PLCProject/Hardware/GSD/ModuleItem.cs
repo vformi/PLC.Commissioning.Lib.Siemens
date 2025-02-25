@@ -63,11 +63,11 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.GSD
                 Model.InfoText = _gsdHandler.GetExternalText(infoTextId);
             }
 
+            // 1) Normal (non-safety) parameters
             XmlNode parameterRecordDataItemNode = moduleItemNode.SelectSingleNode(
                 "gsd:VirtualSubmoduleList/gsd:VirtualSubmoduleItem/gsd:RecordDataList/gsd:ParameterRecordDataItem",
                 _gsdHandler.nsmgr);
 
-            // Check if parameters exist
             if (parameterRecordDataItemNode != null)
             {
                 Model.ParameterRecordDataItem = new ParameterRecordDataItem(_gsdHandler);
@@ -75,9 +75,24 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.GSD
             }
             else
             {
-                // Handle case where no parameters are available
                 Model.ParameterRecordDataItem = null;
             }
+            
+            // 2) Safety parameters (F_ParameterRecordDataItem)
+            XmlNode fParameterRecordDataItemNode = moduleItemNode.SelectSingleNode(
+                "gsd:VirtualSubmoduleList/gsd:VirtualSubmoduleItem/gsd:RecordDataList/gsd:F_ParameterRecordDataItem",
+                _gsdHandler.nsmgr);
+
+            if (fParameterRecordDataItemNode != null)
+            {
+                Model.FParameterRecordDataItem = new FParameterRecordDataItem(_gsdHandler);
+                Model.FParameterRecordDataItem.ParseFParameterRecordDataItem(fParameterRecordDataItemNode);
+            }
+            else
+            {
+                Model.FParameterRecordDataItem = null;
+            }
+
 
             // Parse IO Data
             XmlNode ioDataNode = moduleItemNode.SelectSingleNode("gsd:VirtualSubmoduleList/gsd:VirtualSubmoduleItem/gsd:IOData", _gsdHandler.nsmgr);
@@ -161,9 +176,9 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.GSD
         }
 
         /// <summary>
-        /// Returns a string representation of the module item, including its name, info text, IO data, and parameters.
+        /// Returns a string representation of the module item, including its name, info text, IO data, 
+        /// and any normal or safety parameters discovered.
         /// </summary>
-        /// <returns>A string describing the module item.</returns>
         public override string ToString()
         {
             var sb = new StringBuilder();
@@ -172,7 +187,7 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.GSD
             sb.AppendLine($"ID: {Model.ID}");
             sb.AppendLine($"Info Text: {Model.InfoText}");
 
-            // IO Data Section
+            // IO Data
             if (Model.IOData != null && (Model.IOData.Outputs.Count > 0 || Model.IOData.Inputs.Count > 0))
             {
                 sb.AppendLine("IO Data:");
@@ -183,14 +198,13 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.GSD
                     sb.AppendLine("  Outputs:");
                     foreach (var output in Model.IOData.Outputs)
                     {
-                        sb.AppendLine($"    DataItem: {_gsdHandler.GetExternalText(output.TextId) ?? output.TextId}, " +
-                                      $"DataType: {output.DataType}, " +
-                                      $"Used as Bits: {output.UseAsBits}");
+                        string displayText = _gsdHandler.GetExternalText(output.TextId) ?? output.TextId;
+                        sb.AppendLine($"    DataItem: {displayText}, DataType: {output.DataType}, UsedAsBits: {output.UseAsBits}");
 
                         foreach (var bitDataItem in output.BitDataItems)
                         {
-                            sb.AppendLine($"      BitOffset: {bitDataItem.BitOffset}, " +
-                                          $"Text: {_gsdHandler.GetExternalText(bitDataItem.TextId) ?? bitDataItem.TextId}");
+                            string bitText = _gsdHandler.GetExternalText(bitDataItem.TextId) ?? bitDataItem.TextId;
+                            sb.AppendLine($"      BitOffset: {bitDataItem.BitOffset}, Text: {bitText}");
                         }
                     }
                 }
@@ -201,26 +215,36 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.GSD
                     sb.AppendLine("  Inputs:");
                     foreach (var input in Model.IOData.Inputs)
                     {
-                        sb.AppendLine($"    DataItem: {_gsdHandler.GetExternalText(input.TextId) ?? input.TextId}, " +
-                                      $"DataType: {input.DataType}, " +
-                                      $"Used as Bits: {input.UseAsBits}");
+                        string displayText = _gsdHandler.GetExternalText(input.TextId) ?? input.TextId;
+                        sb.AppendLine($"    DataItem: {displayText}, DataType: {input.DataType}, UsedAsBits: {input.UseAsBits}");
 
                         foreach (var bitDataItem in input.BitDataItems)
                         {
-                            sb.AppendLine($"      BitOffset: {bitDataItem.BitOffset}, " +
-                                          $"Text: {_gsdHandler.GetExternalText(bitDataItem.TextId) ?? bitDataItem.TextId}");
+                            string bitText = _gsdHandler.GetExternalText(bitDataItem.TextId) ?? bitDataItem.TextId;
+                            sb.AppendLine($"      BitOffset: {bitDataItem.BitOffset}, Text: {bitText}");
                         }
                     }
                 }
             }
 
-            // Parameters Section
+            // Parameters
+            bool hasParams = false;
+
             if (Model.ParameterRecordDataItem != null)
             {
+                hasParams = true;
                 sb.AppendLine("Parameters:");
                 sb.AppendLine(Model.ParameterRecordDataItem.ToString());
             }
-            else
+
+            if (Model.FParameterRecordDataItem != null)
+            {
+                hasParams = true;
+                sb.AppendLine("Safety Parameters:");
+                sb.AppendLine(Model.FParameterRecordDataItem.ToString());
+            }
+
+            if (!hasParams)
             {
                 sb.AppendLine("No parameters available.");
             }

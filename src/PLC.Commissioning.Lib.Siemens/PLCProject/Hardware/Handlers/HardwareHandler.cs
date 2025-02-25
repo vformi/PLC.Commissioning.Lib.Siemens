@@ -226,7 +226,7 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.Handlers
         public void EnumerateProjectDevices()
         {
             var project = _projectHandler.Project;
-            Log.Information($"\nEnumerating devices in project {project?.Name}:");
+            Log.Information($"Enumerating devices in project {project?.Name}:");
 
             if (project is null)
             {
@@ -285,7 +285,7 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.Handlers
                 {
                     if (device.DeviceItems.Any(item => item.Classification == DeviceItemClassifications.CPU))
                     {
-                        Log.Information($"Skipping CPU Device: {device.DeviceItems[1].Name}");
+                        Log.Debug($"Skipping CPU Device: {device.DeviceItems[1].Name}");
                         continue;
                     }
 
@@ -298,7 +298,7 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.Handlers
                 {
                     if (ungroupedDevice.DeviceItems.Any(item => item.Classification == DeviceItemClassifications.CPU))
                     {
-                        Log.Information($"Skipping CPU Device: {ungroupedDevice.DeviceItems[1].Name}");
+                        Log.Debug($"Skipping CPU Device: {ungroupedDevice.DeviceItems[1].Name}");
                         continue;
                     }
 
@@ -395,7 +395,7 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.Handlers
                     return false;
                 }
                 string deviceName = device.DeviceItems[1].Name;
-                Log.Information("Delete call for device '{DeviceName}'", deviceName);
+                Log.Debug("Delete call for device '{DeviceName}'", deviceName);
                 device.Delete();
                 Log.Information("Device '{DeviceName}' was deleted successfully.", deviceName);
                 return true;
