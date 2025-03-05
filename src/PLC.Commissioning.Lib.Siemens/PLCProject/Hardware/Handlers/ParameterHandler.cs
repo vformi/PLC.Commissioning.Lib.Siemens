@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using Serilog;
 using PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.GSD;
 using System.Linq;
+using PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.Abstractions;
 using Siemens.Engineering.HW;
 using PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.GSD.Abstractions;
 
@@ -13,7 +14,7 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.Handlers
     /// <summary>
     /// Handles getting and setting module parameters for a GSD device item.
     /// </summary>
-    public class ParameterHandler
+    public class ParameterHandler : IParameterHandler
     {
         /// <summary>
         /// Represents the device item in the GSD file
@@ -156,6 +157,32 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.Handlers
                 return false;
             }
         }
+        
+        /// <summary>
+        /// Handles the regular parameters by retrieving and logging the module data for the provided module item.
+        /// </summary>
+        /// <param name="module">The GSD device item representing the module or DAP.</param>
+        /// <param name="parameterSelections">A list of parameter selections to be retrieved for the module or DAP.</param>
+        /// <returns><c>true</c> if the regular parameters were handled successfully; otherwise, <c>false</c>.</returns>
+        public Dictionary<string, object> HandleRegularParameters(GsdDeviceItem module, List<string> parameterSelections)
+        {
+            var moduleData = GetModuleData(module, parameterSelections);
+            if (moduleData is null)
+            {
+                Log.Error("Parameter reading failed due to invalid parameters. Aborting operation.");
+                return null;
+            }
+
+            // Build a dictionary from the retrieved moduleData
+            var resultDict = new Dictionary<string, object>();
+            foreach (var parsedValue in moduleData)
+            {
+                resultDict[parsedValue.Parameter] = parsedValue.Value;
+                Log.Debug($"Parameter: {parsedValue.Parameter}, Value: {parsedValue.Value}");
+            }
+
+            return resultDict;
+        }
 
         #region Private methods
         /// <summary>
@@ -173,7 +200,7 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.Handlers
         /// retrieves raw values using appropriate data type getters, and maps them to user-friendly values
         /// if allowed value assignments are specified.
         /// </remarks>
-        private List<ParsedValueModel> ParseModuleData(byte[] data, List<string> parameterSelections = null)
+        internal List<ParsedValueModel> ParseModuleData(byte[] data, List<string> parameterSelections = null)
         {
             var parsedValues = new List<ParsedValueModel>();
 
@@ -302,7 +329,7 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.Handlers
         /// The modified byte array representing the data to be written to the module.
         /// Returns <c>null</c> if invalid values are provided or setting any value fails.
         /// </returns>
-        private byte[] WriteModuleData(byte[] data, Dictionary<string, object> parameterValues)
+        internal byte[] WriteModuleData(byte[] data, Dictionary<string, object> parameterValues)
         {
             foreach (var refItem in _deviceItem.ParameterRecordDataItem.Refs)
             {
@@ -313,20 +340,31 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.Handlers
                     // Map string values to raw values based on allowed value assignments
                     if (value is string stringValue)
                     {
-                        bool foundAssignment = false;
-                        foreach (var assignment in refItem.AllowedValueAssignments)
+                        if (refItem.AllowedValueAssignments != null && refItem.AllowedValueAssignments.Any())
                         {
-                            if (assignment.Value.Equals(stringValue))
+                            if (refItem.AllowedValueAssignments.TryGetValue(stringValue, out var mappedValue))
                             {
-                                rawValue = Convert.ToInt32(assignment.Key);
-                                foundAssignment = true;
-                                break;
+                                rawValue = Convert.ToInt32(mappedValue);
+                            }
+                            else
+                            {
+                                Log.Error("Invalid string value for parameter {Parameter}: {Value}", refItem.Text, value);
+                                return null;
                             }
                         }
-                        if (!foundAssignment)
+                    }
+                    
+                    // Validation for AllowedValues
+                    if (refItem.AllowedValues != null)
+                    {
+                        var range = refItem.AllowedValues.Split(new[] { ".." }, StringSplitOptions.None);
+                        if (range.Length == 2 && int.TryParse(range[0], out int min) && int.TryParse(range[1], out int max))
                         {
-                            Log.Error($"Invalid string value for {refItem.Text}: {value}");
-                            return null;
+                            if (rawValue is int intVal && (intVal < min || intVal > max))
+                            {
+                                Console.WriteLine($"ERROR: Value {intVal} for {refItem.Text} is out of allowed range {min}..{max}");
+                                return null;
+                            }
                         }
                     }
 
@@ -383,10 +421,21 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.Handlers
                         case "VisibleString":
                             if (rawValue is string stringValueVisible)
                             {
-                                isValid = DataTypeSetter.SetVisibleStringValue(data, refItem.ByteOffset, refItem.Length ?? 0, stringValueVisible);
+                                int maxLength = refItem.Length ?? 0;
+                                // Check if the incoming string is longer than allowed:
+                                if (stringValueVisible.Length > maxLength)
+                                {
+                                    isValid = false;
+                                }
+                                else
+                                {
+                                    isValid = DataTypeSetter.SetVisibleStringValue(data,
+                                        refItem.ByteOffset,
+                                        maxLength,
+                                        stringValueVisible);
+                                }
                             }
                             break;
-
                             // Add cases for other data types as needed.
                     }
 
@@ -413,8 +462,8 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.Handlers
             return data;
         }
 
-
-        private bool AreParameterKeysValid(Dictionary<string, object> parameterValues)
+        
+        internal bool AreParameterKeysValid(Dictionary<string, object> parameterValues)
         {
             // Check if parameterValues dictionary is null or empty
             if (parameterValues is null || parameterValues.Count == 0)

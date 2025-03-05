@@ -6,6 +6,7 @@ using System.Text;
 using System.Xml;
 using Siemens.Engineering.HW.Features;
 using System.Linq;
+using PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.Abstractions;
 using Serilog;
 
 namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.Handlers
@@ -13,7 +14,7 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.Handlers
     /// <summary>
     /// Provides methods to handle safety parameters for GSD devices.
     /// </summary>
-    public class SafetyParameterHandler
+    public class SafetyParameterHandler : ISafetyParameterHandler
     {
         /// <summary>
         /// Retrieves the safety module data for a given GSD device item.
@@ -152,6 +153,35 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.Handlers
             }
 
             return true;
+        }
+        
+        
+        /// <summary>
+        /// Handles the safety parameters by retrieving and optionally logging the safety module data.
+        /// </summary>
+        /// <param name="module">The GSD device item representing the safety module.</param>
+        /// <param name="parameterSelections">A list of parameter selections for the safety module.</param>
+        /// <returns>
+        /// A <see cref="Dictionary{string, object}"/> of retrieved safety parameters if successful; <c>null</c> otherwise.
+        /// </returns>
+        public Dictionary<string, object> HandleSafetyParameters(GsdDeviceItem module, List<string> parameterSelections)
+        {
+            // Retrieve the safety module data; returns null if something fails
+            var moduleData = GetSafetyModuleData(module, parameterSelections);
+            if (moduleData == null)
+            {
+                Log.Error("Safety parameter reading failed due to invalid or unsupported parameters. Aborting operation.");
+                return null;
+            }
+    
+            // Optionally log them
+            foreach (var kvp in moduleData)
+            {
+                Log.Debug($"Safety Parameter: {kvp.Key}, Value: {kvp.Value}");
+            }
+
+            // Return the dictionary for further processing
+            return moduleData;
         }
     }
 }

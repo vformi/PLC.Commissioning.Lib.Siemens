@@ -14,12 +14,12 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.GSD
         /// <summary>
         /// Gets the DS number for the parameter record.
         /// </summary>
-        public int DsNumber { get; private set; }
+        public int DsNumber { get; set; }
 
         /// <summary>
         /// Gets the length of the parameter record in bytes.
         /// </summary>
-        public int LengthInBytes { get; private set; }
+        public int LengthInBytes { get; set; }
 
         /// <summary>
         /// Gets or sets the list of (<Ref/>) parameters associated with the parameter record data item.
@@ -43,33 +43,70 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.GSD
         /// <param name="parameterRecordDataItemNode">The XML node representing the parameter record data item.</param>
         public void ParseParameterRecordDataItem(XmlNode parameterRecordDataItemNode)
         {
-            if (int.TryParse(parameterRecordDataItemNode.Attributes["Index"]?.Value, out int dsNumber))
+            if (parameterRecordDataItemNode == null)
             {
-                DsNumber = dsNumber;
-            }
-            if (int.TryParse(parameterRecordDataItemNode.Attributes["Length"]?.Value, out int lengthInBytes))
-            {
-                LengthInBytes = lengthInBytes;
+                throw new ArgumentNullException(nameof(parameterRecordDataItemNode), "ParameterRecordDataItem node cannot be null.");
             }
 
-            // Initialize a dictionary to track unique Texts
+            // Mandatory Index and Length attributes
+            if (!int.TryParse(parameterRecordDataItemNode.Attributes["Index"]?.Value, out int dsNumber))
+            {
+                throw new InvalidOperationException("Missing or invalid 'Index' attribute in ParameterRecordDataItem.");
+            }
+            DsNumber = dsNumber;
+
+            if (!int.TryParse(parameterRecordDataItemNode.Attributes["Length"]?.Value, out int lengthInBytes))
+            {
+                throw new InvalidOperationException("Missing or invalid 'Length' attribute in ParameterRecordDataItem.");
+            }
+            LengthInBytes = lengthInBytes;
+
+            // Ensure <Name> exists and has a valid TextId
+            XmlNode nameNode = parameterRecordDataItemNode.SelectSingleNode("gsd:Name", _gsdHandler.nsmgr);
+            if (nameNode == null || nameNode.Attributes["TextId"] == null)
+            {
+                throw new InvalidOperationException("Missing required <Name> node or 'TextId' attribute in ParameterRecordDataItem.");
+            }
+
+            // Validate <Ref> nodes (they must exist)
+            XmlNodeList refNodes = parameterRecordDataItemNode.SelectNodes("gsd:Ref", _gsdHandler.nsmgr);
+            if (refNodes.Count == 0)
+            {
+                throw new InvalidOperationException("A ParameterRecordDataItem must contain at least one <Ref> node.");
+            }
+
             var textTracker = new Dictionary<string, int>();
 
-            XmlNodeList refNodes = parameterRecordDataItemNode.SelectNodes("gsd:Ref", _gsdHandler.nsmgr);
             foreach (XmlNode refNode in refNodes)
             {
+                // Mandatory attributes for <Ref>
+                if (refNode.Attributes["ByteOffset"] == null)
+                {
+                    throw new InvalidOperationException("Each <Ref> node must have a 'ByteOffset' attribute.");
+                }
+                if (refNode.Attributes["DataType"] == null)
+                {
+                    throw new InvalidOperationException("Each <Ref> node must have a 'DataType' attribute.");
+                }
+                if (refNode.Attributes["TextId"] == null)
+                {
+                    throw new InvalidOperationException("Each <Ref> node must have a 'TextId' attribute.");
+                }
+
+                int byteOffset = int.Parse(refNode.Attributes["ByteOffset"].Value);
+
                 var refItem = new RefModel
                 {
                     ValueItemTarget = refNode.Attributes["ValueItemTarget"]?.Value,
-                    DataType = refNode.Attributes["DataType"]?.Value,
-                    ByteOffset = int.Parse(refNode.Attributes["ByteOffset"].Value),
+                    DataType = refNode.Attributes["DataType"].Value,  // Mandatory
+                    ByteOffset = byteOffset,
                     BitOffset = refNode.Attributes["BitOffset"] != null ? int.Parse(refNode.Attributes["BitOffset"].Value) : (int?)null,
                     BitLength = refNode.Attributes["BitLength"] != null ? int.Parse(refNode.Attributes["BitLength"].Value) : (int?)null,
                     Length = refNode.Attributes["Length"] != null ? int.Parse(refNode.Attributes["Length"].Value) : (int?)null,
                     DefaultValue = refNode.Attributes["DefaultValue"]?.Value,
                     AllowedValues = refNode.Attributes["AllowedValues"]?.Value,
-                    TextId = refNode.Attributes["TextId"]?.Value,
-                    Text = refNode.Attributes["TextId"] != null ? _gsdHandler.GetExternalText(refNode.Attributes["TextId"].Value) : null
+                    TextId = refNode.Attributes["TextId"].Value, // Mandatory
+                    Text = _gsdHandler.GetExternalText(refNode.Attributes["TextId"].Value) // Must resolve
                 };
 
                 // Ensure Text is unique
@@ -77,13 +114,11 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.GSD
                 {
                     if (textTracker.ContainsKey(refItem.Text))
                     {
-                        // If the text is not unique, enhance it by appending an incrementing suffix
                         textTracker[refItem.Text]++;
                         refItem.Text += $"_{textTracker[refItem.Text]}";
                     }
                     else
                     {
-                        // If the text is unique, add it to the tracker with an initial count of 0
                         textTracker[refItem.Text] = 0;
                     }
                 }
@@ -103,6 +138,8 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.GSD
                 Refs.Add(refItem);
             }
         }
+
+
 
         /// <summary>
         /// To string method of class ParameterRecordDataItem

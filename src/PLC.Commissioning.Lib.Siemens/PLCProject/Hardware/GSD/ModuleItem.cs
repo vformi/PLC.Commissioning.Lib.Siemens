@@ -53,15 +53,29 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.GSD
             Model.ModuleIdentNumber = moduleItemNode.Attributes["ModuleIdentNumber"]?.Value;
 
             XmlNode moduleInfoNode = moduleItemNode.SelectSingleNode("gsd:ModuleInfo", _gsdHandler.nsmgr);
-            if (moduleInfoNode != null)
+            if (moduleInfoNode == null)
             {
-                string nameTextId = moduleInfoNode.SelectSingleNode("gsd:Name", _gsdHandler.nsmgr)?.Attributes["TextId"]
-                    ?.Value;
-                string infoTextId = moduleInfoNode.SelectSingleNode("gsd:InfoText", _gsdHandler.nsmgr)
-                    ?.Attributes["TextId"]?.Value;
-                Model.Name = _gsdHandler.GetExternalText(nameTextId);
-                Model.InfoText = _gsdHandler.GetExternalText(infoTextId);
+                throw new InvalidOperationException("Missing required 'ModuleInfo' node in ModuleItem.");
             }
+
+            // Extract Name
+            XmlNode nameNode = moduleInfoNode.SelectSingleNode("gsd:Name", _gsdHandler.nsmgr);
+            if (nameNode == null || nameNode.Attributes["TextId"] == null)
+            {
+                throw new InvalidOperationException("Missing required 'Name' node or 'TextId' attribute in ModuleInfo.");
+            }
+            string nameTextId = nameNode.Attributes["TextId"].Value;
+            Model.Name = _gsdHandler.GetExternalText(nameTextId);
+
+            // Extract InfoText
+            XmlNode infoTextNode = moduleInfoNode.SelectSingleNode("gsd:InfoText", _gsdHandler.nsmgr);
+            if (infoTextNode == null || infoTextNode.Attributes["TextId"] == null)
+            {
+                throw new InvalidOperationException("Missing required 'InfoText' node or 'TextId' attribute in ModuleInfo.");
+            }
+            string infoTextId = infoTextNode.Attributes["TextId"].Value;
+            Model.InfoText = _gsdHandler.GetExternalText(infoTextId);
+
 
             // 1) Normal (non-safety) parameters
             XmlNode parameterRecordDataItemNode = moduleItemNode.SelectSingleNode(

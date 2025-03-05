@@ -23,17 +23,21 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject
         /// Represents the current Siemens PLC project loaded in the TIA Portal.
         /// </summary>
         private Project _project;
-
+        
+        private readonly IFileSystem _fileSystem; // Added IFileSystem
+       
         private bool _disposed;
-
+        
         /// <summary>
-        /// Initializes a new instance of the <see cref="ProjectHandlerService"/> class with the specified TIA Portal instance.
+        /// Initializes a new instance of the <see cref="ProjectHandlerService"/> class.
         /// </summary>
         /// <param name="tiaPortal">The TIA Portal instance.</param>
-        /// <exception cref="ArgumentNullException">Thrown when the <paramref name="tiaPortal"/> is null.</exception>
-        public ProjectHandlerService(TiaPortal tiaPortal)
+        /// <param name="fileSystem">The filesystem abstraction.</param>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="tiaPortal"/> or <paramref name="fileSystem"/> is null.</exception>
+        public ProjectHandlerService(TiaPortal tiaPortal, IFileSystem fileSystem)
         {
             _tiaPortal = tiaPortal ?? throw new ArgumentNullException(nameof(tiaPortal));
+            _fileSystem = fileSystem ?? throw new ArgumentNullException(nameof(fileSystem));
         }
 
         /// <inheritdoc />
@@ -45,7 +49,7 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject
         /// <inheritdoc />
         public bool HandleProject(string projectPath)
         {
-            if (!File.Exists(projectPath))
+            if (!_fileSystem.FileExists(projectPath)) // Use IFileSystem
             {
                 throw new FileNotFoundException("Project file not found.", projectPath);
             }
@@ -74,8 +78,7 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject
             {
                 if (ex.InnerException != null && ex.InnerException.Message.Contains("cannot be accessed"))
                 {
-                    Log.Error(
-                        $"The project '{projectPath}' is currently locked and cannot be opened. Please wait for 2 minutes before trying again.");
+                    Log.Error($"The project '{projectPath}' is currently locked and cannot be opened. Please wait for 2 minutes before trying again.");
                     return false;
                 }
                 else
@@ -115,9 +118,7 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject
             try
             {
                 importProvider.Import(importFileInfo, new FileInfo(logFilePath), CaxImportOptions.RetainTiaDevice);
-
-                // Read the log file to determine if the import was truly successful
-                string[] logLines = File.ReadAllLines(logFilePath);
+                string[] logLines = _fileSystem.ReadAllLines(logFilePath); // Use IFileSystem
                 bool hasErrors = logLines.Any(line => line.Contains("ERROR"));
 
                 foreach (var line in logLines)
@@ -141,9 +142,9 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject
             }
             finally
             {
-                if (File.Exists(logFilePath))
+                if (_fileSystem.FileExists(logFilePath)) // Use IFileSystem
                 {
-                    File.Delete(logFilePath);
+                    _fileSystem.DeleteFile(logFilePath); // Add DeleteFile to IFileSystem interface
                 }
             }
         }
@@ -267,27 +268,23 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject
         
         private void RetrieveAndOpenProject(string archivePath)
         {
-            // Convert relative path to absolute
             string absoluteArchivePath = Path.GetFullPath(archivePath);
-            if (!File.Exists(absoluteArchivePath))
+            if (!_fileSystem.FileExists(absoluteArchivePath)) // Use IFileSystem
             {
                 Log.Error($"Project archive file not found at '{absoluteArchivePath}'.");
                 throw new FileNotFoundException("Project archive file not found.", absoluteArchivePath);
             }
 
             string retrievedProjectsDirectory = Path.GetDirectoryName(absoluteArchivePath);
-            string projectName =
-                Path.GetFileNameWithoutExtension(
-                    absoluteArchivePath); // Assume the project folder is named after the archive file without the extension
+            string projectName = Path.GetFileNameWithoutExtension(absoluteArchivePath);
             string targetDirectory = Path.Combine(retrievedProjectsDirectory, projectName);
 
-            // Ensure only the specific directory that would be created by the Retrieve operation is deleted
-            if (Directory.Exists(targetDirectory))
+            if (_fileSystem.DirectoryExists(targetDirectory)) // Use IFileSystem
             {
                 Log.Information($"Project directory '{targetDirectory}' already exists. Deleting...");
                 try
                 {
-                    Directory.Delete(targetDirectory, true); // Recursively delete the specific directory
+                    _fileSystem.DeleteDirectory(targetDirectory, true); // Add DeleteDirectory to IFileSystem interface
                     Log.Information($"Existing project directory '{targetDirectory}' deleted successfully.");
                 }
                 catch (Exception ex)
@@ -301,8 +298,7 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject
             {
                 DirectoryInfo retrievedDir = new DirectoryInfo(retrievedProjectsDirectory);
                 _project = _tiaPortal.Projects.Retrieve(new FileInfo(absoluteArchivePath), retrievedDir);
-                Log.Information(
-                    $"Project '{absoluteArchivePath}' retrieved and opened successfully in directory '{targetDirectory}'.");
+                Log.Information($"Project '{absoluteArchivePath}' retrieved and opened successfully in directory '{targetDirectory}'.");
             }
             catch (Exception ex)
             {

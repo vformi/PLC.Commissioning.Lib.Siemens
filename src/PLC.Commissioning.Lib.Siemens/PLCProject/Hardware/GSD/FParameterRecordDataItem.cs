@@ -74,21 +74,38 @@ public class FParameterRecordDataItem
     /// </summary>
     /// <param name="fParameterRecordDataItemNode">The XML node containing the F-Parameter Record Data Item data.</param>
     /// <exception cref="ArgumentNullException">Thrown if <paramref name="fParameterRecordDataItemNode"/> is null.</exception>
+    /// <summary>
+    /// Parses an XML node representing an F-Parameter Record Data Item and ensures required attributes exist.
+    /// </summary>
+    /// <param name="fParameterRecordDataItemNode">The XML node containing the F-Parameter Record Data Item data.</param>
     public void ParseFParameterRecordDataItem(XmlNode fParameterRecordDataItemNode)
     {
         if (fParameterRecordDataItemNode == null)
-            throw new ArgumentNullException(nameof(fParameterRecordDataItemNode));
+            throw new ArgumentNullException(nameof(fParameterRecordDataItemNode), "F_ParameterRecordDataItem node cannot be null.");
 
-        // Parse specific attributes for F-Parameter Record Data Item
-        F_ParamDescCRC = fParameterRecordDataItemNode.Attributes["F_ParamDescCRC"]?.Value;
-        F_SIL = fParameterRecordDataItemNode.SelectSingleNode("gsd:F_SIL", _gsdHandler.nsmgr)?.Attributes["DefaultValue"]?.Value;
-        F_CRC_Length = fParameterRecordDataItemNode.SelectSingleNode("gsd:F_CRC_Length", _gsdHandler.nsmgr)?.Attributes["DefaultValue"]?.Value;
-        F_Block_ID = fParameterRecordDataItemNode.SelectSingleNode("gsd:F_Block_ID", _gsdHandler.nsmgr)?.Attributes["DefaultValue"]?.Value;
-        F_Par_Version = fParameterRecordDataItemNode.SelectSingleNode("gsd:F_Par_Version", _gsdHandler.nsmgr)?.Attributes["DefaultValue"]?.Value;
-        F_Source_Add = fParameterRecordDataItemNode.SelectSingleNode("gsd:F_Source_Add", _gsdHandler.nsmgr)?.Attributes["AllowedValues"]?.Value;
-        F_Dest_Add = fParameterRecordDataItemNode.SelectSingleNode("gsd:F_Dest_Add", _gsdHandler.nsmgr)?.Attributes["AllowedValues"]?.Value;
-        F_WD_Time = fParameterRecordDataItemNode.SelectSingleNode("gsd:F_WD_Time", _gsdHandler.nsmgr)?.Attributes["DefaultValue"]?.Value;
-        F_Par_CRC = fParameterRecordDataItemNode.SelectSingleNode("gsd:F_Par_CRC", _gsdHandler.nsmgr)?.Attributes["DefaultValue"]?.Value;
+        // Required attributes
+        F_ParamDescCRC = fParameterRecordDataItemNode.Attributes["F_ParamDescCRC"]?.Value
+                         ?? throw new InvalidOperationException("Missing required attribute: F_ParamDescCRC");
+        F_SIL = GetMandatoryAttribute(fParameterRecordDataItemNode, "gsd:F_SIL", "DefaultValue");
+        F_CRC_Length = GetMandatoryAttribute(fParameterRecordDataItemNode, "gsd:F_CRC_Length", "DefaultValue");
+        F_Block_ID = GetMandatoryAttribute(fParameterRecordDataItemNode, "gsd:F_Block_ID", "DefaultValue");
+        F_Par_Version = GetMandatoryAttribute(fParameterRecordDataItemNode, "gsd:F_Par_Version", "Changeable");
+        F_Source_Add = GetMandatoryAttribute(fParameterRecordDataItemNode, "gsd:F_Source_Add", "AllowedValues");
+        F_Dest_Add = GetMandatoryAttribute(fParameterRecordDataItemNode, "gsd:F_Dest_Add", "AllowedValues");
+        F_WD_Time = GetMandatoryAttribute(fParameterRecordDataItemNode, "gsd:F_WD_Time", "DefaultValue");
+        F_Par_CRC = GetMandatoryAttribute(fParameterRecordDataItemNode, "gsd:F_Par_CRC", "DefaultValue");
+    }
+    
+    /// <summary>
+    /// Extracts a mandatory attribute from a specified node and throws an error if missing.
+    /// </summary>
+    private string GetMandatoryAttribute(XmlNode parentNode, string nodeName, string attributeName)
+    {
+        XmlNode node = parentNode.SelectSingleNode(nodeName, _gsdHandler.nsmgr);
+        if (node == null || node.Attributes[attributeName] == null)
+            throw new InvalidOperationException($"Missing required attribute '{attributeName}' in node '{nodeName}'");
+
+        return node.Attributes[attributeName].Value;
     }
 
     /// <summary>

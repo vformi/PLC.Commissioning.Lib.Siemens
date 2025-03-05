@@ -92,7 +92,8 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.GSD
 
             byte[] intBytes = new byte[4];
             Array.Copy(data, byteOffset, intBytes, 0, 4);
-            Array.Reverse(intBytes); // Adjust for endianness if necessary
+            // Reverse bytes for Big-Endian
+            Array.Reverse(intBytes);
             return BitConverter.ToInt32(intBytes, 0);
         }
 
@@ -108,7 +109,6 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.GSD
         /// </returns>
         public static ushort? GetUInt16Value(byte[] data, int byteOffset)
         {
-            // Validate parameters
             if (data == null || byteOffset < 0 || byteOffset + 2 > data.Length)
             {
                 return null;
@@ -116,9 +116,15 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.GSD
 
             byte[] ushortBytes = new byte[2];
             Array.Copy(data, byteOffset, ushortBytes, 0, 2);
-            Array.Reverse(ushortBytes); // Adjust for endianness if necessary
-            return BitConverter.ToUInt16(ushortBytes, 0);
+
+            // Reverse bytes for Big-Endian
+            Array.Reverse(ushortBytes);
+
+            ushort parsedValue = BitConverter.ToUInt16(ushortBytes, 0);
+    
+            return parsedValue;
         }
+
 
         /// <summary>
         /// Retrieves an 8-bit unsigned integer from a byte array.
@@ -161,7 +167,8 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.GSD
 
             byte[] shortBytes = new byte[2];
             Array.Copy(data, byteOffset, shortBytes, 0, 2);
-            Array.Reverse(shortBytes); // Adjust for endianness if necessary
+            // Reverse bytes for Big-Endian
+            Array.Reverse(shortBytes);
             return BitConverter.ToInt16(shortBytes, 0);
         }
 

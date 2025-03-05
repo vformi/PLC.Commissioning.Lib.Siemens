@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Xml;
+using PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.GSD.Abstractions;
 using PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.GSD.Models;
 
 namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.GSD
@@ -20,7 +21,7 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.GSD
         /// <summary>
         /// Gets the XML namespace manager for the GSD document.
         /// </summary>
-        public XmlNamespaceManager nsmgr { get; private set; }
+        public XmlNamespaceManager nsmgr { get; set; }
 
         /// <summary>
         /// Stores the value items parsed from the GSD file, indexed by their IDs.

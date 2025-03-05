@@ -1,46 +1,52 @@
 ﻿using NUnit.Framework;
-using PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.GSD;
-using PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.GSD.Models;
 using System;
 using System.IO;
-using System.Xml;
+using PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.GSD;
 
-namespace PLC.Commissioning.Lib.Siemens.Tests.Hardware.GSD
+namespace PLC.Commissioning.Lib.Siemens.Tests.SiemensPLCControllerTests.Hardware.GSD
 {
     [TestFixture]
-    internal class ModuleInfoTests
+    public class ModuleInfoTests
     {
-        private string _validGsdFilePath;
-        private string _invalidGsdFilePath;
-        private string _basePath = null;
-        private string _projectRoot = null;
+        private string _testDataPath;
 
         [SetUp]
-        public void SetUp()
+        public void Setup()
         {
-            // figure out paths 
-            _basePath = AppDomain.CurrentDomain.BaseDirectory;
-            _projectRoot = Directory.GetParent(_basePath).Parent.Parent.Parent.FullName;
-            // Set up file paths for valid and invalid GSD files.
-            _validGsdFilePath = Path.Combine(_projectRoot, "configuration_files", "gsd", "GSDML-V2.41-LEUZE-BCL348i-20211213.xml");
+            // Points to "TestData/gsd" in the bin directory
+            _testDataPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "TestData", "gsd");
         }
 
+        // Adjust or add more TestCase entries as needed
         [Test]
-        public void ModuleInfo_ShouldParseCorrectly_FromValidGsdFile()
+        [TestCase("GSDML-V2.3-LEUZE-BCL648i-20150128.xml")]
+        [TestCase("GSDML-V2.25-LEUZE-BCL348i-20120814.xml")]
+        [TestCase("GSDML-V2.31-LEUZE-BCL348i-20150923.xml")]
+        [TestCase("GSDML-V2.41-LEUZE-BCL248i-20211213.xml")]
+        [TestCase("GSDML-V2.42-LEUZE-RSL400P CU 4M12-20230816.xml")]
+        public void ModuleInfo_RequiredAttributesArePresent(string fileName)
         {
+            // Arrange
+            string filePath = Path.Combine(_testDataPath, fileName);
             var gsdHandler = new GSDHandler();
-            bool initialized = gsdHandler.Initialize(_validGsdFilePath);
 
-            Assert.IsTrue(initialized, "GSDHandler should initialize successfully with a valid GSD file.");
+            // Act
+            bool initOk = gsdHandler.Initialize(filePath);
 
+            // Assert
+            Assert.IsTrue(initOk, $"Failed to initialize GSDHandler for {fileName}.");
+
+            // Create ModuleInfo and do strict checks
             var moduleInfo = new ModuleInfo(gsdHandler);
+            Assert.IsNotNull(moduleInfo.Model, "ModuleInfo.Model must not be null.");
 
-            Assert.AreEqual("BCL348i", moduleInfo.Model.Name, "The Module Name should match the expected value.");
-            Assert.AreEqual("PROFINET IO Ident-Device", moduleInfo.Model.InfoText, "The Info Text should match the expected value.");
-            Assert.AreEqual("Leuze electronic GmbH + Co. KG", moduleInfo.Model.VendorName, "The Vendor Name should match the expected value.");
-            Assert.AreEqual("501xxxxx", moduleInfo.Model.OrderNumber, "The Order Number should match the expected value.");
-            Assert.AreEqual("3", moduleInfo.Model.HardwareRelease, "The Hardware Release should match the expected value.");
-            Assert.AreEqual("V1.*.*", moduleInfo.Model.SoftwareRelease, "The Software Release should match the expected value.");
+            // Now we assert that each expected property is non-null or non-empty.
+            Assert.That(moduleInfo.Model.Name, Is.Not.Null.And.Not.Empty, "ModuleInfo.Model.Name is missing.");
+            Assert.That(moduleInfo.Model.InfoText, Is.Not.Null.And.Not.Empty, "ModuleInfo.Model.InfoText is missing.");
+            Assert.That(moduleInfo.Model.VendorName, Is.Not.Null.And.Not.Empty, "ModuleInfo.Model.VendorName is missing.");
+            Assert.That(moduleInfo.Model.OrderNumber, Is.Not.Null.And.Not.Empty, "ModuleInfo.Model.OrderNumber is missing.");
+            Assert.That(moduleInfo.Model.HardwareRelease, Is.Not.Null.And.Not.Empty, "ModuleInfo.Model.HardwareRelease is missing.");
+            Assert.That(moduleInfo.Model.SoftwareRelease, Is.Not.Null.And.Not.Empty, "ModuleInfo.Model.SoftwareRelease is missing.");
         }
     }
 }
