@@ -577,7 +577,7 @@ namespace PLC.Commissioning.Lib.Siemens
                     Log.Warning(errorMessage);
                     var error = new Error(errorMessage)
                     {
-                        Metadata = { ["ErrorCode"] = OperationErrorCode.GetParametersFailed }
+                        Metadata = { ["ErrorCode"] = OperationErrorCode.GetDeviceFailed }
                     };
                     return Result.Fail<object>(error);
                 }
@@ -591,7 +591,7 @@ namespace PLC.Commissioning.Lib.Siemens
                 Log.Error(errorMessage);
                 var error = new Error(errorMessage)
                 {
-                    Metadata = { ["ErrorCode"] = OperationErrorCode.GetParametersFailed }
+                    Metadata = { ["ErrorCode"] = OperationErrorCode.GetDeviceFailed }
                 };
                 return Result.Fail<object>(error);
             }
@@ -1394,7 +1394,7 @@ namespace PLC.Commissioning.Lib.Siemens
 
                 var error = new Error(errorMessage)
                 {
-                    Metadata = { ["ErrorCode"] = OperationErrorCode.SaveProjectFailed }
+                    Metadata = { ["ErrorCode"] = OperationErrorCode.ExportFailed }
                 };
                 return Result.Fail(error);
             }
