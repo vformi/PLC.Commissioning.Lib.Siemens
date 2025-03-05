@@ -13,14 +13,7 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject
     /// </summary>
     public class CompilerService : ICompilerService
     {
-        /// <summary>
-        /// Compiles the project associated with the specified CPU device item.
-        /// </summary>
-        /// <param name="cpu">The CPU <see cref="DeviceItem"/> to be compiled.</param>
-        /// <returns><c>true</c> if the compilation was successful; otherwise, <c>false</c>.</returns>
-        /// <exception cref="InvalidOperationException">
-        /// Thrown if the CPU device item is not part of a device or if the device does not support compilation.
-        /// </exception>
+        /// <inheritdoc />
         public bool CompileProject(DeviceItem cpu)
         {
             var device = cpu.Parent as Device;

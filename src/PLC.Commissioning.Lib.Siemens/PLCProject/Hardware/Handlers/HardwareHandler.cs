@@ -7,7 +7,9 @@ using System;
 using Serilog;
 using System.Linq;
 using System.Collections.Generic;
-using System.Drawing.Printing;
+using PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.GSD;
+using PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.Models;
+using Siemens.Engineering.SW;
 
 namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.Handlers
 {
@@ -28,19 +30,15 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.Handlers
             _projectHandler = projectHandler ?? throw new ArgumentNullException(nameof(projectHandler));
         }
 
-        /// <summary>
-        /// Finds and returns the CPU device item from the project.
-        /// </summary>
-        /// <returns>The CPU <see cref="DeviceItem"/> if found; otherwise, throws an exception.</returns>
-        /// <exception cref="InvalidOperationException">Thrown if no CPU is found in the project or if the project is null.</exception>
-        public DeviceItem FindCPU()
+        /// <inheritdoc />
+        public (DeviceItem cpuItem, PlcSoftware plcSoftware) FindCPU()
         {
             var project = _projectHandler.Project;
             if (project is null)
             {
                 throw new InvalidOperationException("Project cannot be null");
             }
-            Log.Debug($"\nIterate through {project.Devices.Count} device(s)");
+            Log.Debug($"Iterate through {project.Devices.Count} device(s)");
 
             foreach (Device device in project.Devices)
             {
@@ -49,18 +47,26 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.Handlers
                 {
                     Log.Information($"Found CPU: {device.Name} with name: {cpuItem.Name}");
                     Log.Debug($"Item Classification: {cpuItem.Classification}");
-                    return cpuItem;
+
+                    // Retrieve the PLC software associated with this CPU
+                    PlcSoftware plcSoftware = GetPlcSoftware(device);
+                    if (plcSoftware != null)
+                    {
+                        Log.Information($"Successfully retrieved PLC software for CPU: {cpuItem.Name}");
+                    }
+                    else
+                    {
+                        Log.Warning($"No PLC software found for CPU: {cpuItem.Name}");
+                    }
+
+                    return (cpuItem, plcSoftware);
                 }
             }
 
             throw new InvalidOperationException("No CPU found in the project");
         }
 
-        /// <summary>
-        /// Gets a device by its name from the project.
-        /// </summary>
-        /// <param name="deviceName">The name of the device to search for.</param>
-        /// <returns>The <see cref="Device"/> if found; otherwise, <c>null</c>.</returns>
+        /// <inheritdoc />
         public Device GetDeviceByName(string deviceName)
         {
             var project = _projectHandler.Project;
@@ -119,12 +125,7 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.Handlers
             }
         }
 
-        /// <summary>
-        /// Gets a specific module by its name from a given device. 
-        /// </summary>
-        /// <param name="device">The device to search within.</param>
-        /// <param name="moduleName">The name of the module to search for.</param>
-        /// <returns>The <see cref="GsdDeviceItem"/> representing the module if found; otherwise, <c>null</c>.</returns>
+        /// <inheritdoc />
         public GsdDeviceItem GetDeviceModuleByName(Device device, string moduleName)
         {
             var project = _projectHandler.Project;
@@ -175,11 +176,7 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.Handlers
             return module;
         }
 
-        /// <summary>
-        /// Gets DAP from a given device. 
-        /// </summary>
-        /// <param name="device">The device to search within.</param>
-        /// <returns>The <see cref="GsdDeviceItem"/> representing the module if found; otherwise, <c>null</c>.</returns>
+        /// <inheritdoc />
         public GsdDeviceItem GetDeviceDAP(Device device)
         {
             var project = _projectHandler.Project;
@@ -225,13 +222,11 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.Handlers
             return module;
         }
 
-        /// <summary>
-        /// Enumerates and logs all devices in the current project.
-        /// </summary>
+        /// <inheritdoc />
         public void EnumerateProjectDevices()
         {
             var project = _projectHandler.Project;
-            Log.Information($"\nEnumerating devices in project {project?.Name}:");
+            Log.Information($"Enumerating devices in project {project?.Name}:");
 
             if (project is null)
             {
@@ -271,10 +266,7 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.Handlers
             }
         }
 
-        /// <summary>
-        /// Retrieves all non-CPU devices in the current project, including both grouped and ungrouped devices.
-        /// </summary>
-        /// <returns>A list of all non-CPU <see cref="Device"/> objects in the project.</returns>
+        /// <inheritdoc />
         public List<Device> GetDevices()
         {
             var devices = new List<Device>();
@@ -293,7 +285,7 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.Handlers
                 {
                     if (device.DeviceItems.Any(item => item.Classification == DeviceItemClassifications.CPU))
                     {
-                        Log.Information($"Skipping CPU Device: {device.DeviceItems[1].Name}");
+                        Log.Debug($"Skipping CPU Device: {device.DeviceItems[1].Name}");
                         continue;
                     }
 
@@ -306,7 +298,7 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.Handlers
                 {
                     if (ungroupedDevice.DeviceItems.Any(item => item.Classification == DeviceItemClassifications.CPU))
                     {
-                        Log.Information($"Skipping CPU Device: {ungroupedDevice.DeviceItems[1].Name}");
+                        Log.Debug($"Skipping CPU Device: {ungroupedDevice.DeviceItems[1].Name}");
                         continue;
                     }
 
@@ -321,6 +313,105 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.Handlers
 
             return devices;
         }
+        
+        /// <inheritdoc />
+        public List<IOModuleInfoModel> EnumerateDeviceModules(Device device)
+        {
+            var modules = new List<IOModuleInfoModel>();
+
+            if (device == null)
+            {
+                Log.Error("Device is null. Cannot enumerate modules.");
+                return modules;
+            }
+
+            Log.Information($"Enumerating modules for device: {device.Name}");
+
+            try
+            {
+                // Iterate through each top-level device item
+                foreach (DeviceItem deviceItem in device.DeviceItems)
+                {
+                    // Retrieve the upper-level GsdId (if any)
+                    string upperGsdId = deviceItem.GetAttribute("GsdId")?.ToString();
+
+                    // Iterate through all submodules
+                    foreach (DeviceItem subItem in deviceItem.DeviceItems)
+                    {
+                        // Attempt to locate an existing module in the list by name
+                        var ioModuleInfo = modules.FirstOrDefault(m => m.ModuleName == subItem.Name);
+
+                        // If not found, create a new module entry and add it to the list
+                        if (ioModuleInfo == null)
+                        {
+                            ioModuleInfo = new IOModuleInfoModel
+                            {
+                                ModuleName = subItem.Name,
+                                GsdId = upperGsdId
+                            };
+
+                            modules.Add(ioModuleInfo);
+                        }
+
+                        // Retrieve address information from the submodule
+                        foreach (Address address in subItem.Addresses)
+                        {
+                            if (address.IoType.ToString() == "Input")
+                            {
+                                ioModuleInfo.InputStartAddress = address.StartAddress;
+                                ioModuleInfo.InputLength = address.Length;
+                            }
+                            else if (address.IoType.ToString() == "Output")
+                            {
+                                ioModuleInfo.OutputStartAddress = address.StartAddress;
+                                ioModuleInfo.OutputLength = address.Length;
+                            }
+                        }
+
+                        // Log debug information if this module has valid addresses
+                        if (ioModuleInfo.InputStartAddress.HasValue || ioModuleInfo.OutputStartAddress.HasValue)
+                        {
+                            Log.Debug($"Found Valid Module: {ioModuleInfo}");
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"Error while enumerating modules: {ex.Message}");
+            }
+
+            return modules;
+        }
+        
+        /// <inheritdoc />
+        public bool DeleteDevice(Device device)
+        {
+            try
+            {
+                if (device == null)
+                {
+                    Log.Error("DeleteDevice: Device is null.");
+                    return false;
+                }
+                string deviceName = device.DeviceItems[1].Name;
+                Log.Debug("Delete call for device '{DeviceName}'", deviceName);
+                device.Delete();
+                Log.Information("Device '{DeviceName}' was deleted successfully.", deviceName);
+                return true;
+            }
+            catch (EngineeringException ex)
+            {
+                Log.Error($"DeleteDevice: Failed to delete device. {ex.Message}");
+                return false;
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"DeleteDevice: Unexpected error. {ex.Message}");
+                return false;
+            }
+        }
+        
         #region IDisposable Implementation
 
         /// <summary>
@@ -354,6 +445,39 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.Handlers
             }
         }
 
+        #endregion
+
+        #region Private methods
+        /// <summary>
+        /// Retrieves the PLC software from a given device.
+        /// </summary>
+        /// <param name="device">The device to extract software from.</param>
+        /// <returns>The <see cref="PlcSoftware"/> if found; otherwise, <c>null</c>.</returns>
+        private PlcSoftware GetPlcSoftware(Device device)
+        {
+            if (device == null)
+            {
+                Log.Error("Device is null. Cannot retrieve PLC software.");
+                return null;
+            }
+
+            foreach (DeviceItem deviceItem in device.DeviceItems)
+            {
+                SoftwareContainer softwareContainer = deviceItem.GetService<SoftwareContainer>();
+                if (softwareContainer != null)
+                {
+                    global::Siemens.Engineering.HW.Software softwareBase = softwareContainer.Software;
+                    PlcSoftware plcSoftware = softwareBase as PlcSoftware;
+
+                    if (plcSoftware != null)
+                    {
+                        return plcSoftware;
+                    }
+                }
+            }
+
+            return null;
+        }
         #endregion
     }
 }

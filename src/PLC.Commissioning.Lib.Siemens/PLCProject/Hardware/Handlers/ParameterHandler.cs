@@ -157,6 +157,7 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.Handlers
             }
         }
 
+        #region Private methods
         /// <summary>
         /// Parses the module data from the provided byte array and extracts parameter values.
         /// </summary>
@@ -444,5 +445,6 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.Handlers
 
             return true;
         }
+        #endregion
     }
 }

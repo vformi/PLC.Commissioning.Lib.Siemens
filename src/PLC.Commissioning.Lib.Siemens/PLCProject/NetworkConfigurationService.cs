@@ -17,12 +17,12 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject
     public class NetworkConfigurationService : INetworkConfigurationService
     {
         /// <summary>
-        /// Provides functionalities for online interactions with the PLC.
+        /// The online provider for retrieving connection configurations.
         /// </summary>
         private readonly OnlineProvider _onlineProvider;
 
         /// <summary>
-        /// Handles downloading operations to the PLC.
+        /// The download provider for configuring network connections.
         /// </summary>
         private readonly DownloadProvider _downloadProvider;
 
@@ -36,18 +36,19 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject
         /// </summary>
         /// <param name="onlineProvider">The online provider for retrieving connection configurations.</param>
         /// <param name="downloadProvider">The download provider for configuring network connections.</param>
+        /// <exception cref="ArgumentNullException">
+        /// Thrown if <paramref name="onlineProvider"/> or <paramref name="downloadProvider"/> is <c>null</c>.
+        /// </exception>
         public NetworkConfigurationService(OnlineProvider onlineProvider, DownloadProvider downloadProvider)
         {
             _onlineProvider = onlineProvider ?? throw new ArgumentNullException(nameof(onlineProvider), "OnlineProvider cannot be null");
             _downloadProvider = downloadProvider ?? throw new ArgumentNullException(nameof(downloadProvider), "DownloadProvider cannot be null");
         }
 
-        /// <summary>
-        /// Displays the available PLC connection possibilities.
-        /// </summary>
+        /// <inheritdoc />
         public void DisplayPLCConnectionPossibilities()
         {
-            Log.Debug($"\nIterating through available connection possibilities");
+            Log.Debug("\nIterating through available connection possibilities");
             ConnectionConfiguration configuration = _onlineProvider.Configuration;
             foreach (ConfigurationMode mode in configuration.Modes)
             {
@@ -70,13 +71,7 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject
             }
         }
 
-        /// <summary>
-        /// Configures the network settings using the specified network card and target interface.
-        /// </summary>
-        /// <param name="networkCardName">The name of the network card to use.</param>
-        /// <param "interfaceNumber">The interface number to use.</param>
-        /// <param "targetInterfaceName">The name of the target interface.</param>
-        /// <returns><c>true</c> if the configuration succeeds; otherwise, <c>false</c>.</returns>
+        /// <inheritdoc />
         public NetworkConfigurationResult ConfigureNetwork(string networkCardName, int interfaceNumber, string targetInterfaceName)
         {
             try
@@ -111,10 +106,7 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject
             }
         }
 
-        /// <summary>
-        /// Gets the configured target network interface.
-        /// </summary>
-        /// <returns>The configured <see cref="IConfiguration"/> object, or <c>null</c> if no configuration has been applied.</returns>
+        /// <inheritdoc />
         public IConfiguration GetTargetConfiguration()
         {
             return _targetConfiguration;
@@ -135,7 +127,6 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject
                     Log.Debug($"  Speed: {nic.Speed / 1_000_000} Mbps");
 
                     IPInterfaceProperties ipProperties = nic.GetIPProperties();
-
                     foreach (UnicastIPAddressInformation unicastAddress in ipProperties.UnicastAddresses)
                     {
                         if (unicastAddress.Address.AddressFamily == AddressFamily.InterNetwork)
@@ -191,15 +182,16 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject
                             else
                             {
                                 Log.Error($"Ping failed - PLC ({ipAddress}) is not reachable through {networkInterfaceName}. Status: {reply.Status}");
-                                Log.Information("Bellow is a brief information about the specified network card.");
+                                Log.Information("Below is information about the specified network card:");
                                 MatchNetworkInterface(networkInterfaceName);
                                 return false;
                             }
                         }
                     }
                 }
+
                 Log.Error($"Network interface '{networkInterfaceName}' not found.");
-                Log.Information("Is your network card correctly configured? Here are available connection possibilities:\n");
+                Log.Information("Is your network card correctly configured? Here are the available connection possibilities:\n");
                 DisplayPLCConnectionPossibilities();
                 return false;
             }

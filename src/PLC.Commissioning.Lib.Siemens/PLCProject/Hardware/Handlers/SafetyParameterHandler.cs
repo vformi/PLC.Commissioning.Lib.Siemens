@@ -16,47 +16,22 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.Handlers
     public class SafetyParameterHandler
     {
         /// <summary>
-        /// Displays the safety module data for a given GSD device item.
-        /// </summary>
-        /// <param name="gsdDeviceItem">The GSD device item whose safety parameters are to be displayed.</param>
-        /// <param name="parameterSelections">
-        /// An optional list of specific safety parameters to display. If <c>null</c>, all safety parameters are displayed.
-        /// </param>
-        /// <returns>
-        /// <c>true</c> if the safety module data was successfully retrieved and displayed; otherwise, <c>false</c>.
-        /// </returns>
-        public bool DisplaySafetyModuleData(GsdDeviceItem gsdDeviceItem, List<string> parameterSelections = null)
-        {
-            // Retrieve the safety module data based on user input
-            bool success = GetSafetyModuleData(gsdDeviceItem, out Dictionary<string, object> moduleData, parameterSelections);
-
-            // Handle the retrieved data if successful
-            if (success)
-            {
-                PrintDictionary(moduleData);
-            }
-            else
-            {
-                Log.Error("The requested safety parameters are not available for this device.");
-            }
-
-            return success;
-        }
-
-        /// <summary>
         /// Retrieves the safety module data for a given GSD device item.
         /// </summary>
-        /// <param name="gsdDeviceItem">The GSD device item from which to retrieve safety parameters.</param>
-        /// <param name="attributesDictionary">
-        /// When this method returns, contains a dictionary of the retrieved safety parameters and their values.
+        /// <param name="gsdDeviceItem">
+        ///   The GSD device item from which to retrieve safety parameters.
         /// </param>
         /// <param name="parameterSelections">
-        /// An optional list of specific safety parameters to retrieve. If <c>null</c>, all safety parameters are retrieved.
+        ///   An optional list of specific safety parameters to retrieve. 
+        ///   If <c>null</c>, all known safety parameters are retrieved.
         /// </param>
         /// <returns>
-        /// <c>true</c> if the safety module data was successfully retrieved; otherwise, <c>false</c>.
+        ///   A <see cref="Dictionary{string, object}"/> of retrieved safety parameters on success;
+        ///   <c>null</c> if retrieval fails for an reason.
         /// </returns>
-        public bool GetSafetyModuleData(GsdDeviceItem gsdDeviceItem, out Dictionary<string, object> attributesDictionary, List<string> parameterSelections = null)
+        public Dictionary<string, object> GetSafetyModuleData(
+            GsdDeviceItem gsdDeviceItem, 
+            List<string> parameterSelections = null)
         {
             // List of all possible safety-related attributes
             var allSafetyAttributes = new List<string>
@@ -77,9 +52,8 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.Handlers
 
             // If no specific attributes are provided by the user, use all safety attributes
             var attributesToRetrieve = parameterSelections ?? allSafetyAttributes;
-
-            attributesDictionary = new Dictionary<string, object>();
-            bool success = true;
+            
+            var attributesDictionary = new Dictionary<string, object>();
 
             try
             {
@@ -95,21 +69,16 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.Handlers
                     }
                 }
             }
-            catch (NotSupportedException)
-            {
-                // Handle the specific case where attributes are not supported
-                Log.Error("One or more requested safety parameters are not supported by this device.");
-                success = false;
-            }
             catch (Exception ex)
             {
-                // Log unexpected exceptions and consider it a failure
                 Log.Error($"Unexpected error retrieving attributes: {ex.Message}");
-                success = false;
+                return null;
             }
 
-            return success;
+            // If we get here, retrieval was successful
+            return attributesDictionary;
         }
+
 
         /// <summary>
         /// Sets the safety module data for a given GSD device item.
@@ -183,18 +152,6 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.Handlers
             }
 
             return true;
-        }
-
-        /// <summary>
-        /// Logs the key-value pairs in the provided dictionary.
-        /// </summary>
-        /// <param name="data">The dictionary containing data to be logged.</param>
-        public void PrintDictionary(Dictionary<string, object> data)
-        {
-            foreach (var i in data)
-            {
-                Log.Information($"{i.Key}: {i.Value}");
-            }
         }
     }
 }
