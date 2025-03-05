@@ -376,6 +376,7 @@ namespace PLC.Commissioning.Lib.Siemens
                 // Build a map of GSDML models keyed by device model (TypeName)
                 var gsdModelMap = BuildGsdModelMap(gsdmlFiles);
                 var deviceDictionary = new Dictionary<string, object>();
+                var missingGsdTypes = new List<string>(); 
 
                 foreach (var device in devices)
                 {
@@ -392,7 +393,8 @@ namespace PLC.Commissioning.Lib.Siemens
 
                     if (!gsdModelMap.TryGetValue(typeName, out var importedDeviceGsdmlModel))
                     {
-                        Log.Warning("No GSD model found for device type {TypeName}", typeName);
+                        // Accumulate the missing device info if any 
+                        missingGsdTypes.Add($"{deviceName} (Type: {typeName})");
                         continue;
                     }
 
@@ -415,6 +417,19 @@ namespace PLC.Commissioning.Lib.Siemens
 
                     // Add the device to the dictionary
                     deviceDictionary[deviceName] = importedDevice;
+                }
+                
+                if (missingGsdTypes.Count > 0)
+                {
+                    var errorMessage = "The following device(s) could not be imported because their GSD file(s) " +
+                                       "were not provided: " + string.Join(", ", missingGsdTypes) +
+                                       ". Please supply the missing GSDML files.";
+                    Log.Error(errorMessage);
+                    var error = new Error(errorMessage)
+                    {
+                        Metadata = { ["ErrorCode"] = OperationErrorCode.ImportFailed }
+                    };
+                    return Result.Fail<Dictionary<string, object>>(error);
                 }
 
                 Log.Information("Device import was successful.");

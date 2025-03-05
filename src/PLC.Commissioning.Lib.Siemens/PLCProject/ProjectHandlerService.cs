@@ -153,7 +153,7 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject
         public void SaveProjectAs(string projectName)
         {
             string documentsPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-            string newProjectSubPath = $"Openness/Saved_Projects/{projectName}";
+            string newProjectSubPath = $"PLCCommissioningLib/Saved_Projects/{projectName}";
             string newProjectPath = Path.Combine(documentsPath, newProjectSubPath);
             DirectoryInfo directoryInfo = new DirectoryInfo(newProjectPath);
 

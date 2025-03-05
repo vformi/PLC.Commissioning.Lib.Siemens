@@ -151,12 +151,45 @@ namespace PLC.Commissioning.Lib.Siemens.Tests.SiemensPLCControllerTests.Hardware
             _moduleItem = new ModuleItem(_gsdHandler);
             _moduleItem.ParseModuleItem(moduleNode);
 
+            // Ensure IOData is parsed
             Assert.IsNotNull(_moduleItem.Model.IOData, "IOData should be parsed.");
 
             bool hasInputs = _moduleItem.Model.IOData?.Inputs.Any() ?? false;
             bool hasOutputs = _moduleItem.Model.IOData?.Outputs.Any() ?? false;
             Assert.IsTrue(hasInputs || hasOutputs, "IOData should contain at least one input or output.");
+
+            // Validate Inputs
+            var inputData = _moduleItem.Model.IOData.Inputs;
+            Assert.IsNotNull(inputData, "Input data should not be null.");
+            Assert.IsTrue(inputData.Any(), "Input data should have at least one DataItem.");
+
+            var firstInput = inputData.FirstOrDefault();
+            Assert.IsNotNull(firstInput, "First input should be parsed correctly.");
+            Assert.IsNotNull(firstInput.DataType, "First input should have a DataType.");
+            
+            // Ensure bit-level data parsing for Input
+            var bitDataItems = firstInput.BitDataItems;
+            Assert.IsNotNull(bitDataItems, "BitDataItems should be parsed.");
+            Assert.IsTrue(bitDataItems.Any(), "BitDataItems should contain at least one entry.");
+            
+            var firstBit = bitDataItems.FirstOrDefault();
+            Assert.IsNotNull(firstBit, "First BitDataItem should be parsed.");
+            Assert.IsTrue(firstBit.BitOffset >= 0, "BitOffset should be a valid integer.");
+            Assert.IsNotNull(firstBit.TextId, "BitDataItem should have a valid TextId.");
+
+            // Validate Outputs (if available)
+            if (hasOutputs)
+            {
+                var outputData = _moduleItem.Model.IOData.Outputs;
+                Assert.IsNotNull(outputData, "Output data should not be null.");
+                Assert.IsTrue(outputData.Any(), "Output data should have at least one DataItem.");
+
+                var firstOutput = outputData.FirstOrDefault();
+                Assert.IsNotNull(firstOutput, "First output should be parsed correctly.");
+                Assert.IsNotNull(firstOutput.DataType, "First output should have a DataType.");
+            }
         }
+
         
         [Test]
         public void ModuleItem_ParsesParametersCorrectly()

@@ -142,6 +142,35 @@ namespace PLC.Commissioning.Lib.Siemens.Tests.SiemensPLCControllerTests
             Assert.That(rslTagTables, Does.Contain("RSL400P_[M7]_Protective_function_A_violation"));
             Assert.That(rslTagTables, Does.Contain("RSL400P_[M8]_Protective_function_B_violation"));
         }
+        
+        [Test]
+        public void ImportDevices_ShouldFail_WhenOneOfMultipleDevicesIsMissingGSD()
+        {
+            // Arrange
+            string validFilePath = Path.Combine(_testDataPath, "aml", "valid_multiple_devices.aml");
+            var gsdFilePaths = new List<string>
+            {
+                // Only one GSD file even though the AML has two devices
+                Path.Combine(_testDataPath, "gsd", "GSDML-V2.41-LEUZE-BCL248i-20211213.xml"),
+            };
+
+            _plc.Initialize(safety: false);
+
+            // Act
+            var result = _plc.ImportDevices(validFilePath, gsdFilePaths);
+
+            // Assert
+            Assert.That(result.IsFailed, Is.True, 
+                "ImportDevices should fail if not all GSD files are provided for multiple devices.");
+
+            // You can further check the error message to ensure it mentions the missing device
+            var error = result.Errors.First();
+            StringAssert.Contains("could not be imported", error.Message, 
+                "Error should mention that at least one device is missing its GSD file.");
+            StringAssert.Contains("RSL400P", error.Message, 
+                "Error message should indicate the missing RSL400P GSD if that is the device in the AML.");
+        }
+
 
         [TearDown]
         public void TearDown()
