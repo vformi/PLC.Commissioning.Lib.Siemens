@@ -6,111 +6,109 @@ using System.Text;
 using System.Xml;
 using Siemens.Engineering.HW.Features;
 using System.Linq;
+using PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.Abstractions;
 using Serilog;
 
 namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.Handlers
 {
+    // TODO: figure out user-input validation here
     /// <summary>
     /// Provides methods to handle safety parameters for GSD devices.
     /// </summary>
-    public class SafetyParameterHandler
+    public class SafetyParameterHandler : ISafetyParameterHandler
     {
-        /// <summary>
-        /// Displays the safety module data for a given GSD device item.
-        /// </summary>
-        /// <param name="gsdDeviceItem">The GSD device item whose safety parameters are to be displayed.</param>
-        /// <param name="parameterSelections">
-        /// An optional list of specific safety parameters to display. If <c>null</c>, all safety parameters are displayed.
-        /// </param>
-        /// <returns>
-        /// <c>true</c> if the safety module data was successfully retrieved and displayed; otherwise, <c>false</c>.
-        /// </returns>
-        public bool DisplaySafetyModuleData(GsdDeviceItem gsdDeviceItem, List<string> parameterSelections = null)
+        // TIA to Internal parameter mapping
+        private static readonly Dictionary<string, string> TiaToInternalMapping = new Dictionary<string, string>
         {
-            // Retrieve the safety module data based on user input
-            bool success = GetSafetyModuleData(gsdDeviceItem, out Dictionary<string, object> moduleData, parameterSelections);
+            {"F_SIL", "Failsafe_FSIL"},
+            {"F_Block_ID", "Failsafe_FBlockID"},
+            {"F_Par_Version", "Failsafe_FParVersion"},
+            {"F_Source_Add", "Failsafe_FSourceAddress"},
+            {"F_Dest_Add", "Failsafe_FDestinationAddress"},
+            {"F_Par_CRC_WithoutAddresses", "Failsafe_FParameterSignatureWithoutAddresses"},
+            {"F_WD_Time", "Failsafe_FMonitoringtime"},
+            {"F_Par_CRC", "Failsafe_FParameterSignatureWithAddresses"},
+            {"F_IO_DB_number", "Failsafe_FIODBNumber"},
+            {"F_IO_DB_name", "Failsafe_FIODBName"},
+            {"Manual_assignment_of_f-monitoring_time", "Failsafe_ManualAssignmentFMonitoringtime"},
+            {"F_IO_DB_manual_number_assignment", "Failsafe_ManualAssignmentFIODBNumber"}
+        };
 
-            // Handle the retrieved data if successful
-            if (success)
+        // Internal to TIA parameter mapping
+        private static readonly Dictionary<string, string> InternalToTiaMapping = new Dictionary<string, string>();
+        
+        // Static constructor to populate InternalToTiaMapping
+        static SafetyParameterHandler()
+        {
+            foreach (var pair in TiaToInternalMapping)
             {
-                PrintDictionary(moduleData);
+                InternalToTiaMapping.Add(pair.Value, pair.Key);
             }
-            else
-            {
-                Log.Error("The requested safety parameters are not available for this device.");
-            }
-
-            return success;
         }
-
+        
         /// <summary>
         /// Retrieves the safety module data for a given GSD device item.
         /// </summary>
-        /// <param name="gsdDeviceItem">The GSD device item from which to retrieve safety parameters.</param>
-        /// <param name="attributesDictionary">
-        /// When this method returns, contains a dictionary of the retrieved safety parameters and their values.
+        /// <param name="gsdDeviceItem">
+        ///   The GSD device item from which to retrieve safety parameters.
         /// </param>
         /// <param name="parameterSelections">
-        /// An optional list of specific safety parameters to retrieve. If <c>null</c>, all safety parameters are retrieved.
+        ///   An optional list of specific safety parameters to retrieve. 
+        ///   If <c>null</c>, all known safety parameters are retrieved.
         /// </param>
         /// <returns>
-        /// <c>true</c> if the safety module data was successfully retrieved; otherwise, <c>false</c>.
+        ///   A <see cref="Dictionary{string, object}"/> of retrieved safety parameters on success;
+        ///   <c>null</c> if retrieval fails for an reason.
         /// </returns>
-        public bool GetSafetyModuleData(GsdDeviceItem gsdDeviceItem, out Dictionary<string, object> attributesDictionary, List<string> parameterSelections = null)
+        public Dictionary<string, object> GetSafetyModuleData(
+            GsdDeviceItem gsdDeviceItem,
+            List<string> tiaParameterSelections = null)
         {
-            // List of all possible safety-related attributes
-            var allSafetyAttributes = new List<string>
+            // Determine which attributes to retrieve
+            List<string> attributesToRetrieve;
+            if (tiaParameterSelections == null)
             {
-                "Failsafe_FBlockID",
-                "Failsafe_FDestinationAddress",
-                "Failsafe_FIODBName",
-                "Failsafe_FIODBNumber",
-                "Failsafe_FMonitoringtime",
-                "Failsafe_FParVersion",
-                "Failsafe_FParameterSignatureWithAddresses",
-                "Failsafe_FParameterSignatureWithoutAddresses",
-                "Failsafe_FSIL",
-                "Failsafe_FSourceAddress",
-                "Failsafe_ManualAssignmentFIODBNumber",
-                "Failsafe_ManualAssignmentFMonitoringtime",
-            };
+                attributesToRetrieve = new List<string>();
+                foreach (string value in TiaToInternalMapping.Values)
+                {
+                    attributesToRetrieve.Add(value);
+                }
+            }
+            else
+            {
+                attributesToRetrieve = new List<string>();
+                foreach (string tiaParam in tiaParameterSelections)
+                {
+                    if (TiaToInternalMapping.ContainsKey(tiaParam))
+                    {
+                        attributesToRetrieve.Add(TiaToInternalMapping[tiaParam]);
+                    }
+                }
+            }
 
-            // If no specific attributes are provided by the user, use all safety attributes
-            var attributesToRetrieve = parameterSelections ?? allSafetyAttributes;
-
-            attributesDictionary = new Dictionary<string, object>();
-            bool success = true;
+            var attributesDictionary = new Dictionary<string, object>();
 
             try
             {
-                // Retrieve all specified attributes in one call
-                var retrievedAttributes = gsdDeviceItem.GetAttributes(attributesToRetrieve);
-
-                // Add non-null attributes to the dictionary
+                object[] retrievedAttributes = gsdDeviceItem.GetAttributes(attributesToRetrieve).ToArray();
                 for (int i = 0; i < attributesToRetrieve.Count; i++)
                 {
                     if (retrievedAttributes[i] != null)
                     {
-                        attributesDictionary[attributesToRetrieve[i]] = retrievedAttributes[i];
+                        string tiaName = InternalToTiaMapping[attributesToRetrieve[i]];
+                        attributesDictionary.Add(tiaName, retrievedAttributes[i]);
                     }
                 }
             }
-            catch (NotSupportedException)
-            {
-                // Handle the specific case where attributes are not supported
-                Log.Error("One or more requested safety parameters are not supported by this device.");
-                success = false;
-            }
             catch (Exception ex)
             {
-                // Log unexpected exceptions and consider it a failure
-                Log.Error($"Unexpected error retrieving attributes: {ex.Message}");
-                success = false;
+                Log.Error("Error retrieving attributes: " + ex.Message);
+                return null;
             }
 
-            return success;
+            return attributesDictionary;
         }
-
+        
         /// <summary>
         /// Sets the safety module data for a given GSD device item.
         /// </summary>
@@ -123,77 +121,167 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.Handlers
         /// </returns>
         public bool SetSafetyModuleData(GsdDeviceItem gsdDeviceItem, Dictionary<string, object> parameterValues)
         {
-            // Define allowed ranges for specific parameters
-            const ulong FAddressMin = 1;
-            const ulong FAddressMax = 65534;
-            const ulong FWDTimeMin = 0; // Adjust according to specific sensor requirements
-            const ulong FWDTimeMax = 10000;
+            const ulong fAddressMin = 1, fAddressMax = 65534;
+            const ulong fwdTimeMin = 0, fwdTimeMax = 10000;
+
+            bool manualMonitoringEnabled = false;
+            bool manualIodbEnabled = false;
+
+            // Check manual assignment flags
+            if (parameterValues.ContainsKey("Manual_assignment_of_f-monitoring_time"))
+            {
+                manualMonitoringEnabled = ConvertToUInt64(parameterValues["Manual_assignment_of_f-monitoring_time"]) == 1;
+            }
+            if (parameterValues.ContainsKey("F_IO_DB_manual_number_assignment"))
+            {
+                manualIodbEnabled = ConvertToUInt64(parameterValues["F_IO_DB_manual_number_assignment"]) == 1;
+            }
 
             foreach (var param in parameterValues)
             {
+                if (!TiaToInternalMapping.ContainsKey(param.Key))
+                {
+                    Log.Error("Unknown parameter: " + param.Key);
+                    continue;
+                }
+
+                string mappedParam = TiaToInternalMapping[param.Key];
+
                 try
                 {
-                    switch (param.Key)
+                    switch (mappedParam)
                     {
                         case "Failsafe_FSourceAddress":
-                            ulong sourceAddress = Convert.ToUInt64(param.Value);
-                            if (sourceAddress < FAddressMin || sourceAddress > FAddressMax)
-                            {
-                                Log.Error($"Invalid value for {param.Key}. Allowed range is {FAddressMin}-{FAddressMax}.");
-                                return false;
-                            }
-                            gsdDeviceItem.SetAttribute(param.Key, sourceAddress);
-                            break;
-
                         case "Failsafe_FDestinationAddress":
-                            ulong destinationAddress = Convert.ToUInt64(param.Value);
-                            if (destinationAddress < FAddressMin || destinationAddress > FAddressMax)
+                            ulong address = ConvertToUInt64(param.Value);
+                            if (address < fAddressMin || address > fAddressMax)
                             {
-                                Log.Error($"Invalid value for {param.Key}. Allowed range is {FAddressMin}-{FAddressMax}.");
-                                return false;
+                                Log.Error($"Invalid value for {param.Key}. Allowed range: {fAddressMin}-{fAddressMax}.");
+                                continue;
                             }
-                            gsdDeviceItem.SetAttribute(param.Key, destinationAddress);
+                            gsdDeviceItem.SetAttribute(mappedParam, address);
                             break;
 
-                        case "Failsafe_FMonitoringtime": // Corresponds to <F_WD_Time>
-                            ulong wdTime = Convert.ToUInt64(param.Value);
-                            if (wdTime < FWDTimeMin || wdTime > FWDTimeMax)
+                        case "Failsafe_FMonitoringtime":
+                            if (!manualMonitoringEnabled)
                             {
-                                Log.Error($"Invalid value for {param.Key}. Allowed range is {FWDTimeMin}-{FWDTimeMax}.");
-                                return false;
+                                Log.Error($"Cannot set {param.Key} because manual monitoring time assignment is not enabled.");
+                                continue;
                             }
-                            gsdDeviceItem.SetAttribute(param.Key, wdTime);
+                            ulong wdTime = ConvertToUInt64(param.Value);
+                            if (wdTime < fwdTimeMin || wdTime > fwdTimeMax)
+                            {
+                                Log.Error($"Invalid value for {param.Key}. Allowed range: {fwdTimeMin}-{fwdTimeMax}.");
+                                continue;
+                            }
+                            gsdDeviceItem.SetAttribute(mappedParam, wdTime);
+                            break;
+
+                        case "Failsafe_FIODBNumber":
+                            if (!manualIodbEnabled)
+                            {
+                                Log.Error($"Cannot set {param.Key} because manual IO DB number assignment is not enabled.");
+                                continue;
+                            }
+                            gsdDeviceItem.SetAttribute(mappedParam, ConvertToUInt64(param.Value));
                             break;
 
                         case "Failsafe_FIODBName":
+                            gsdDeviceItem.SetAttribute(mappedParam, param.Value.ToString());
+                            break;
+
                         case "Failsafe_ManualAssignmentFIODBNumber":
-                            gsdDeviceItem.SetAttribute(param.Key, param.Value);
+                        case "Failsafe_ManualAssignmentFMonitoringtime":
+                            ulong value = ConvertToUInt64(param.Value);
+                            gsdDeviceItem.SetAttribute(mappedParam, value);
+                            if (mappedParam == "Failsafe_ManualAssignmentFIODBNumber")
+                                manualIodbEnabled = value == 1;
+                            else if (mappedParam == "Failsafe_ManualAssignmentFMonitoringtime")
+                                manualMonitoringEnabled = value == 1;
                             break;
 
                         default:
-                            Log.Error($"Parameter {param.Key} is not writable or not recognized.");
-                            return false;
+                            Log.Error($"Parameter {param.Key} is not writable.");
+                            break;
                     }
                 }
                 catch (Exception ex)
                 {
-                    Log.Error($"Error setting attribute {param.Key}: {ex.Message}");
-                    return false;
+                    Log.Error($"Error setting {param.Key}: {ex.Message}");
                 }
             }
 
             return true;
         }
-
+        
         /// <summary>
-        /// Logs the key-value pairs in the provided dictionary.
+        /// Handles the safety parameters by retrieving and optionally logging the safety module data.
         /// </summary>
-        /// <param name="data">The dictionary containing data to be logged.</param>
-        public void PrintDictionary(Dictionary<string, object> data)
+        /// <param name="module">The GSD device item representing the safety module.</param>
+        /// <param name="parameterSelections">A list of parameter selections for the safety module.</param>
+        /// <returns>
+        /// A <see cref="Dictionary{string, object}"/> of retrieved safety parameters if successful; <c>null</c> otherwise.
+        /// </returns>
+        public Dictionary<string, object> HandleSafetyParameters(GsdDeviceItem module, List<string> parameterSelections)
         {
-            foreach (var i in data)
+            // Retrieve the safety module data; returns null if something fails
+            var moduleData = GetSafetyModuleData(module, parameterSelections);
+            if (moduleData == null)
             {
-                Log.Information($"{i.Key}: {i.Value}");
+                Log.Error("Safety parameter reading failed due to invalid or unsupported parameters. Aborting operation.");
+                return null;
+            }
+    
+            // Optionally log them
+            foreach (var kvp in moduleData)
+            {
+                Log.Debug($"Safety Parameter: {kvp.Key}, Value: {kvp.Value}");
+            }
+
+            // Return the dictionary for further processing
+            return moduleData;
+        }
+        
+        
+        /// <summary>
+        /// Converts an input value of various types into a <see cref="System.UInt64"/> for consistent handling of safety parameters.
+        /// This method ensures that all parameters (except <c>Failsafe_FIODBName</c>) are represented as <see cref="System.UInt64"/>,
+        /// supporting user-friendly inputs such as booleans, "check"/"uncheck" strings, and numeric values.
+        /// </summary>
+        /// <param name="value">
+        /// The input value to convert. Supported types include:
+        /// <list type="bullet">
+        ///   <item><c>null</c>: Returns 0.</item>
+        ///   <item><see cref="bool"/>: <c>true</c> maps to 1, <c>false</c> to 0.</item>
+        ///   <item><see cref="string"/>: "check" maps to 1, "uncheck" to 0, or parsed as a number.</item>
+        ///   <item>Numeric types: Converted directly to <see cref="System.UInt64"/> (e.g., <see cref="int"/>, <see cref="ulong"/>).</item>
+        /// </list>
+        /// </param>
+        /// <returns>
+        /// The converted value as a <see cref="System.UInt64"/>.
+        /// </returns>
+        private static ulong ConvertToUInt64(object value)
+        {
+            if (value == null)
+            {
+                return 0;
+            }
+            else if (value is bool boolValue)
+            {
+                return boolValue ? 1UL : 0UL;
+            }
+            else if (value is string strValue)
+            {
+                if (string.Equals(strValue, "check", StringComparison.OrdinalIgnoreCase))
+                    return 1UL;
+                else if (string.Equals(strValue, "uncheck", StringComparison.OrdinalIgnoreCase))
+                    return 0UL;
+                else
+                    return ulong.Parse(strValue);
+            }
+            else
+            {
+                return Convert.ToUInt64(value);
             }
         }
     }

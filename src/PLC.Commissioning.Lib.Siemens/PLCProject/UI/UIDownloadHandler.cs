@@ -380,6 +380,7 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.UI
             if (!_disposed)
             {
                 _automation?.Dispose();
+                CloseTIA();
                 _disposed = true;
             }
         }

@@ -46,7 +46,7 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.GSD
         }
 
         /// <summary>
-        /// Retrieves a module item by its name and checks if it has changeable parameters.
+        /// Retrieves a module item by its name and checks if it has changeable parameters or F parameters.
         /// </summary>
         /// <param name="name">The name of the module item to retrieve.</param>
         /// <returns>A tuple containing the <see cref="ModuleItem"/> and a boolean indicating if it has changeable parameters.</returns>
@@ -56,13 +56,38 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.GSD
 
             if (moduleItem != null)
             {
-                bool hasChangeableParameters = moduleItem.Model.ParameterRecordDataItem != null;
+                bool hasChangeableParameters = 
+                    moduleItem.Model.ParameterRecordDataItem != null || 
+                    moduleItem.Model.FParameterRecordDataItem != null;
+
                 return (moduleItem, hasChangeableParameters);
             }
 
             return (null, false);
         }
+        
+        /// <summary>
+        /// Retrieves a module item by its GsdId and checks if it has changeable parameters or F parameters.
+        /// If GsdId is not found, falls back to name matching.
+        /// </summary>
+        /// <param name="gsdId">The GsdId of the module item to retrieve.</param>
+        /// <param name="name">The optional name of the module item to retrieve (fallback).</param>
+        /// <returns>A tuple containing the <see cref="ModuleItem"/> and a boolean indicating if it has changeable parameters.</returns>
+        public (ModuleItem moduleItem, bool hasChangeableParameters) GetModuleItemByGsdId(string gsdId)
+        {
+            ModuleItem moduleItem = ModuleItems.Find(item => item.Model.ID == gsdId);
 
+            if (moduleItem != null)
+            {
+                bool hasChangeableParameters = 
+                    moduleItem.Model.ParameterRecordDataItem != null || 
+                    moduleItem.Model.FParameterRecordDataItem != null;
+
+                return (moduleItem, hasChangeableParameters);
+            }
+
+            return (null, false);
+        }
 
         /// <summary>
         /// ToString method of ModuleList class 

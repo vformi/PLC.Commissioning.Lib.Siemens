@@ -9,6 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Moq" Version="4.20.72" />
     <PackageReference Include="NSubstitute" Version="5.1.0" />
     <PackageReference Include="NUnit" Version="3.12.0" />
     <PackageReference Include="NUnit3TestAdapter" Version="3.16.1" />
@@ -19,9 +20,17 @@
   <ItemGroup>
     <ProjectReference Include="..\PLC.Commissioning.Lib.Siemens\PLC.Commissioning.Lib.Siemens.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="TestData\**\*" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="TestData\Export\" />
+  </ItemGroup>
 	
-	<Target Name="PostBuild" AfterTargets="PostBuildEvent">
-		<Exec Command="xcopy /Y &quot;C:\Program Files\Siemens\Automation\Portal V17\PublicAPI\V17\*.dll&quot; &quot;$(TargetDir)&quot;&#xD;&#xA;" />
-	</Target>
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+      <Exec Command="xcopy /Y &quot;C:\Program Files\Siemens\Automation\Portal V17\PublicAPI\V17\*.dll&quot; &quot;$(TargetDir)&quot;&#xD;&#xA;" />
+  </Target>
 
 </Project>

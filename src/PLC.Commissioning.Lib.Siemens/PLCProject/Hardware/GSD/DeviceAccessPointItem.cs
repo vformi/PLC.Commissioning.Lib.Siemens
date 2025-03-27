@@ -27,6 +27,11 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.GSD
         /// Gets the parameter record data item associated with the device access point model.
         /// </summary>
         public ParameterRecordDataItem ParameterRecordDataItem => Model.ParameterRecordDataItem;
+        
+        /// <summary>
+        /// Gets the F parameter record data item associated with the device access point model.
+        /// </summary>
+        public FParameterRecordDataItem FParameterRecordDataItem => Model.FParameterRecordDataItem;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="DeviceAccessPointItem"/> class with the specified GSD handler.
@@ -44,30 +49,104 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.GSD
         /// <param name="dapItemNode">The XML node containing the device access point item data.</param>
         public void ParseDeviceAccessPointItem(XmlNode dapItemNode)
         {
-            // Initialize Model properties
+            if (dapItemNode == null)
+            {
+                throw new ArgumentNullException(nameof(dapItemNode), "DAP item node cannot be null.");
+            }
+
+            // Required attributes
             Model.ID = dapItemNode.Attributes["ID"]?.Value;
+            if (string.IsNullOrWhiteSpace(Model.ID))
+            {
+                throw new InvalidOperationException("Missing or empty required 'ID' attribute in Device Access Point item.");
+            }
+
             Model.PhysicalSlots = dapItemNode.Attributes["PhysicalSlots"]?.Value;
+            if (string.IsNullOrWhiteSpace(Model.PhysicalSlots))
+            {
+                throw new InvalidOperationException("Missing or empty required 'PhysicalSlots' attribute in Device Access Point item.");
+            }
+
             Model.ModuleIdentNumber = dapItemNode.Attributes["ModuleIdentNumber"]?.Value;
-            Model.MinDeviceInterval = dapItemNode.Attributes["MinDeviceInterval"]?.Value;
+            if (string.IsNullOrWhiteSpace(Model.ModuleIdentNumber))
+            {
+                throw new InvalidOperationException("Missing or empty required 'ModuleIdentNumber' attribute in Device Access Point item.");
+            }
+
+            // Optional attributes with parsing where required by model
+            if (!int.TryParse(dapItemNode.Attributes["MinDeviceInterval"]?.Value, out int minDeviceInterval))
+            {
+                Log.Warning("Invalid or missing 'MinDeviceInterval' attribute in DAP item. Defaulting to 0.");
+                minDeviceInterval = 0;
+            }
+            Model.MinDeviceInterval = minDeviceInterval;
+
             Model.ImplementationType = dapItemNode.Attributes["ImplementationType"]?.Value;
             Model.DNS_CompatibleName = dapItemNode.Attributes["DNS_CompatibleName"]?.Value;
             Model.AddressAssignment = dapItemNode.Attributes["AddressAssignment"]?.Value;
-            Model.CheckDeviceID_Allowed = bool.Parse(dapItemNode.Attributes["CheckDeviceID_Allowed"]?.Value ?? "false");
-            Model.FixedInSlots = int.Parse(dapItemNode.Attributes["FixedInSlots"]?.Value ?? "0");
-            Model.ObjectUUID_LocalIndex = dapItemNode.Attributes["ObjectUUID_LocalIndex"]?.Value;
-            Model.NameOfStationNotTransferable = bool.Parse(dapItemNode.Attributes["NameOfStationNotTransferable"]?.Value ?? "false");
-            Model.MultipleWriteSupported = bool.Parse(dapItemNode.Attributes["MultipleWriteSupported"]?.Value ?? "false");
-            Model.DeviceAccessSupported = bool.Parse(dapItemNode.Attributes["DeviceAccessSupported"]?.Value ?? "false");
-            Model.NumberOfDeviceAccessAR = int.Parse(dapItemNode.Attributes["NumberOfDeviceAccessAR"]?.Value ?? "0");
-            Model.SharedDeviceSupported = bool.Parse(dapItemNode.Attributes["SharedDeviceSupported"]?.Value ?? "false");
-            Model.SharedInputSupported = bool.Parse(dapItemNode.Attributes["SharedInputSupported"]?.Value ?? "false");
-            Model.ResetToFactoryModes = int.Parse(dapItemNode.Attributes["ResetToFactoryModes"]?.Value ?? "0");
-            Model.LLDP_NoD_Supported = bool.Parse(dapItemNode.Attributes["LLDP_NoD_Supported"]?.Value ?? "false");
+
+            if (!bool.TryParse(dapItemNode.Attributes["CheckDeviceID_Allowed"]?.Value, out bool checkDeviceIdAllowed))
+            {
+                Log.Warning("Invalid or missing 'CheckDeviceID_Allowed' attribute in DAP item. Defaulting to false.");
+                checkDeviceIdAllowed = false;
+            }
+            Model.CheckDeviceID_Allowed = checkDeviceIdAllowed;
+
+            if (!int.TryParse(dapItemNode.Attributes["FixedInSlots"]?.Value, out int fixedInSlots))
+            {
+                Log.Warning("Invalid or missing 'FixedInSlots' attribute in DAP item. Defaulting to 0.");
+                fixedInSlots = 0;
+            }
+            Model.FixedInSlots = fixedInSlots;
+
+            if (!int.TryParse(dapItemNode.Attributes["ObjectUUID_LocalIndex"]?.Value, out int objectUuidLocalIndex))
+            {
+                Log.Warning("Invalid or missing 'ObjectUUID_LocalIndex' attribute in DAP item. Defaulting to 0.");
+                objectUuidLocalIndex = 0;
+            }
+            Model.ObjectUUID_LocalIndex = objectUuidLocalIndex;
+
+            Model.NameOfStationNotTransferable = dapItemNode.Attributes["NameOfStationNotTransferable"]?.Value;
+
+            if (!bool.TryParse(dapItemNode.Attributes["MultipleWriteSupported"]?.Value, out bool multipleWriteSupported))
+            {
+                Log.Warning("Invalid or missing 'MultipleWriteSupported' attribute in DAP item. Defaulting to false.");
+                multipleWriteSupported = false;
+            }
+            Model.MultipleWriteSupported = multipleWriteSupported;
+
+            if (!bool.TryParse(dapItemNode.Attributes["DeviceAccessSupported"]?.Value, out bool deviceAccessSupported))
+            {
+                Log.Warning("Invalid or missing 'DeviceAccessSupported' attribute in DAP item. Defaulting to false.");
+                deviceAccessSupported = false;
+            }
+            Model.DeviceAccessSupported = deviceAccessSupported;
+
+            Model.NumberOfDeviceAccessAR = dapItemNode.Attributes["NumberOfDeviceAccessAR"]?.Value;
+
+            if (!bool.TryParse(dapItemNode.Attributes["SharedDeviceSupported"]?.Value, out bool sharedDeviceSupported))
+            {
+                Log.Warning("Invalid or missing 'SharedDeviceSupported' attribute in DAP item. Defaulting to false.");
+                sharedDeviceSupported = false;
+            }
+            Model.SharedDeviceSupported = sharedDeviceSupported;
+
+            if (!bool.TryParse(dapItemNode.Attributes["SharedInputSupported"]?.Value, out bool sharedInputSupported))
+            {
+                Log.Warning("Invalid or missing 'SharedInputSupported' attribute in DAP item. Defaulting to false.");
+                sharedInputSupported = false;
+            }
+            Model.SharedInputSupported = sharedInputSupported;
+
+            // Keep ResetToFactoryModes as string
+            Model.ResetToFactoryModes = dapItemNode.Attributes["ResetToFactoryModes"]?.Value;
+
+            Model.LLDP_NoD_Supported = dapItemNode.Attributes["LLDP_NoD_Supported"]?.Value;
             Model.WebServer = dapItemNode.Attributes["WebServer"]?.Value;
-            Model.AdaptsRealIdentification = bool.Parse(dapItemNode.Attributes["AdaptsRealIdentification"]?.Value ?? "false");
+            Model.AdaptsRealIdentification = dapItemNode.Attributes["AdaptsRealIdentification"]?.Value;
             Model.PNIO_Version = dapItemNode.Attributes["PNIO_Version"]?.Value;
 
-            // Parsing ParameterRecordDataItems inside this DAP Item
+            // Parse ParameterRecordDataItem
             XmlNode parameterRecordDataItemNode = dapItemNode.SelectSingleNode("gsd:VirtualSubmoduleList/gsd:VirtualSubmoduleItem/gsd:RecordDataList/gsd:ParameterRecordDataItem", _gsdHandler.nsmgr);
             if (parameterRecordDataItemNode != null)
             {
@@ -77,6 +156,18 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.GSD
             else
             {
                 Model.ParameterRecordDataItem = null;
+            }
+
+            // Parse FParameterRecordDataItem
+            XmlNode fParameterRecordDataItemNode = dapItemNode.SelectSingleNode("gsd:VirtualSubmoduleList/gsd:VirtualSubmoduleItem/gsd:RecordDataList/gsd:F_ParameterRecordDataItem", _gsdHandler.nsmgr);
+            if (fParameterRecordDataItemNode != null)
+            {
+                Model.FParameterRecordDataItem = new FParameterRecordDataItem(_gsdHandler);
+                Model.FParameterRecordDataItem.ParseFParameterRecordDataItem(fParameterRecordDataItemNode);
+            }
+            else
+            {
+                Model.FParameterRecordDataItem = null;
             }
         }
 

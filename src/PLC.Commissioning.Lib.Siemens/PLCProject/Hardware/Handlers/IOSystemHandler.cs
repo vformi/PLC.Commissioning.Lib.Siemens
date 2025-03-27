@@ -16,9 +16,10 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.Handlers
     public class IOSystemHandler : IIOSystemHandler
     {
         /// <summary>
-        /// Represents the project handler implementing methods from the interface <see cref="IProjectHandlerService"/>
+        /// Represents the project handler implementing methods from the interface <see cref="IProjectHandlerService"/>.
         /// </summary>
         private readonly IProjectHandlerService _projectHandler;
+        private bool _disposed;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="IOSystemHandler"/> class with the specified project handler service.
@@ -29,11 +30,7 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.Handlers
             _projectHandler = projectHandler ?? throw new ArgumentNullException(nameof(projectHandler));
         }
 
-        /// <summary>
-        /// Finds and returns the first subnet and its associated IO system in the current project.
-        /// </summary>
-        /// <returns>A tuple containing the <see cref="Subnet"/> and <see cref="IoSystem"/>.</returns>
-        /// <exception cref="InvalidOperationException">Thrown if no subnet or IO system is found.</exception>
+        /// <inheritdoc />
         public (Subnet, IoSystem) FindSubnetAndIoSystem()
         {
             var project = _projectHandler.Project;
@@ -51,12 +48,7 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.Handlers
             return (subnet, ioSystem);
         }
 
-        /// <summary>
-        /// Connects the specified device to the given subnet and IO system.
-        /// </summary>
-        /// <param name="device">The <see cref="Device"/> to be connected.</param>
-        /// <param name="subnet">The <see cref="Subnet"/> to connect to.</param>
-        /// <param name="ioSystem">The <see cref="IoSystem"/> to connect to.</param>
+        /// <inheritdoc />
         public void ConnectDeviceToIoSystem(Device device, Subnet subnet, IoSystem ioSystem)
         {
             NetworkInterface networkInterface = GetDeviceNetworkInterface(device);
@@ -85,12 +77,7 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.Handlers
             Log.Information($"Device {device.DeviceItems[1].Name} connected to Subnet {subnet.Name} and IO System {ioSystem.Name}.");
         }
 
-        /// <summary>
-        /// Retrieves the network interface associated with the specified device.
-        /// </summary>
-        /// <param name="device">The <see cref="Device"/> from which to retrieve the network interface.</param>
-        /// <returns>The <see cref="NetworkInterface"/> of the device.</returns>
-        /// <exception cref="InvalidOperationException">Thrown if no network interface is found for the device.</exception>
+        /// <inheritdoc />
         public NetworkInterface GetDeviceNetworkInterface(Device device)
         {
             if (device is null)
@@ -126,12 +113,7 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.Handlers
             return networkInterface;
         }
 
-        /// <summary>
-        /// Sets the IP address for the specified device and verifies it.
-        /// </summary>
-        /// <param name="device">The <see cref="Device"/> for which to set the IP address.</param>
-        /// <param name="ipAddress">The IP address to assign to the device.</param>
-        /// <returns><c>true</c> if the IP address was set and verified successfully; otherwise, <c>false</c>.</returns>
+        /// <inheritdoc />
         public bool SetDeviceIPAddress(Device device, string ipAddress)
         {
             try
@@ -165,12 +147,7 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.Handlers
             }
         }
 
-        /// <summary>
-        /// Sets the Profinet name for the specified device and verifies it.
-        /// </summary>
-        /// <param name="device">The <see cref="Device"/> for which to set the Profinet name.</param>
-        /// <param name="profinetName">The Profinet name to assign to the device.</param>
-        /// <returns><c>true</c> if the Profinet name was set and verified successfully; otherwise, <c>false</c>.</returns>
+        /// <inheritdoc />
         public bool SetProfinetName(Device device, string profinetName)
         {
             try
@@ -207,11 +184,7 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.Handlers
             }
         }
 
-        /// <summary>
-        /// Gets the IP address for the specified device and returns it.
-        /// </summary>
-        /// <param name="device">The <see cref="Device"/> for which to set the IP address.</param>
-        /// <returns>the IP address as string if it was possible to get it othervise null.</returns>
+        /// <inheritdoc />
         public string GetDeviceIPAddress(Device device)
         {
             try
@@ -234,11 +207,7 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.Handlers
             }
         }
 
-        /// <summary>
-        /// Gets the IP address for the PLC by identifying the appropriate <see cref="DeviceItem"/> based on the 'InterfaceOperatingMode' attribute.
-        /// </summary>
-        /// <param name="cpu">The <see cref="DeviceItem"/> that represents the PLC device.</param>
-        /// <returns>The IP address as a string if found; otherwise, null.</returns>
+        /// <inheritdoc />
         public string GetPLCIPAddress(DeviceItem cpu)
         {
             try
@@ -281,11 +250,7 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.Handlers
             }
         }
 
-        /// <summary>
-        /// Retrieves identification attributes for the specified device.
-        /// </summary>
-        /// <param name="device">The <see cref="Device"/> for which to retrieve the identification attributes.</param>
-        /// <returns>A dictionary containing the identification attributes and their corresponding values.</returns>
+        /// <inheritdoc />
         public Dictionary<string, string> GetDeviceIdentificationAttributes(Device device)
         {
             var attributes = new Dictionary<string, string>();
@@ -336,5 +301,41 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.Handlers
                 return null;
             }
         }
+        
+        #region IDisposable Implementation
+        
+        /// <summary>
+        /// Disposes the resources used by the <see cref="IOSystemHandler"/>.
+        /// </summary>
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        /// <summary>
+        /// Releases the unmanaged resources used by the <see cref="IOSystemHandler"/> and optionally releases the managed resources.
+        /// </summary>
+        /// <param name="disposing">A boolean value indicating whether to release managed resources.</param>
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!_disposed)
+            {
+                if (disposing)
+                {
+                    // Dispose managed resources
+                    // If the _projectHandler needs to be disposed, do so here
+                    if (_projectHandler is IDisposable disposableHandler)
+                    {
+                        disposableHandler.Dispose();
+                    }
+                }
+
+                // Mark as disposed
+                _disposed = true;
+            }
+        }
+
+        #endregion
     }
 }

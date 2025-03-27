@@ -87,7 +87,7 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.GSD
             }
 
             byte[] intBytes = BitConverter.GetBytes(value);
-            Array.Reverse(intBytes); // Adjust for endianness if necessary
+            Array.Reverse(intBytes); // Store in Big-endian 
             Array.Copy(intBytes, 0, data, byteOffset, 4);
 
             return true;
@@ -105,7 +105,7 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.GSD
             }
 
             byte[] ushortBytes = BitConverter.GetBytes(value);
-            Array.Reverse(ushortBytes); // Adjust for endianness if necessary
+            Array.Reverse(ushortBytes); // Store in Big-endian 
             Array.Copy(ushortBytes, 0, data, byteOffset, 2);
 
             return true;
@@ -139,7 +139,7 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.GSD
             }
 
             byte[] shortBytes = BitConverter.GetBytes(value);
-            Array.Reverse(shortBytes); // Adjust for endianness if necessary
+            Array.Reverse(shortBytes); // Store in Big-endian 
             Array.Copy(shortBytes, 0, data, byteOffset, 2);
 
             return true;
@@ -163,7 +163,6 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.GSD
             Array.Copy(stringBytes, 0, paddedStringBytes, 0, Math.Min(length, stringBytes.Length));
 
             // The rest remains zero (null characters)
-
             Array.Copy(paddedStringBytes, 0, data, byteOffset, length);
 
             return true;

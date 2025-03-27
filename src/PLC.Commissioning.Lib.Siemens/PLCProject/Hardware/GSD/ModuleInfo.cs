@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System;
+using System.Text;
 using System.Xml;
 using PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.GSD.Models;
 
@@ -12,7 +13,7 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.GSD
         /// <summary>
         /// Gets the model containing the parsed module information.
         /// </summary>
-        public ModuleInfoModel Model { get; private set; }
+        public virtual ModuleInfoModel Model { get; private set; }
 
         /// <summary>
         /// The GSD handler used for processing module data.
@@ -35,19 +36,27 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.GSD
         /// </summary>
         private void ParseModuleInfo()
         {
+            // Must find the ModuleInfo node
             XmlNode moduleInfoNode = _gsdHandler.xmlDoc.SelectSingleNode("//gsd:ModuleInfo", _gsdHandler.nsmgr);
-            if (moduleInfoNode != null)
-            {
-                Model.Name = _gsdHandler.GetExternalText(moduleInfoNode.SelectSingleNode("gsd:Name", _gsdHandler.nsmgr)?.Attributes["TextId"]?.Value);
-                Model.InfoText = _gsdHandler.GetExternalText(moduleInfoNode.SelectSingleNode("gsd:InfoText", _gsdHandler.nsmgr)?.Attributes["TextId"]?.Value);
-                Model.VendorName = moduleInfoNode.SelectSingleNode("gsd:VendorName", _gsdHandler.nsmgr)?.Attributes["Value"]?.Value;
-                Model.OrderNumber = moduleInfoNode.SelectSingleNode("gsd:OrderNumber", _gsdHandler.nsmgr)?.Attributes["Value"]?.Value;
-                Model.HardwareRelease = moduleInfoNode.SelectSingleNode("gsd:HardwareRelease", _gsdHandler.nsmgr)?.Attributes["Value"]?.Value;
-                Model.SoftwareRelease = moduleInfoNode.SelectSingleNode("gsd:SoftwareRelease", _gsdHandler.nsmgr)?.Attributes["Value"]?.Value;
-            }
+            
+            // Because it's "strict," we assume it MUST exist. If it's missing, you'll get a NullReferenceException below.
+            XmlNode nameNode = moduleInfoNode.SelectSingleNode("gsd:Name", _gsdHandler.nsmgr);
+            XmlNode infoTextNode = moduleInfoNode.SelectSingleNode("gsd:InfoText", _gsdHandler.nsmgr);
+            XmlNode vendorNameNode = moduleInfoNode.SelectSingleNode("gsd:VendorName", _gsdHandler.nsmgr);
+            XmlNode orderNumberNode = moduleInfoNode.SelectSingleNode("gsd:OrderNumber", _gsdHandler.nsmgr);
+            XmlNode hwReleaseNode = moduleInfoNode.SelectSingleNode("gsd:HardwareRelease", _gsdHandler.nsmgr);
+            XmlNode swReleaseNode = moduleInfoNode.SelectSingleNode("gsd:SoftwareRelease", _gsdHandler.nsmgr);
 
-            Model.Name = _gsdHandler.GetExternalText("DeviceName") ?? Model.Name;
-            Model.InfoText = _gsdHandler.GetExternalText("DeviceDescription") ?? Model.InfoText;
+            // Strictly read each attribute (throws if missing)
+            string nameTextId = nameNode.Attributes["TextId"].Value;
+            string infoTextId = infoTextNode.Attributes["TextId"].Value;
+
+            Model.Name = _gsdHandler.GetExternalText(nameTextId);
+            Model.InfoText = _gsdHandler.GetExternalText(infoTextId);
+            Model.VendorName = vendorNameNode.Attributes["Value"].Value;
+            Model.OrderNumber = orderNumberNode.Attributes["Value"].Value;
+            Model.HardwareRelease = hwReleaseNode.Attributes["Value"].Value;
+            Model.SoftwareRelease = swReleaseNode.Attributes["Value"].Value;
         }
 
         /// <summary>

@@ -12,7 +12,9 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Abstractions
         /// </summary>
         /// <param name="cpu">The CPU <see cref="DeviceItem"/> to be compiled.</param>
         /// <returns><c>true</c> if the compilation was successful; otherwise, <c>false</c>.</returns>
-        /// <exception cref="InvalidOperationException">Thrown if the CPU device item is not part of a device or if the device does not support compilation.</exception>
+        /// <exception cref="InvalidOperationException">
+        /// Thrown if the CPU device item is not part of a device or if the device does not support compilation.
+        /// </exception>
         bool CompileProject(DeviceItem cpu);
     }
 }
