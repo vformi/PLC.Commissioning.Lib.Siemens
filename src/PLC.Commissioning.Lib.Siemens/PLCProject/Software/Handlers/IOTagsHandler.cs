@@ -3,8 +3,9 @@ using Siemens.Engineering.SW;
 using Serilog;
 using System.Collections.Generic;
 using PLC.Commissioning.Lib.Siemens.PLCProject.Hardware;
+using PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.Models;
 
-namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.Handlers
+namespace PLC.Commissioning.Lib.Siemens.PLCProject.Software.Handlers
 {
     /// <summary>
     /// Handles operations related to PLC Tag Tables.
@@ -81,9 +82,11 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.Handlers
         }
 
         /// <summary>
-        /// Creates tag tables and tags based on `ImportedDevice`.
+        /// Creates tag tables and tags based on `ImportedDevice` using provided tag table definitions.
         /// </summary>
-        public void CreateTagTables(ImportedDevice device)
+        /// <param name="device">The imported device.</param>
+        /// <param name="tagTableDefinitions">The precomputed tag table definitions for the device.</param>
+        public void CreateTagTables(ImportedDevice device, List<TagTableModel> tagTableDefinitions)
         {
             if (_plcSoftware == null)
             {
@@ -96,7 +99,6 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.Handlers
             // Create a main group for the device
             PlcTagTableUserGroup deviceGroup = CreateTagTableGroup(device.DeviceName);
 
-            var tagTableDefinitions = device.GetTagTableDefinitions();
             foreach (var tableDefinition in tagTableDefinitions)
             {
                 // Create a tag table for each module

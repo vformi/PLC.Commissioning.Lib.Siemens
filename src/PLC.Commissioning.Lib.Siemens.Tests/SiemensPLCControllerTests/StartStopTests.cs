@@ -3,13 +3,12 @@ using System.IO;
 using NUnit.Framework;
 using Serilog;
 
-namespace PLC.Commissioning.Lib.Siemens.Tests
+namespace PLC.Commissioning.Lib.Siemens.Tests.SiemensPLCControllerTests
 {
     [TestFixture]
-    public class StartStopTests : IDisposable
+    public class StartStopTests
     {
         private SiemensPLCController _plc;
-        private bool _disposed = false;
         private string _testDataPath;
 
         [SetUp]
@@ -33,16 +32,43 @@ namespace PLC.Commissioning.Lib.Siemens.Tests
         }
     
         [Test]
-        public void StopPLC_ShouldPass_WhenCalledWithoutSafety()
+        public void StartPLC_ShouldPass_WhenCalledWithoutSafety()
         {
             // Arrange
             _plc.Initialize(safety: false);
 
             // Act
-            bool result = _plc.Stop();
+            var result = _plc.Start();
 
             // Assert
-            Assert.That(result, Is.True, "PLC should stop successfully without safety mode.");
+            Assert.That(result.IsSuccess, Is.True, "PLC should start successfully without safety mode.");
+        }
+
+        [Test]
+        public void StartPLC_ShouldPass_WhenCalledWithSafety()
+        {
+            // Arrange
+            _plc.Initialize(safety: true);
+
+            // Act
+            var result = _plc.Start();
+
+            // Assert
+            Assert.That(result.IsSuccess, Is.True, "PLC should start successfully with safety mode enabled.");
+        }
+
+        [Test]
+        public void StopPLC_ShouldPass_WhenCalledWithoutSafety()
+        {
+            // Arrange
+            _plc.Initialize(safety: false);
+            _plc.Start(); // Ensure PLC is running before stopping
+
+            // Act
+            var result = _plc.Stop();
+
+            // Assert
+            Assert.That(result.IsSuccess, Is.True, "PLC should stop successfully without safety mode.");
         }
 
         [Test]
@@ -50,12 +76,13 @@ namespace PLC.Commissioning.Lib.Siemens.Tests
         {
             // Arrange
             _plc.Initialize(safety: true);
+            _plc.Start(); // Ensure PLC is running before stopping
 
             // Act
-            bool result = _plc.Stop();
+            var result = _plc.Stop();
 
             // Assert
-            Assert.That(result, Is.True, "PLC should stop successfully with safety mode enabled.");
+            Assert.That(result.IsSuccess, Is.True, "PLC should stop successfully with safety mode enabled.");
         }
 
         [TearDown]
@@ -63,45 +90,13 @@ namespace PLC.Commissioning.Lib.Siemens.Tests
         {
             try
             {
-                // Start the PLC to reset its state before cleanup
-                if (!_plc.Start())
-                {
-                    Log.Warning("Failed to start the PLC during teardown.");
-                }
+                _plc.Dispose();
+                Log.Information("Test resources disposed.");
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "An error occurred while starting the PLC during teardown.");
+                Log.Error(ex, "An error occurred during teardown.");
             }
-            finally
-            {
-                Dispose();
-            }
-        }
-
-        public void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
-
-        protected virtual void Dispose(bool disposing)
-        {
-            if (!_disposed)
-            {
-                if (disposing)
-                {
-                    _plc?.Dispose();
-                    Log.Information("Test resources disposed.");
-                }
-
-                _disposed = true;
-            }
-        }
-
-        ~StartStopTests()
-        {
-            Dispose(false);
         }
     }
 }

@@ -8,6 +8,7 @@ using Serilog;
 using PLC.Commissioning.Lib.Siemens.PLCProject;
 using PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.GSD;
 using PLC.Commissioning.Lib.Siemens.PLCProject.Software.PLC;
+using PLC.Commissioning.Lib.Siemens.PLCProject.Software.Handlers;
 using PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.Handlers;
 using PLC.Commissioning.Lib.Siemens.PLCProject.UI;
 using PLC.Commissioning.Lib.Abstractions;
@@ -22,7 +23,8 @@ using Siemens.Engineering.HW;
 using Siemens.Engineering.HW.Features;
 using PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.GSD.Abstractions;
 using PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.Models;
-using PLC.Commissioning.Lib.Siemens.Webserver.Controllers;
+using PLC.Commissioning.Lib.Siemens.Webserver.Abstractions;
+using PLC.Commissioning.Lib.Siemens.Webserver.Services;
 using Siemens.Engineering.SW;
 using Siemens.Simatic.S7.Webserver.API.Enums;
 
@@ -92,7 +94,7 @@ namespace PLC.Commissioning.Lib.Siemens
         /// <summary>
         /// Handles webserver interactions for start and stop procedures
         /// </summary>
-        private RPCController _rpcController;
+        private IRPCService _rpcService;
 
         // Internal variables to hold configuration values
 
@@ -165,6 +167,11 @@ namespace PLC.Commissioning.Lib.Siemens
         /// Gets an IOTagsHandler instance based on the current PlcSoftware.
         /// </summary>
         private IOTagsHandler IOTagsHandler => new IOTagsHandler(_plcSoftware);
+        
+        /// <summary>
+        /// Gets an OPCHandler instance based on the current PlcSoftware.
+        /// </summary>
+        private OPCHandler OPCHandler => new OPCHandler(_plcSoftware, _cpu);
 
         #endregion
 
@@ -372,11 +379,15 @@ namespace PLC.Commissioning.Lib.Siemens
 
                 // Initialize IOTagsHandler
                 IOTagsHandler ioTagsHandler = IOTagsHandler;
+                OPCHandler opcHandler = OPCHandler;
 
                 // Build a map of GSDML models keyed by device model (TypeName)
                 var gsdModelMap = BuildGsdModelMap(gsdmlFiles);
                 var deviceDictionary = new Dictionary<string, object>();
                 var missingGsdTypes = new List<string>(); 
+                
+                // We'll keep a list of all ImportedDevice objects to build a single NodeSet
+                var allDeviceTagTables = new List<(ImportedDevice device, List<TagTableModel> tagTables)>();
 
                 foreach (var device in devices)
                 {
@@ -410,28 +421,45 @@ namespace PLC.Commissioning.Lib.Siemens
                     foreach (var module in modules)
                     {
                         importedDevice.AddModule(module);
-                    }
+                    }   
+                    
+                    var tagTableDefinitions = importedDevice.GetTagTableDefinitions();
 
                     // Create tag tables in TIA Portal
-                    ioTagsHandler.CreateTagTables(importedDevice);
+                    ioTagsHandler.CreateTagTables(importedDevice, tagTableDefinitions);
 
                     // Add the device to the dictionary
                     deviceDictionary[deviceName] = importedDevice;
+                    
+                    // gather all devices for OPC import
+                    allDeviceTagTables.Add((importedDevice, tagTableDefinitions));
                 }
                 
+                // If there are missing GSDML types, fail and do not proceed with OPC UA import
                 if (missingGsdTypes.Count > 0)
                 {
                     var errorMessage = "The following device(s) could not be imported because their GSD file(s) " +
                                        "were not provided: " + string.Join(", ", missingGsdTypes) +
                                        ". Please supply the missing GSDML files.";
                     Log.Error(errorMessage);
-                    var error = new Error(errorMessage)
+                    return Result.Fail<Dictionary<string, object>>(new Error(errorMessage)
                     {
                         Metadata = { ["ErrorCode"] = OperationErrorCode.ImportFailed }
-                    };
-                    return Result.Fail<Dictionary<string, object>>(error);
+                    });
                 }
 
+                // Now that everything succeeded, create OPC UA server interface
+                bool success = opcHandler.GenerateAndImportServerInterface(allDeviceTagTables, "DevicesInterface");
+                if (!success)
+                {
+                    var errorMessage = "OPC UA interface generation/import failed.";
+                    Log.Warning(errorMessage);
+                    return Result.Fail<Dictionary<string, object>>(new Error(errorMessage)
+                    {
+                        Metadata = { ["ErrorCode"] = OperationErrorCode.ImportFailed }
+                    });
+                }
+                
                 Log.Information("Device import was successful.");
                 return Result.Ok(deviceDictionary);
             }
@@ -751,8 +779,9 @@ namespace PLC.Commissioning.Lib.Siemens
                 {
                     // For non-DAP modules, use the ModuleList from the pre-built model
                     var moduleList = gsdModel.ModuleList;
+                    Console.WriteLine(moduleList.ToString());
                     var (moduleItem, hasChangeableParameters) = moduleList.GetModuleItemByName(moduleName);
-
+                    
                     if (moduleItem == null)
                     {
                         var errorMsg = $"Module '{moduleName}' not found in GSD file.";
@@ -1046,10 +1075,10 @@ namespace PLC.Commissioning.Lib.Siemens
 
             try
             {
-                if (_rpcController != null)
+                if (_rpcService != null)
                 {
                     // Attempt to start the PLC using async method synchronously
-                    _rpcController.PlcController.ChangeOperatingModeAsync(ApiPlcOperatingMode.Run)
+                    _rpcService.ChangeOperatingModeAsync(ApiPlcOperatingMode.Run)
                         .GetAwaiter().GetResult();
 
                     Log.Information("PLC started successfully using ChangeOperatingModeAsync.");
@@ -1146,10 +1175,10 @@ namespace PLC.Commissioning.Lib.Siemens
 
             try
             {
-                if (_rpcController != null)
+                if (_rpcService != null)
                 {
                     // Attempt to stop the PLC using the async method synchronously
-                    _rpcController.PlcController.ChangeOperatingModeAsync(ApiPlcOperatingMode.Stop)
+                    _rpcService.ChangeOperatingModeAsync(ApiPlcOperatingMode.Stop)
                         .GetAwaiter().GetResult();
 
                     Log.Information("PLC stopped successfully using ChangeOperatingModeAsync.");
@@ -1225,7 +1254,6 @@ namespace PLC.Commissioning.Lib.Siemens
                 return Result.Fail(error);
             }
         }
-
 
         /// <inheritdoc />
         public Result Compile()
@@ -1307,9 +1335,13 @@ namespace PLC.Commissioning.Lib.Siemens
                     }
                     case DownloadOptions downloadOptions:
                     {
+                        Log.Information("Proceeding to download to PLC with options: {DownloadOptions}", downloadOptions.ToString());
+
                         bool downloaded = _controller.Download(downloadOptions);
+
                         if (downloaded)
                         {
+                            Log.Information("Download finished successfully with options: {DownloadOptions}", downloadOptions.ToString());
                             return Result.Ok();
                         }
                         else
@@ -1349,7 +1381,6 @@ namespace PLC.Commissioning.Lib.Siemens
                 return Result.Fail(error);
             }
         }
-
 
         /// <inheritdoc />
         public Result AdditionalImport(Dictionary<string, object> filesToImport)
@@ -1627,23 +1658,35 @@ namespace PLC.Commissioning.Lib.Siemens
         /// Releases the unmanaged resources used by the <see cref="SiemensPLCController"/> and optionally releases the managed resources.
         /// </summary>
         /// <param name="disposing">A boolean value indicating whether to release managed resources.</param>
-        protected virtual void Dispose(bool disposing)
+        protected void Dispose(bool disposing)
         {
             if (!_disposed)
             {
                 if (disposing)
                 {
-                    // Dispose handlers in proper order.
-                    try { _projectHandler?.Dispose(); } catch (Exception ex) { Log.Warning("Error disposing ProjectHandler: {Message}", ex.Message); }
-                    try { _manager?.Dispose(); } catch (Exception ex) { Log.Warning("Error disposing SiemensManagerService: {Message}", ex.Message); }
-                    try { _uiDownloadHandler?.Dispose(); } catch (Exception ex) { Log.Warning("Error disposing UIDownloadHandler: {Message}", ex.Message); }
-                    try { (_hardwareHandler as IDisposable)?.Dispose(); } catch (Exception ex) { Log.Warning("Error disposing HardwareHandler: {Message}", ex.Message); }
-                    try { (_ioSystemHandler as IDisposable)?.Dispose(); } catch (Exception ex) { Log.Warning("Error disposing IOSystemHandler: {Message}", ex.Message); }
-                    try { _tiaPortalInstance?.Dispose(); } catch (Exception ex) { Log.Warning("Error disposing TiaPortal instance: {Message}", ex.Message); }
+                    List<IDisposable> disposables = new List<IDisposable>
+                    {
+                        _projectHandler,
+                        _uiDownloadHandler,
+                        _manager,
+                        _hardwareHandler,
+                        _ioSystemHandler,
+                        _tiaPortalInstance,
+                    };
+
+                    foreach (var disposable in disposables)
+                    {
+                        if (disposable != null)
+                        {
+                            try { disposable.Dispose(); }
+                            catch (Exception ex) { Log.Warning("Error disposing {Type}: {Message}", disposable.GetType().Name, ex.Message); }
+                        }
+                    }
                 }
                 _disposed = true;
             }
         }
+
 
         /// <summary>
         /// Destructor for <see cref="SiemensPLCController"/>.
@@ -1664,13 +1707,10 @@ namespace PLC.Commissioning.Lib.Siemens
         internal Result InitializeOnline()
         {
             // If we already initialized online mode, log a warning but return success
-            // (or optionally, you can treat this as a "no-op" success).
             if (_onlineInitialized)
             {
-                const string warningMessage = "Online mode has already been initialized.";
-                Log.Warning(warningMessage);
-                // For consistency, let's return a successful result, 
-                // because we are effectively already online.
+                Log.Debug("Online mode has already been initialized.");
+                // successful result -> we are already online.
                 return Result.Ok();
             }
 
@@ -1694,6 +1734,7 @@ namespace PLC.Commissioning.Lib.Siemens
                 // Determine the CPU's IP address and validate network connectivity
                 var ioSystemHandler = IoSystemHandler;
                 string cpuIP = ioSystemHandler.GetPLCIPAddress(_cpu);
+
                 if (!networkConfigurator.PingIpAddress(_networkCard, cpuIP))
                 {
                     var errorMessage = $"Unable to ping CPU at IP address: {cpuIP}";
@@ -1705,44 +1746,83 @@ namespace PLC.Commissioning.Lib.Siemens
                     return Result.Fail(error);
                 }
 
+                // Modify _networkCard if it contains #
+                string modifiedNetworkCard = _networkCard;
+                var match = System.Text.RegularExpressions.Regex.Match(_networkCard, @"#(\d+)");
+                if (match.Success)
+                {
+                    string number = match.Groups[1].Value;
+                    modifiedNetworkCard = _networkCard.Replace($"#{number}", $"<{number}>"); // Ensure no extra spaces
+                    Log.Debug("Network card contains # that is not suitable for TIA Portal.");
+                }
+
                 // Configure the target network
                 var targetConfiguration = networkConfigurator.GetTargetConfiguration();
                 _controller.SetTargetConfiguration(targetConfiguration);
-
-                // Configure the network card
-                if (string.IsNullOrEmpty(_networkCard))
+                Log.Debug($"Trying to configure network with {modifiedNetworkCard}");
+                if (_controller.TryConfigureNetwork(modifiedNetworkCard, 1, "1 X1"))
                 {
-                    var errorMessage = "Network card configuration is missing.";
-                    Log.Error(errorMessage);
-                    var error = new Error(errorMessage)
+                    goto Success;
+                }
+
+                // If modified attempt fails, try with trimmed version
+                string trimmedNetworkCard = System.Text.RegularExpressions.Regex
+                    .Replace(modifiedNetworkCard, @"\s*<\d+>\s*", "").Trim();
+
+                Log.Debug($"Trying to configure network with {trimmedNetworkCard}");
+
+                if (_controller.TryConfigureNetwork(trimmedNetworkCard, 1, "1 X1"))
+                {
+                    goto Success;
+                }
+
+                // If both attempts fail, return an error
+                var errorMessageFinal = $"Failed to configure network with card: {_networkCard}";
+                Log.Error(errorMessageFinal);
+                var errorFinal = new Error(errorMessageFinal)
+                {
+                    Metadata = { ["ErrorCode"] = OperationErrorCode.InitializationFailed }
+                };
+                return Result.Fail(errorFinal);
+
+                // We continue execution
+                Success:
+                {
+                    try
                     {
-                        Metadata = { ["ErrorCode"] = OperationErrorCode.InitializationFailed }
-                    };
-                    return Result.Fail(error);
-                }
-                if (!_controller.TryConfigureNetwork(_networkCard, 1, "1 X1"))
-                {
-                    var errorMessage = $"Failed to configure network with card: {_networkCard}";
-                    Log.Error(errorMessage);
-                    var error = new Error(errorMessage)
+                        _rpcService = RPCService.CreateAsync(cpuIP, "Everybody", "")
+                           .GetAwaiter().GetResult();
+                    
+                        // Optionally verify the required JSON‐RPC calls exist:
+                        bool hasAllCalls = _rpcService.HasRequiredMethodsAsync(new[] 
+                        {
+                            "Plc.ReadOperatingMode", 
+                            "Plc.RequestChangeOperatingMode" 
+                        }).GetAwaiter().GetResult();
+                    
+                        if (!hasAllCalls)
+                        {
+                            Log.Warning("S7-1200 does not support changing operation mode via JSON-RPC.");
+                            Log.Warning("Required methods for RPCController are missing. Proceeding without RPC-based Start/Stop support.");
+                            _rpcService = null; // Force fallback
+                        }
+                        else
+                        {
+                            Log.Information("RPCService initialized and required methods are available.");
+                        }
+                    }
+                    catch (Exception ex)
                     {
-                        Metadata = { ["ErrorCode"] = OperationErrorCode.InitializationFailed }
-                    };
-                    return Result.Fail(error);
-                }
+                        Log.Error("Failed to initialize RPCService. Error: {Message}", ex.Message);
+                        Log.Warning("Proceeding without RPC-based Start/Stop support.");
+                        _rpcService = null;
+                    }
 
-                // Initialize RPC Controller
-                Log.Debug("Initializing RPCController...");
-                _rpcController = InitializeRpcController(cpuIP);
-                if (_rpcController == null)
-                {
-                    Log.Warning("RPCController initialization failed. Proceeding without RPC support.");
+                    // Mark that we are now online
+                    _onlineInitialized = true;
+                    Log.Information("Online initialization completed successfully.");
+                    return Result.Ok();
                 }
-
-                // Mark that we are now online
-                _onlineInitialized = true;
-                Log.Information("Online initialization completed successfully.");
-                return Result.Ok();
             }
             catch (Exception ex)
             {
@@ -1822,35 +1902,6 @@ namespace PLC.Commissioning.Lib.Siemens
         {
             var parameterHandler = new ParameterHandler(moduleItem);
             return parameterHandler.SetModuleData(module, parametersToSet);
-        }
-
-        /// <summary>
-        /// Initializes the RPCController for PLC communication.
-        /// </summary>
-        /// <param name="cpuIP">The IP address of the CPU.</param>
-        /// <returns>An initialized instance of <see cref="RPCController"/> or null if required methods are missing.</returns>
-        private RPCController InitializeRpcController(string cpuIP)
-        {
-            try
-            {
-                var rpcController = RPCController.InitializeAsync(cpuIP, "Everybody", "")
-                    .GetAwaiter().GetResult();
-                Log.Information("RPCController initialized successfully.");
-
-                // Validate the required methods within the RPCController instance
-                if (!rpcController.HasRequiredMethods(new[] { "Plc.ReadOperatingMode", "Plc.RequestChangeOperatingMode" }))
-                {
-                    Log.Warning("Required methods for RPCController are missing. Falling back to standard use case.");
-                    return null; // Perform fallback if required methods are not available
-                }
-
-                return rpcController;
-            }
-            catch (Exception ex)
-            {
-                Log.Error($"Failed to initialize RPCController: {ex.Message}");
-                return null;
-            }
         }
         
         /// <summary>

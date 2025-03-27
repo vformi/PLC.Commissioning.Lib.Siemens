@@ -49,9 +49,10 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject
         /// <inheritdoc />
         public bool HandleProject(string projectPath)
         {
-            if (!_fileSystem.FileExists(projectPath)) // Use IFileSystem
+            if (!_fileSystem.FileExists(projectPath))
             {
-                throw new FileNotFoundException("Project file not found.", projectPath);
+                Log.Error("Project file not found: {ProjectPath}", projectPath);
+                return false;
             }
 
             string extension = Path.GetExtension(projectPath).ToLowerInvariant();
@@ -76,21 +77,16 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject
             }
             catch (EngineeringTargetInvocationException ex)
             {
-                if (ex.InnerException != null && ex.InnerException.Message.Contains("cannot be accessed"))
+                if (ex.InnerException?.Message.Contains("cannot be accessed") == true)
                 {
-                    Log.Error($"The project '{projectPath}' is currently locked and cannot be opened. Please wait for 2 minutes before trying again.");
-                    return false;
+                    Log.Error($"The project '{projectPath}' is currently locked and cannot be accessed.");
                 }
-                else
-                {
-                    Log.Error($"Failed to open project '{projectPath}': {ex.Message}");
-                    return false;
-                }
+                return false; 
             }
             catch (Exception ex)
             {
-                Log.Error($"Failed to open project '{projectPath}': {ex.Message}");
-                return false;
+                Log.Error($"An unexpected error occurred while handling project '{projectPath}': {ex.Message}");
+                return false; 
             }
         }
 

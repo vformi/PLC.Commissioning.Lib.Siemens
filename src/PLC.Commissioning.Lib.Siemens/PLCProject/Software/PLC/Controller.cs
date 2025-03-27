@@ -78,7 +78,7 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Software.PLC
                     return false;
 
                 case NetworkConfigurationResult.PcInterfaceNotFound:
-                    Log.Error("PC interface '{NetworkCardName}' not found.", networkCardName);
+                    Log.Debug("PC interface '{NetworkCardName}' not found.", networkCardName); // log just a debug here, error is handled in the parent method 
                     return false;
 
                 case NetworkConfigurationResult.TargetInterfaceNotFound:

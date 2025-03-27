@@ -116,14 +116,19 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware
 
                 // Retrieve module details from GSDML using GsdId
                 var (gsdmlModule, _) = DeviceGsdmlModel.ModuleList.GetModuleItemByGsdId(hwModule.GsdId);
-
+                
+                // Skip logging warning for specific modules "PN-IO" and "Device parameter"
                 if (gsdmlModule == null || gsdmlModule.Model.IOData == null)
                 {
-                    Log.Warning("No GSDML IOData found for module {ModuleName}. Skipping tag table creation.",
-                        hwModule.ModuleName);
-                    continue; // Skip this module entirely
+                    // Only log warning if the module name is not "PN-IO" or "Device parameter"
+                    if (hwModule.ModuleName != "PN-IO" && hwModule.ModuleName != "Device parameter")
+                    {
+                        Log.Warning("No GSDML IOData found for module {ModuleName}. Skipping tag table creation.",
+                            hwModule.ModuleName);
+                    }
+                    continue;
                 }
-
+                
                 // Use GSDML-defined name (replace spaces with underscores)
                 string gsdmlModuleName = gsdmlModule.Model.Name.Replace(" ", "_");
 
@@ -290,6 +295,38 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware
                             // Continue with next DataItem so no further tag is added for OctetString.
                             continue;
                         }
+
+                        case "F_MessageTrailer4Byte":
+                            // Allocate 4 bytes for the PROFIsafe message trailer
+                            for (int i = 0; i < 4; i++)
+                            {
+                                string currentLogicalAddress = $"{addressPrefix}B{startAddress + byteOffset + i}";
+                                string currentTagName;
+                                if (addressPrefix == "%Q")
+                                {
+                                    currentTagName = $"{DeviceName}_{moduleName}_F_MessageTrailer_Q_{i}";
+                                }
+                                else
+                                {
+                                    currentTagName = $"{DeviceName}_{moduleName}_F_MessageTrailer_I_{i}";
+                                }
+                                
+
+                                tagTable.Tags.Add(new TagModel
+                                {
+                                    Name = currentTagName,
+                                    DataType = "Byte",
+                                    Address = currentLogicalAddress,
+                                });
+
+                                Log.Debug(
+                                    "Added Message Trailer Byte Tag: {TagName}, Address: {LogicalAddress}, DataType: Byte",
+                                    currentTagName, currentLogicalAddress);
+                            }
+
+                            // Advance the offset by 4 bytes
+                            byteOffset += 4;
+                            continue;
 
                         default:
                             Log.Warning("Unhandled data type {DataType} for DataItem {TextId}. Skipping.",

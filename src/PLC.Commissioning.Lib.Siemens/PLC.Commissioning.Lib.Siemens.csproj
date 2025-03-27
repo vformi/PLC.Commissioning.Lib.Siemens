@@ -24,5 +24,9 @@
       <_Parameter1>PLC.Commissioning.Lib.Siemens.Tests</_Parameter1>
     </AssemblyAttribute>
   </ItemGroup>
-	
+
+  <ItemGroup>
+    <EmbeddedResource Include="PLCProject\Software\Resources\BaseServerInterface.xml" />
+  </ItemGroup>
+
 </Project>

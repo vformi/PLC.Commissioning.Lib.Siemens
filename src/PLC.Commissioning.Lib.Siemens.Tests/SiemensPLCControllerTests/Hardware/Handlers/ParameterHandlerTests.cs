@@ -221,6 +221,118 @@ namespace PLC.Commissioning.Lib.Siemens.Tests.SiemensPLCControllerTests.Hardware
             Assert.AreEqual(50, validResult[5]);
             Assert.IsNull(invalidResult);
         }
+        
+        
+        [Test]
+    public void WriteModuleData_BitArea_Should_Set_Correct_Bit_Values()
+    {
+        // Arrange
+        byte[] originalData = new byte[33];
+        var parameterValues = new Dictionary<string, object>
+        {
+            { "Codetype1", 0b000101 } // Setting a 6-bit BitArea value
+        };
+
+        // Act
+        byte[] modifiedData = _parameterHandler.WriteModuleData(originalData, parameterValues);
+
+        // Assert
+        Assert.IsNotNull(modifiedData);
+        Assert.AreEqual(0b000101, modifiedData[1] & 0b00111111, "BitArea value should be set correctly");
+    }
+
+    [TestCase(0, true)] // Min boundary case
+    [TestCase(63, true)] // Max boundary case (6-bit value = 0b111111 = 63)
+    [TestCase(64, false)] // Out of range (should fail)
+    [TestCase(-1, false)] // Negative value (should fail)
+    public void WriteModuleData_BitArea_Should_Validate_Boundary_Values(int bitAreaValue, bool expectedValid)
+    {
+        // Arrange
+        byte[] originalData = new byte[33];
+        var parameterValues = new Dictionary<string, object>
+        {
+            { "Codetype1", bitAreaValue }
+        };
+
+        // Act
+        byte[] modifiedData = _parameterHandler.WriteModuleData(originalData, parameterValues);
+
+        // Assert
+        if (expectedValid)
+        {
+            Assert.IsNotNull(modifiedData);
+            Assert.AreEqual(bitAreaValue, modifiedData[1] & 0b00111111);
+        }
+        else
+        {
+            Assert.IsNull(modifiedData, "Invalid BitArea values should return null");
+        }
+    }
+
+    [Test]
+    public void WriteModuleData_BitArea_Should_Handle_BitOffset_Correctly()
+    {
+        // Arrange: Define a BitArea parameter with an offset of 2 bits
+        var bitAreaRef = new RefModel
+        {
+            DataType = "BitArea", ByteOffset = 1, BitOffset = 2, BitLength = 4, Text = "ShiftedBitArea",
+            DefaultValue = "0"
+        };
+
+        _mockDeviceItem.Object.ParameterRecordDataItem.Refs.Add(bitAreaRef);
+
+        byte[] originalData = new byte[33];
+        var parameterValues = new Dictionary<string, object>
+        {
+            { "ShiftedBitArea", 0b1010 } // Binary 1010 (4-bit) shifted by 2 bits
+        };
+
+        // Act
+        byte[] modifiedData = _parameterHandler.WriteModuleData(originalData, parameterValues);
+
+        // Assert: The value should be correctly positioned within the byte
+        Assert.IsNotNull(modifiedData);
+        Assert.AreEqual(0b101000, modifiedData[1] & 0b00111100);
+    }
+
+    [Test]
+    public void ParseModuleData_BitArea_Should_Return_Correct_Value()
+    {
+        // Arrange
+        byte[] testData = new byte[33];
+        testData[1] = 0b001011; // BitArea value
+
+        // Act
+        var result = _parameterHandler.ParseModuleData(testData);
+
+        // Assert
+        Assert.AreEqual(0b001011, result.Find(r => r.Parameter == "Codetype1").Value);
+    }
+
+    [TestCase("Codetype1", 0, true)] // Minimum valid value
+    [TestCase("Codetype1", 63, true)] // Maximum valid value (0b111111)
+    [TestCase("Codetype1", 64, false)] // Exceeds BitArea length (invalid)
+    [TestCase("Codetype1", -1, false)] // Negative value (invalid)
+    public void WriteModuleData_Should_Validate_BitArea_Properly(string param, int value, bool expectedValid)
+    {
+        // Arrange
+        byte[] originalData = new byte[33];
+        var parameterValues = new Dictionary<string, object> { { param, value } };
+
+        // Act
+        byte[] modifiedData = _parameterHandler.WriteModuleData(originalData, parameterValues);
+
+        // Assert
+        if (expectedValid)
+        {
+            Assert.IsNotNull(modifiedData);
+            Assert.AreEqual(value, modifiedData[1] & 0b00111111);
+        }
+        else
+        {
+            Assert.IsNull(modifiedData);
+        }
+    }
     }
 }
 

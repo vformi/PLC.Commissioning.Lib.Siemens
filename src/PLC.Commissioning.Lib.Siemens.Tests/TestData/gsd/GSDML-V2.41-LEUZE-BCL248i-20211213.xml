@@ -2359,7 +2359,7 @@
           <Text TextId="IDT_MODULE_NAME_CodeTypeFeatures" Value="[M05] Code type features" />
           <Text TextId="IDT_MODULE_NAME_CodeFragmentTech" Value="[M07] Code fragment technology" />
           <Text TextId="IDT_MODULE_NAME_Activation" Value="[M10] Activation" />
-          <Text TextId="IDT_MODULE_NAME_ReadilngGateControl" Value="[M11] Reading gate control" />
+          <Text TextId="IDT_MODULE_NAME_ReadingGateControl" Value="[M11] Reading gate control" />
           <Text TextId="IDT_MODULE_NAME_MultiLabel" Value="[M12] Multilabel" />
           <Text TextId="IDT_MODULE_NAME_FragReadResult" Value="[M13] Fragmented read result" />
           <Text TextId="IDT_MODULE_NAME_AggregatedReadResult" Value="[M14] Aggregated read result" />
