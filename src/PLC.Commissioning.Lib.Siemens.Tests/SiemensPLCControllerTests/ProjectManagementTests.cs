@@ -3,13 +3,11 @@ using System;
 using System.IO;
 using System.Collections.Generic;
 using Serilog;
-using System.Linq;
-using System.Threading;
 
-namespace PLC.Commissioning.Lib.Siemens.Tests
+namespace PLC.Commissioning.Lib.Siemens.Tests.SiemensPLCControllerTests
 {
     [TestFixture]
-    public class ProjectManagementTests : IDisposable
+    public class ProjectManagementTests
     {
         private SiemensPLCController _plc;
         private bool _disposed = false;
@@ -27,11 +25,20 @@ namespace PLC.Commissioning.Lib.Siemens.Tests
             // Initialize the SiemensPLCController
             _plc = new SiemensPLCController();
 
-            // Set up the test data path
+            // Set up the test data path, ensuring all file paths are relative to the project directory
             _testDataPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "TestData");
-            string jsonFilePath = Path.Combine(_testDataPath, "Configurations", "valid_config.json");
-            _plc.Configure(jsonFilePath);
 
+            // Ensure the directory exists
+            if (!Directory.Exists(_testDataPath))
+            {
+                Directory.CreateDirectory(_testDataPath);
+            }
+
+            // Load configuration for PLC
+            string jsonFilePath = Path.Combine(_testDataPath, "Configurations", "valid_config.json");
+            Assert.That(File.Exists(jsonFilePath), "Configuration file should exist.");
+
+            _plc.Configure(jsonFilePath);
             Log.Information("Test setup completed. Test data directory: {Path}", _testDataPath);
         }
 
@@ -41,19 +48,28 @@ namespace PLC.Commissioning.Lib.Siemens.Tests
             // Arrange
             _plc.Initialize(safety: false);
 
-            string exportPath =
-                "C:\\Users\\Legion\\Documents\\CODING\\git\\projects\\dt.PLC.Commissioning.Lib\\src\\submodules\\Siemens\\src\\PLC.Commissioning.Lib.Siemens.Tests\\TestData\\Export";
+            // Define export path inside test data directory
+            string exportPath = Path.Combine(_testDataPath, "Export");
+
+            // Ensure export directory exists
+            if (!Directory.Exists(exportPath))
+            {
+                Directory.CreateDirectory(exportPath);
+            }
 
             var filesToExport = new Dictionary<string, object>
-                {
-                    { "plcTags", exportPath }
-                };
+            {
+                { "plcTags", exportPath }
+            };
 
             // Act
-            bool result = _plc.Export(filesToExport);
+            var result = _plc.Export(filesToExport);
 
             // Assert
-            Assert.That(result, Is.True, "Export should return true when export is successful.");
+            Assert.That(result.IsSuccess, "Export should return true when successful.");
+
+            // Validate that the export directory contains files
+            Assert.That(Directory.GetFiles(exportPath).Length > 0, "Export directory should contain files.");
         }
 
         [Test]
@@ -62,13 +78,13 @@ namespace PLC.Commissioning.Lib.Siemens.Tests
             // Arrange
             _plc.Initialize(safety: false);
 
-            string saveName = "ProjectAAA";
+            string saveName = "TestProject";
 
             // Act
-            bool result = _plc.SaveProjectAs(saveName);
+            var result = _plc.SaveProjectAs(saveName);
 
             // Assert
-            Assert.That(result, Is.True, "SaveProjectAs should return true when the project is saved successfully.");
+            Assert.That(result.IsSuccess, "SaveProjectAs should return true when successful.");
         }
 
         [Test]
@@ -77,17 +93,22 @@ namespace PLC.Commissioning.Lib.Siemens.Tests
             // Arrange
             _plc.Initialize(safety: false);
 
-            string importPath = "C:\\Users\\vformane\\Desktop\\Export\\Default tag table.xml";
+            // Define import path inside test data directory
+            string importPath = Path.Combine(_testDataPath, "Import", "DefaultTagTable.xml");
+
+            // Ensure file exists before attempting import
+            Assert.That(File.Exists(importPath), "Import file should exist: " + importPath);
+
             var filesToImport = new Dictionary<string, object>
             {
                 { "plcTags", importPath }
             };
 
             // Act
-            bool result = _plc.AdditionalImport(filesToImport);
+            var result = _plc.AdditionalImport(filesToImport);
 
             // Assert
-            Assert.That(result, Is.True, "AdditionalImport should return true when the import succeeds.");
+            Assert.That(result.IsSuccess, "AdditionalImport should return true when successful.");
         }
 
         [TearDown]
@@ -95,34 +116,8 @@ namespace PLC.Commissioning.Lib.Siemens.Tests
         {
             if (!_disposed)
             {
-                Dispose(); // Ensure resources are disposed
+                _plc.Dispose(); // Ensure resources are disposed
             }
-        }
-
-        public void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
-
-        protected virtual void Dispose(bool disposing)
-        {
-            if (!_disposed)
-            {
-                if (disposing)
-                {
-                    // Dispose resources
-                    Thread.Sleep(5000); // Allow TIA Portal to close properly
-                    _plc?.Dispose();
-                    Log.Information("Test resources have been disposed.");
-                }
-                _disposed = true;
-            }
-        }
-
-        ~ProjectManagementTests()
-        {
-            Dispose(false);
         }
     }
 }

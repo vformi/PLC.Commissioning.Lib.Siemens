@@ -1,70 +1,127 @@
 ﻿using NUnit.Framework;
-using System.IO;
-using System.Xml;
 using PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.GSD;
 using System;
+using System.IO;
 
-namespace PLC.Commissioning.Lib.Siemens.Tests.Hardware.GSD
+namespace PLC.Commissioning.Lib.Siemens.Tests.SiemensPLCControllerTests.Hardware.GSD
 {
     [TestFixture]
-    internal class GSDHandlerTests
+    public class GSDHandlerTests
     {
-        private string _validGsdFilePath;
-        private string _invalidGsdFilePath;
-        private string _basePath = null;
-        private string _projectRoot = null;
+        private string _testDataPath;
 
         [SetUp]
-        public void SetUp()
+        public void Setup()
         {
-            // figure out paths 
-            _basePath = AppDomain.CurrentDomain.BaseDirectory;
-            _projectRoot = Directory.GetParent(_basePath).Parent.Parent.Parent.FullName;
-            // Set up file paths for valid and invalid GSD files.
-            _validGsdFilePath = Path.Combine(_projectRoot, "configuration_files", "gsd", "GSDML-V2.41-LEUZE-BCL348i-20211213.xml");
-            _invalidGsdFilePath = Path.Combine(_projectRoot, "configuration_files", "gsd", "invalid.xml");
+            // This assumes the TestData/gsd folder is in your bin output directory
+            // If you're structuring differently, adjust as needed
+            _testDataPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "TestData", "gsd");
         }
 
         [Test]
-        public void Initialize_ShouldReturnTrue_WhenGsdFileIsValid()
+        [TestCase("GSDML-V2.3-LEUZE-BCL648i-20150128.xml")]
+        [TestCase("GSDML-V2.25-LEUZE-BCL348i-20120814.xml")]
+        [TestCase("GSDML-V2.31-LEUZE-BCL348i-20150923.xml")]
+        [TestCase("GSDML-V2.41-LEUZE-BCL248i-20211213.xml")]
+        [TestCase("GSDML-V2.42-LEUZE-RSL400P CU 4M12-20230816.xml")]
+        public void Initialize_ReturnsTrue_ForValidGsdmlFiles(string fileName)
         {
+            // Arrange
+            string filePath = Path.Combine(_testDataPath, fileName);
             var gsdHandler = new GSDHandler();
-            bool result = gsdHandler.Initialize(_validGsdFilePath);
 
-            Assert.IsTrue(result, "GSDHandler should return true when the GSD file is valid.");
-            Assert.IsNotNull(gsdHandler.xmlDoc, "The XML document should be loaded when the GSD file is valid.");
+            // Act
+            bool result = gsdHandler.Initialize(filePath);
+
+            // Assert
+            Assert.IsTrue(result, $"Expected initialization to succeed for {fileName}, but got false.");
+            Assert.IsNotNull(gsdHandler.xmlDoc, "XmlDocument should not be null after valid initialization.");
+            Assert.IsNotNull(gsdHandler.nsmgr, "XmlNamespaceManager should not be null after valid initialization.");
         }
 
         [Test]
-        public void Initialize_ShouldReturnFalse_WhenGsdFileIsInvalid()
+        public void Initialize_ReturnsFalse_WhenFileNotFound()
         {
+            // Arrange
+            // purposely pass a file that doesn't exist
+            string invalidPath = Path.Combine(_testDataPath, "NoSuchFile.xml");
             var gsdHandler = new GSDHandler();
-            bool result = gsdHandler.Initialize(_invalidGsdFilePath);
 
-            Assert.IsFalse(result, "GSDHandler should return false when the GSD file is invalid.");
+            // Act
+            bool result = gsdHandler.Initialize(invalidPath);
+
+            // Assert
+            Assert.IsFalse(result, "Expected initialization to fail for a non-existent file path, but returned true.");
         }
 
         [Test]
-        public void GetExternalText_ShouldReturnNull_WhenTextIdDoesNotExist()
+        public void Initialize_ReturnsFalse_WhenFileIsMalformed()
         {
+            // Arrange
+            string filePath = Path.Combine(_testDataPath, "MalformedGSDML.xml");
             var gsdHandler = new GSDHandler();
-            gsdHandler.Initialize(_validGsdFilePath); // Assume this file contains valid structure
 
-            string result = gsdHandler.GetExternalText("NonExistentTextId");
+            // Act
+            bool result = gsdHandler.Initialize(filePath);
 
-            Assert.IsNull(result, "GetExternalText should return null when the TextId does not exist.");
+            // Assert
+            Assert.IsFalse(result, "Expected initialization to fail for a malformed XML, but returned true.");
         }
 
         [Test]
-        public void GetExternalText_ShouldReturnCorrectText_WhenTextIdExists()
+        public void GetExternalText_ReturnsNull_WhenTextIdIsEmptyOrNull()
         {
+            // Arrange
+            string filePath = Path.Combine(_testDataPath, "GSDML-V2.3-LEUZE-BCL648i-20150128.xml");
             var gsdHandler = new GSDHandler();
-            gsdHandler.Initialize(_validGsdFilePath);
+            Assert.IsTrue(gsdHandler.Initialize(filePath), "Initialization should succeed for a valid file.");
 
-            // Assume that the XML file contains a TextId "ExampleTextId" with value "Example Text"
-            string result = gsdHandler.GetExternalText("DAP_CODETABLE_PARAM_REF_NAME_Codetype1");
+            // Act
+            var resultEmpty = gsdHandler.GetExternalText(String.Empty);
+            var resultNull = gsdHandler.GetExternalText(null);
 
-            Assert.AreEqual("Code type 1", result, "GetExternalText should return the correct text value for a valid TextId.");
+            // Assert
+            Assert.IsNull(resultEmpty, "Empty text ID should return null.");
+            Assert.IsNull(resultNull, "Null text ID should return null.");
+        }
+
+        [Test]
+        public void GetExternalText_ReturnsCorrectValue_ForKnownTextId()
+        {
+            // Arrange
+            string filePath = Path.Combine(_testDataPath, "GSDML-V2.3-LEUZE-BCL648i-20150128.xml");
+            var gsdHandler = new GSDHandler();
+            Assert.IsTrue(gsdHandler.Initialize(filePath));
+            
+            string knownTextId = "DeviceDescription";
+            string expectedValue = "PROFINET IO Identification Device";
+
+            // Act
+            var actualValue = gsdHandler.GetExternalText(knownTextId);
+
+            // Assert
+            Assert.AreEqual(expectedValue, actualValue, "The external text should match expected device name.");
+        }
+
+        [Test]
+        public void GetValueItem_ReturnsExpectedValueItem()
+        {
+            // Arrange
+            // Suppose in this file we know there's a ValueItem with ID="SomeUniqueID"
+            // and it has certain assignments.
+            string filePath = Path.Combine(_testDataPath, "GSDML-V2.3-LEUZE-BCL648i-20150128.xml");
+            var gsdHandler = new GSDHandler();
+            Assert.IsTrue(gsdHandler.Initialize(filePath));
+
+            string expectedId = "DAP_PARAM_REF_VALUE_Profile";
+
+            // Act
+            var valueItem = gsdHandler.GetValueItem(expectedId);
+
+            // Assert
+            Assert.IsNotNull(valueItem, $"ValueItem with ID={expectedId} should not be null.");
+            Assert.AreEqual(expectedId, valueItem.ID, "ValueItem ID should match.");
+            Assert.IsNotEmpty(valueItem.Assignments, "Expected one or more Assign objects in ValueItem.");
         }
     }
 }

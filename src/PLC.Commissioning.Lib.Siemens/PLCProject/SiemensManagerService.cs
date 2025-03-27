@@ -80,7 +80,11 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject
         /// </summary>
         public void Dispose()
         {
-            TiaPortal?.Dispose();
+            if (TiaPortal != null)
+            {
+                TiaPortal.Dispose();
+                TiaPortal = null;
+            }
             // Unregister the AssemblyResolve event if previously registered.
             AppDomain.CurrentDomain.AssemblyResolve -= MyResolver;
         }

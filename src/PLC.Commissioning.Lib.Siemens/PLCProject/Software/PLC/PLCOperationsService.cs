@@ -36,7 +36,7 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Software.PLC
                 Log.Debug($"Attempting to switch PLC to STOP mode");
                 DownloadConfigurationDelegate preDownloadDelegate = PreConfigureDownload;
                 DownloadConfigurationDelegate postDownloadDelegate = PostConfigureStop;
-                DownloadResult result = _downloadProvider.Download(_targetConfiguration, preDownloadDelegate, postDownloadDelegate, DownloadOptions.Software);
+                DownloadResult result = _downloadProvider.Download(_targetConfiguration, preDownloadDelegate, postDownloadDelegate, DownloadOptions.Hardware);
 
                 // Use OperationLogger to log the download results
                 var logger = new OperationLogger(new DownloadResultWrapper(result));
@@ -63,7 +63,7 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Software.PLC
                 Log.Debug($"Attempting to switch PLC to RUN mode");
                 DownloadConfigurationDelegate preDownloadDelegate = PreConfigureDownload;
                 DownloadConfigurationDelegate postDownloadDelegate = PostConfigureDownload;
-                DownloadResult result = _downloadProvider.Download(_targetConfiguration, preDownloadDelegate, postDownloadDelegate, DownloadOptions.Software);
+                DownloadResult result = _downloadProvider.Download(_targetConfiguration, preDownloadDelegate, postDownloadDelegate, DownloadOptions.Hardware);
 
                 // Use OperationLogger to log the download results
                 var logger = new OperationLogger(new DownloadResultWrapper(result));
@@ -130,6 +130,16 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Software.PLC
             if (downloadConfiguration is DifferentTargetConfiguration diffTgt)
             {
                 diffTgt.CurrentSelection = DifferentTargetConfigurationSelections.AcceptAll;
+                return;
+            }
+            if (downloadConfiguration is UpgradeTargetDevice upgradeTargetDevice)
+            {
+                upgradeTargetDevice.Checked = true;
+                return;
+            }
+            if (downloadConfiguration is DowngradeTargetDevice downgradeTargetDevice)
+            {
+                downgradeTargetDevice.Checked = true;
                 return;
             }
             if (downloadConfiguration is AlarmTextLibrariesDownload alarmTextLibraries)

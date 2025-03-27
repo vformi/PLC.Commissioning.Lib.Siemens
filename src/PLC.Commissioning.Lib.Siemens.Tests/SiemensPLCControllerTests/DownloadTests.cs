@@ -3,11 +3,12 @@ using System.IO;
 using NUnit.Framework;
 using Serilog;
 using Siemens.Engineering.Download;
+using FluentResults;
 
-namespace PLC.Commissioning.Lib.Siemens.Tests
+namespace PLC.Commissioning.Lib.Siemens.Tests.SiemensPLCControllerTests
 {
     [TestFixture]
-    public class DownloadTests : IDisposable
+    public class DownloadTests
     {
         private SiemensPLCController _plc;
         private bool _disposed = false;
@@ -21,7 +22,7 @@ namespace PLC.Commissioning.Lib.Siemens.Tests
                 .MinimumLevel.Debug()
                 .WriteTo.Console()
                 .CreateLogger();
-            
+
             // Set up test data path
             _testDataPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "TestData");
             string jsonFilePath = Path.Combine(_testDataPath, "Configurations", "valid_config.json");
@@ -29,6 +30,7 @@ namespace PLC.Commissioning.Lib.Siemens.Tests
             // Initialize SiemensPLCController
             _plc = new SiemensPLCController();
             _plc.Configure(jsonFilePath);
+
             Log.Information("Test setup completed. Test data directory: {Path}", _testDataPath);
         }
 
@@ -39,10 +41,10 @@ namespace PLC.Commissioning.Lib.Siemens.Tests
             _plc.Initialize(safety: false);
 
             // Act 
-            bool fullDownload = _plc.Download(DownloadOptions.Hardware | DownloadOptions.Software);
+            Result result = _plc.Download(DownloadOptions.Hardware | DownloadOptions.Software);
 
             // Assert
-            Assert.That(fullDownload, Is.True, "PLC should download HW & SW successfully.");
+            Assert.That(result.IsSuccess, Is.True, "PLC should download HW & SW successfully.");
         }
 
         [Test]
@@ -52,10 +54,10 @@ namespace PLC.Commissioning.Lib.Siemens.Tests
             _plc.Initialize(safety: true);
 
             // Act 
-            bool download = _plc.Download("safety");
+            Result result = _plc.Download("safety");
 
             // Assert
-            Assert.That(download, Is.True, "PLC should download safety successfully.");
+            Assert.That(result.IsSuccess, Is.True, "PLC should download safety successfully.");
         }
 
         [Test]
@@ -65,41 +67,32 @@ namespace PLC.Commissioning.Lib.Siemens.Tests
             _plc.Initialize(safety: false);
 
             // Act 
-            bool download = _plc.Download("safety");
+            Result result = _plc.Download("safety");
 
             // Assert
-            Assert.That(download, Is.False, "PLC should not download safety.");
+            Assert.That(result.IsFailed, Is.True, "PLC should not download safety.");
+            Assert.That(result.Errors, Has.Count.GreaterThan(0), "Error should be returned.");
+        }
+
+        [Test]
+        public void Download_ShouldFail_WhenInvalidOptionsProvided()
+        {
+            // Arrange
+            _plc.Initialize(safety: false);
+            
+            // Act
+            Result result = _plc.Download(123); // Invalid option
+
+            // Assert
+            Assert.That(result.IsFailed, Is.True, "Download should fail when invalid options are provided.");
+            Assert.That(result.Errors, Has.Count.GreaterThan(0), "Error should be returned.");
         }
 
         [TearDown]
         public void TearDown()
         {
-            Dispose();
-        }
-
-        public void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
-
-        protected virtual void Dispose(bool disposing)
-        {
-            if (!_disposed)
-            {
-                if (disposing)
-                {
-                    _plc?.Dispose();
-                    Log.Information("Test resources disposed.");
-                }
-
-                _disposed = true;
-            }
-        }
-
-        ~DownloadTests()
-        {
-            Dispose(false);
+            _plc.Dispose();
+            Log.Information("SiemensPLCController disposed.");
         }
     }
 }

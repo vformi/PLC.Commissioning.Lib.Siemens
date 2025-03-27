@@ -18,5 +18,15 @@
     <ProjectReference Include="..\..\..\Abstractions\src\PLC.Commissioning.Lib.Abstractions\PLC.Commissioning.Lib.Abstractions.csproj" />
     <ProjectReference Include="..\..\..\Webserver\src\PLC.Commissioning.Lib.Siemens.Webserver\PLC.Commissioning.Lib.Siemens.Webserver.csproj" />
   </ItemGroup>
-	
+
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+      <_Parameter1>PLC.Commissioning.Lib.Siemens.Tests</_Parameter1>
+    </AssemblyAttribute>
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="PLCProject\Software\Resources\BaseServerInterface.xml" />
+  </ItemGroup>
+
 </Project>

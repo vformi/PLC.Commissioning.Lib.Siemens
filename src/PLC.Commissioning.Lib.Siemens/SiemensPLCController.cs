@@ -8,11 +8,14 @@ using Serilog;
 using PLC.Commissioning.Lib.Siemens.PLCProject;
 using PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.GSD;
 using PLC.Commissioning.Lib.Siemens.PLCProject.Software.PLC;
+using PLC.Commissioning.Lib.Siemens.PLCProject.Software.Handlers;
 using PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.Handlers;
 using PLC.Commissioning.Lib.Siemens.PLCProject.UI;
 using PLC.Commissioning.Lib.Abstractions;
 using PLC.Commissioning.Lib.Abstractions.Enums;
+using PLC.Commissioning.Lib.Siemens.PLCProject.Abstractions;
 using PLC.Commissioning.Lib.Siemens.PLCProject.Hardware;
+using PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.Abstractions;
 using Siemens.Engineering;
 using Siemens.Engineering.Download;
 using Siemens.Engineering.Online;
@@ -20,7 +23,8 @@ using Siemens.Engineering.HW;
 using Siemens.Engineering.HW.Features;
 using PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.GSD.Abstractions;
 using PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.Models;
-using PLC.Commissioning.Lib.Siemens.Webserver.Controllers;
+using PLC.Commissioning.Lib.Siemens.Webserver.Abstractions;
+using PLC.Commissioning.Lib.Siemens.Webserver.Services;
 using Siemens.Engineering.SW;
 using Siemens.Simatic.S7.Webserver.API.Enums;
 
@@ -34,11 +38,13 @@ namespace PLC.Commissioning.Lib.Siemens
     {
         # region Private Variables
         // Internal variables for application workflow
+        private readonly IFileSystem _fileSystem = new FileSystemWrapper();
+        protected virtual IFileSystem FileSystem => _fileSystem;
 
         /// <summary>
         /// Service for managing the Siemens Manager instance.
         /// </summary>
-        private SiemensManagerService _manager;
+        private ISiemensManagerService _manager;
 
         /// <summary>
         /// Represents the TIA Portal instance.
@@ -48,18 +54,18 @@ namespace PLC.Commissioning.Lib.Siemens
         /// <summary>
         /// Handles project-related operations within the TIA Portal.
         /// </summary>
-        private ProjectHandlerService _projectHandler;
+        private IProjectHandlerService _projectHandler;
 
         /// <summary>
         /// Manages hardware configurations in the project.
         /// </summary>
-        private HardwareHandler _hardwareHandler;
+        private IHardwareHandler _hardwareHandler;
 
         /// <summary>
         /// Manages IO systems within the project.
         /// </summary>
-        private IOSystemHandler _ioSystemHandler;
-
+        private IIOSystemHandler _ioSystemHandler;
+        
         /// <summary>
         /// Represents the CPU device item in the hardware configuration.
         /// </summary>
@@ -68,7 +74,7 @@ namespace PLC.Commissioning.Lib.Siemens
         /// <summary>
         /// Represents the plcSoftware for working with the software configuration.
         /// </summary>
-        private PlcSoftware _plcSoftware;
+        protected PlcSoftware _plcSoftware;
 
         /// <summary>
         /// Provides download functionalities to the PLC.
@@ -88,7 +94,7 @@ namespace PLC.Commissioning.Lib.Siemens
         /// <summary>
         /// Handles webserver interactions for start and stop procedures
         /// </summary>
-        private RPCController _rpcController;
+        private IRPCService _rpcService;
 
         // Internal variables to hold configuration values
 
@@ -123,7 +129,7 @@ namespace PLC.Commissioning.Lib.Siemens
         /// <summary>
         /// Gets a valid IOSystemHandler. Uses lazy initialization.
         /// </summary>
-        private IOSystemHandler IoSystemHandler
+        protected IIOSystemHandler IoSystemHandler
         {
             get
             {
@@ -137,10 +143,6 @@ namespace PLC.Commissioning.Lib.Siemens
                     _ioSystemHandler = new IOSystemHandler(_projectHandler);
                     Log.Debug("IOSystemHandler created.");
                 }
-                else
-                {
-                    Log.Debug("Reusing existing IOSystemHandler instance.");
-                }
                 return _ioSystemHandler;
             }
         }
@@ -148,19 +150,14 @@ namespace PLC.Commissioning.Lib.Siemens
         /// <summary>
         /// Gets a valid HardwareHandler. If it is null or disposed, it is reinitialized.
         /// </summary>
-        private HardwareHandler HardwareHandler
+        protected IHardwareHandler HardwareHandler
         {
             get
             {
-                // Assuming HardwareHandler exposes an IsDisposed property.
                 if (_hardwareHandler == null)
                 {
                     _hardwareHandler = new HardwareHandler(_projectHandler);
                     Log.Debug("HardwareHandler created.");
-                }
-                else
-                {
-                    Log.Debug("Reusing existing HardwareHandler instance.");
                 }
                 return _hardwareHandler;
             }
@@ -170,6 +167,11 @@ namespace PLC.Commissioning.Lib.Siemens
         /// Gets an IOTagsHandler instance based on the current PlcSoftware.
         /// </summary>
         private IOTagsHandler IOTagsHandler => new IOTagsHandler(_plcSoftware);
+        
+        /// <summary>
+        /// Gets an OPCHandler instance based on the current PlcSoftware.
+        /// </summary>
+        private OPCHandler OPCHandler => new OPCHandler(_plcSoftware, _cpu);
 
         #endregion
 
@@ -178,7 +180,7 @@ namespace PLC.Commissioning.Lib.Siemens
         {
             try
             {
-                var jsonContent = File.ReadAllText(jsonFilePath);
+                var jsonContent = FileSystem.ReadAllText(jsonFilePath);
                 var config = JsonConvert.DeserializeObject<Dictionary<string, object>>(jsonContent);
 
                 _projectPath = config["projectPath"].ToString();
@@ -220,7 +222,7 @@ namespace PLC.Commissioning.Lib.Siemens
 
                 // Step 2: Initialize the ProjectHandler
                 Log.Debug("Initializing ProjectHandlerService...");
-                _projectHandler = new ProjectHandlerService(_tiaPortalInstance);
+                _projectHandler = new ProjectHandlerService(_tiaPortalInstance, _fileSystem);
 
                 // Step 3: Verify and handle the project file
                 if (string.IsNullOrEmpty(_projectPath) || !File.Exists(_projectPath))
@@ -377,10 +379,15 @@ namespace PLC.Commissioning.Lib.Siemens
 
                 // Initialize IOTagsHandler
                 IOTagsHandler ioTagsHandler = IOTagsHandler;
+                OPCHandler opcHandler = OPCHandler;
 
                 // Build a map of GSDML models keyed by device model (TypeName)
                 var gsdModelMap = BuildGsdModelMap(gsdmlFiles);
                 var deviceDictionary = new Dictionary<string, object>();
+                var missingGsdTypes = new List<string>(); 
+                
+                // We'll keep a list of all ImportedDevice objects to build a single NodeSet
+                var allDeviceTagTables = new List<(ImportedDevice device, List<TagTableModel> tagTables)>();
 
                 foreach (var device in devices)
                 {
@@ -397,7 +404,8 @@ namespace PLC.Commissioning.Lib.Siemens
 
                     if (!gsdModelMap.TryGetValue(typeName, out var importedDeviceGsdmlModel))
                     {
-                        Log.Warning("No GSD model found for device type {TypeName}", typeName);
+                        // Accumulate the missing device info if any 
+                        missingGsdTypes.Add($"{deviceName} (Type: {typeName})");
                         continue;
                     }
 
@@ -413,15 +421,45 @@ namespace PLC.Commissioning.Lib.Siemens
                     foreach (var module in modules)
                     {
                         importedDevice.AddModule(module);
-                    }
+                    }   
+                    
+                    var tagTableDefinitions = importedDevice.GetTagTableDefinitions();
 
                     // Create tag tables in TIA Portal
-                    ioTagsHandler.CreateTagTables(importedDevice);
+                    ioTagsHandler.CreateTagTables(importedDevice, tagTableDefinitions);
 
                     // Add the device to the dictionary
                     deviceDictionary[deviceName] = importedDevice;
+                    
+                    // gather all devices for OPC import
+                    allDeviceTagTables.Add((importedDevice, tagTableDefinitions));
+                }
+                
+                // If there are missing GSDML types, fail and do not proceed with OPC UA import
+                if (missingGsdTypes.Count > 0)
+                {
+                    var errorMessage = "The following device(s) could not be imported because their GSD file(s) " +
+                                       "were not provided: " + string.Join(", ", missingGsdTypes) +
+                                       ". Please supply the missing GSDML files.";
+                    Log.Error(errorMessage);
+                    return Result.Fail<Dictionary<string, object>>(new Error(errorMessage)
+                    {
+                        Metadata = { ["ErrorCode"] = OperationErrorCode.ImportFailed }
+                    });
                 }
 
+                // Now that everything succeeded, create OPC UA server interface
+                bool success = opcHandler.GenerateAndImportServerInterface(allDeviceTagTables, "DevicesInterface");
+                if (!success)
+                {
+                    var errorMessage = "OPC UA interface generation/import failed.";
+                    Log.Warning(errorMessage);
+                    return Result.Fail<Dictionary<string, object>>(new Error(errorMessage)
+                    {
+                        Metadata = { ["ErrorCode"] = OperationErrorCode.ImportFailed }
+                    });
+                }
+                
                 Log.Information("Device import was successful.");
                 return Result.Ok(deviceDictionary);
             }
@@ -567,7 +605,7 @@ namespace PLC.Commissioning.Lib.Siemens
                     Log.Warning(errorMessage);
                     var error = new Error(errorMessage)
                     {
-                        Metadata = { ["ErrorCode"] = OperationErrorCode.GetParametersFailed }
+                        Metadata = { ["ErrorCode"] = OperationErrorCode.GetDeviceFailed }
                     };
                     return Result.Fail<object>(error);
                 }
@@ -581,7 +619,7 @@ namespace PLC.Commissioning.Lib.Siemens
                 Log.Error(errorMessage);
                 var error = new Error(errorMessage)
                 {
-                    Metadata = { ["ErrorCode"] = OperationErrorCode.GetParametersFailed }
+                    Metadata = { ["ErrorCode"] = OperationErrorCode.GetDeviceFailed }
                 };
                 return Result.Fail<object>(error);
             }
@@ -723,7 +761,9 @@ namespace PLC.Commissioning.Lib.Siemens
                     }
 
                     // Attempt to handle "regular" parameters for DAP
-                    var paramDict = HandleRegularParameters(dapItem, module, parameterSelections);
+                    var parameterHandler = new ParameterHandler(dapItem);
+                    var paramDict = parameterHandler.HandleRegularParameters(module, parameterSelections);
+                    if (paramDict == null)
                     if (paramDict == null)
                     {
                         return Result.Fail<Dictionary<string, object>>(
@@ -739,8 +779,9 @@ namespace PLC.Commissioning.Lib.Siemens
                 {
                     // For non-DAP modules, use the ModuleList from the pre-built model
                     var moduleList = gsdModel.ModuleList;
+                    Console.WriteLine(moduleList.ToString());
                     var (moduleItem, hasChangeableParameters) = moduleList.GetModuleItemByName(moduleName);
-
+                    
                     if (moduleItem == null)
                     {
                         var errorMsg = $"Module '{moduleName}' not found in GSD file.";
@@ -774,11 +815,19 @@ namespace PLC.Commissioning.Lib.Siemens
                         };
                         return Result.Fail(error);
                     }
-
+                    
+                    Dictionary<string, object> paramDict;
                     // Handle safety or regular parameters
-                    var paramDict = safety
-                        ? HandleSafetyParameters(module, parameterSelections)  
-                        : HandleRegularParameters(moduleItem, module, parameterSelections); 
+                    if (safety)
+                    {
+                        var paramHandler = new SafetyParameterHandler();
+                        paramDict = paramHandler.HandleSafetyParameters(module, parameterSelections);
+                    }
+                    else
+                    {
+                        var paramHandler = new ParameterHandler(moduleItem);
+                        paramDict = paramHandler.HandleRegularParameters(module, parameterSelections);
+                    }
 
                     // If the returned dictionary is null, it means retrieval failed.
                     if (paramDict == null)
@@ -1026,10 +1075,10 @@ namespace PLC.Commissioning.Lib.Siemens
 
             try
             {
-                if (_rpcController != null)
+                if (_rpcService != null)
                 {
                     // Attempt to start the PLC using async method synchronously
-                    _rpcController.PlcController.ChangeOperatingModeAsync(ApiPlcOperatingMode.Run)
+                    _rpcService.ChangeOperatingModeAsync(ApiPlcOperatingMode.Run)
                         .GetAwaiter().GetResult();
 
                     Log.Information("PLC started successfully using ChangeOperatingModeAsync.");
@@ -1126,10 +1175,10 @@ namespace PLC.Commissioning.Lib.Siemens
 
             try
             {
-                if (_rpcController != null)
+                if (_rpcService != null)
                 {
                     // Attempt to stop the PLC using the async method synchronously
-                    _rpcController.PlcController.ChangeOperatingModeAsync(ApiPlcOperatingMode.Stop)
+                    _rpcService.ChangeOperatingModeAsync(ApiPlcOperatingMode.Stop)
                         .GetAwaiter().GetResult();
 
                     Log.Information("PLC stopped successfully using ChangeOperatingModeAsync.");
@@ -1205,7 +1254,6 @@ namespace PLC.Commissioning.Lib.Siemens
                 return Result.Fail(error);
             }
         }
-
 
         /// <inheritdoc />
         public Result Compile()
@@ -1287,9 +1335,13 @@ namespace PLC.Commissioning.Lib.Siemens
                     }
                     case DownloadOptions downloadOptions:
                     {
+                        Log.Information("Proceeding to download to PLC with options: {DownloadOptions}", downloadOptions.ToString());
+
                         bool downloaded = _controller.Download(downloadOptions);
+
                         if (downloaded)
                         {
+                            Log.Information("Download finished successfully with options: {DownloadOptions}", downloadOptions.ToString());
                             return Result.Ok();
                         }
                         else
@@ -1329,7 +1381,6 @@ namespace PLC.Commissioning.Lib.Siemens
                 return Result.Fail(error);
             }
         }
-
 
         /// <inheritdoc />
         public Result AdditionalImport(Dictionary<string, object> filesToImport)
@@ -1374,7 +1425,7 @@ namespace PLC.Commissioning.Lib.Siemens
 
                 var error = new Error(errorMessage)
                 {
-                    Metadata = { ["ErrorCode"] = OperationErrorCode.SaveProjectFailed }
+                    Metadata = { ["ErrorCode"] = OperationErrorCode.ExportFailed }
                 };
                 return Result.Fail(error);
             }
@@ -1531,7 +1582,67 @@ namespace PLC.Commissioning.Lib.Siemens
                 return Result.Fail(error);
             }
         }
+        
+        /// <summary>
+        /// Reads and returns all PLC tag tables.
+        /// </summary>
+        /// <returns>A dictionary mapping group names to lists of tag table names.</returns>
+        public Result<Dictionary<string, List<string>>> ReadPLCTagTables()
+        {
+            try
+            {
+                if (_plcSoftware == null)
+                {
+                    var errorMessage = "PLC software is not initialized. Cannot read tag tables.";
+                    Log.Error(errorMessage);
 
+                    var error = new Error(errorMessage)
+                    {
+                        Metadata = { ["ErrorCode"] = OperationErrorCode.ReadTagTablesFailed }
+                    };
+                    return Result.Fail<Dictionary<string, List<string>>>(error);
+                }
+
+                var ioTagsHandler = IOTagsHandler;
+                if (ioTagsHandler == null)
+                {
+                    var errorMessage = "Failed to initialize IOTagsHandler.";
+                    Log.Error(errorMessage);
+
+                    var error = new Error(errorMessage)
+                    {
+                        Metadata = { ["ErrorCode"] = OperationErrorCode.ReadTagTablesFailed }
+                    };
+                    return Result.Fail<Dictionary<string, List<string>>>(error);
+                }
+
+                var tagTables = ioTagsHandler.ReadPLCTagTables();
+                
+                // Count total tag tables across all groups
+                int totalTagTables = tagTables.Values.Sum(group => group.Count);
+                if (totalTagTables > 0)
+                {
+                    Log.Information($"Successfully retrieved {totalTagTables} PLC tag tables across {tagTables.Count} groups.");
+                }
+                else
+                {
+                    Log.Warning("No PLC tag tables found.");
+                }
+
+                return Result.Ok(tagTables);
+            }
+            catch (Exception ex)
+            {
+                var errorMessage = $"Failed to read PLC tag tables: {ex.Message}";
+                Log.Error(errorMessage);
+
+                var error = new Error(errorMessage)
+                {
+                    Metadata = { ["ErrorCode"] = OperationErrorCode.ReadTagTablesFailed }
+                };
+                return Result.Fail<Dictionary<string, List<string>>>(error);
+            }
+        }
 
         /// <summary>
         /// Releases all resources used by the <see cref="SiemensPLCController"/>.
@@ -1547,23 +1658,35 @@ namespace PLC.Commissioning.Lib.Siemens
         /// Releases the unmanaged resources used by the <see cref="SiemensPLCController"/> and optionally releases the managed resources.
         /// </summary>
         /// <param name="disposing">A boolean value indicating whether to release managed resources.</param>
-        protected virtual void Dispose(bool disposing)
+        protected void Dispose(bool disposing)
         {
             if (!_disposed)
             {
                 if (disposing)
                 {
-                    // Dispose handlers in proper order.
-                    try { _projectHandler?.Dispose(); } catch (Exception ex) { Log.Warning("Error disposing ProjectHandler: {Message}", ex.Message); }
-                    try { _uiDownloadHandler?.Dispose(); } catch (Exception ex) { Log.Warning("Error disposing UIDownloadHandler: {Message}", ex.Message); }
-                    try { (_hardwareHandler as IDisposable)?.Dispose(); } catch (Exception ex) { Log.Warning("Error disposing HardwareHandler: {Message}", ex.Message); }
-                    try { (_ioSystemHandler as IDisposable)?.Dispose(); } catch (Exception ex) { Log.Warning("Error disposing IOSystemHandler: {Message}", ex.Message); }
-                    try { _manager?.Dispose(); } catch (Exception ex) { Log.Warning("Error disposing SiemensManagerService: {Message}", ex.Message); }
-                    try { _tiaPortalInstance?.Dispose(); } catch (Exception ex) { Log.Warning("Error disposing TiaPortal instance: {Message}", ex.Message); }
+                    List<IDisposable> disposables = new List<IDisposable>
+                    {
+                        _projectHandler,
+                        _uiDownloadHandler,
+                        _manager,
+                        _hardwareHandler,
+                        _ioSystemHandler,
+                        _tiaPortalInstance,
+                    };
+
+                    foreach (var disposable in disposables)
+                    {
+                        if (disposable != null)
+                        {
+                            try { disposable.Dispose(); }
+                            catch (Exception ex) { Log.Warning("Error disposing {Type}: {Message}", disposable.GetType().Name, ex.Message); }
+                        }
+                    }
                 }
                 _disposed = true;
             }
         }
+
 
         /// <summary>
         /// Destructor for <see cref="SiemensPLCController"/>.
@@ -1581,16 +1704,13 @@ namespace PLC.Commissioning.Lib.Siemens
         /// A <see cref="Result"/> indicating success or failure.
         /// On failure, metadata "ErrorCode" is set to <see cref="OperationErrorCode.InitializationFailed"/>.
         /// </returns>
-        private Result InitializeOnline()
+        internal Result InitializeOnline()
         {
             // If we already initialized online mode, log a warning but return success
-            // (or optionally, you can treat this as a "no-op" success).
             if (_onlineInitialized)
             {
-                const string warningMessage = "Online mode has already been initialized.";
-                Log.Warning(warningMessage);
-                // For consistency, let's return a successful result, 
-                // because we are effectively already online.
+                Log.Debug("Online mode has already been initialized.");
+                // successful result -> we are already online.
                 return Result.Ok();
             }
 
@@ -1612,7 +1732,9 @@ namespace PLC.Commissioning.Lib.Siemens
                 _controller.SetOnlineServices(onlineProviderService, networkConfigurator, plcOperationsService);
 
                 // Determine the CPU's IP address and validate network connectivity
-                string cpuIP = _ioSystemHandler.GetPLCIPAddress(_cpu);
+                var ioSystemHandler = IoSystemHandler;
+                string cpuIP = ioSystemHandler.GetPLCIPAddress(_cpu);
+
                 if (!networkConfigurator.PingIpAddress(_networkCard, cpuIP))
                 {
                     var errorMessage = $"Unable to ping CPU at IP address: {cpuIP}";
@@ -1624,44 +1746,83 @@ namespace PLC.Commissioning.Lib.Siemens
                     return Result.Fail(error);
                 }
 
+                // Modify _networkCard if it contains #
+                string modifiedNetworkCard = _networkCard;
+                var match = System.Text.RegularExpressions.Regex.Match(_networkCard, @"#(\d+)");
+                if (match.Success)
+                {
+                    string number = match.Groups[1].Value;
+                    modifiedNetworkCard = _networkCard.Replace($"#{number}", $"<{number}>"); // Ensure no extra spaces
+                    Log.Debug("Network card contains # that is not suitable for TIA Portal.");
+                }
+
                 // Configure the target network
                 var targetConfiguration = networkConfigurator.GetTargetConfiguration();
                 _controller.SetTargetConfiguration(targetConfiguration);
-
-                // Configure the network card
-                if (string.IsNullOrEmpty(_networkCard))
+                Log.Debug($"Trying to configure network with {modifiedNetworkCard}");
+                if (_controller.TryConfigureNetwork(modifiedNetworkCard, 1, "1 X1"))
                 {
-                    var errorMessage = "Network card configuration is missing.";
-                    Log.Error(errorMessage);
-                    var error = new Error(errorMessage)
+                    goto Success;
+                }
+
+                // If modified attempt fails, try with trimmed version
+                string trimmedNetworkCard = System.Text.RegularExpressions.Regex
+                    .Replace(modifiedNetworkCard, @"\s*<\d+>\s*", "").Trim();
+
+                Log.Debug($"Trying to configure network with {trimmedNetworkCard}");
+
+                if (_controller.TryConfigureNetwork(trimmedNetworkCard, 1, "1 X1"))
+                {
+                    goto Success;
+                }
+
+                // If both attempts fail, return an error
+                var errorMessageFinal = $"Failed to configure network with card: {_networkCard}";
+                Log.Error(errorMessageFinal);
+                var errorFinal = new Error(errorMessageFinal)
+                {
+                    Metadata = { ["ErrorCode"] = OperationErrorCode.InitializationFailed }
+                };
+                return Result.Fail(errorFinal);
+
+                // We continue execution
+                Success:
+                {
+                    try
                     {
-                        Metadata = { ["ErrorCode"] = OperationErrorCode.InitializationFailed }
-                    };
-                    return Result.Fail(error);
-                }
-                if (!_controller.TryConfigureNetwork(_networkCard, 1, "1 X1"))
-                {
-                    var errorMessage = $"Failed to configure network with card: {_networkCard}";
-                    Log.Error(errorMessage);
-                    var error = new Error(errorMessage)
+                        _rpcService = RPCService.CreateAsync(cpuIP, "Everybody", "")
+                           .GetAwaiter().GetResult();
+                    
+                        // Optionally verify the required JSON‐RPC calls exist:
+                        bool hasAllCalls = _rpcService.HasRequiredMethodsAsync(new[] 
+                        {
+                            "Plc.ReadOperatingMode", 
+                            "Plc.RequestChangeOperatingMode" 
+                        }).GetAwaiter().GetResult();
+                    
+                        if (!hasAllCalls)
+                        {
+                            Log.Warning("S7-1200 does not support changing operation mode via JSON-RPC.");
+                            Log.Warning("Required methods for RPCController are missing. Proceeding without RPC-based Start/Stop support.");
+                            _rpcService = null; // Force fallback
+                        }
+                        else
+                        {
+                            Log.Information("RPCService initialized and required methods are available.");
+                        }
+                    }
+                    catch (Exception ex)
                     {
-                        Metadata = { ["ErrorCode"] = OperationErrorCode.InitializationFailed }
-                    };
-                    return Result.Fail(error);
-                }
+                        Log.Error("Failed to initialize RPCService. Error: {Message}", ex.Message);
+                        Log.Warning("Proceeding without RPC-based Start/Stop support.");
+                        _rpcService = null;
+                    }
 
-                // Initialize RPC Controller
-                Log.Debug("Initializing RPCController...");
-                _rpcController = InitializeRpcController(cpuIP);
-                if (_rpcController == null)
-                {
-                    Log.Warning("RPCController initialization failed. Proceeding without RPC support.");
+                    // Mark that we are now online
+                    _onlineInitialized = true;
+                    Log.Information("Online initialization completed successfully.");
+                    return Result.Ok();
                 }
-
-                // Mark that we are now online
-                _onlineInitialized = true;
-                Log.Information("Online initialization completed successfully.");
-                return Result.Ok();
             }
             catch (Exception ex)
             {
@@ -1687,7 +1848,7 @@ namespace PLC.Commissioning.Lib.Siemens
         /// <param name="moduleInfo">The module information to be compared.</param>
         /// <param name="deviceAttributes">A dictionary of device attributes to compare against.</param>
         /// <returns><c>true</c> if all device information matches; otherwise, <c>false</c>.</returns>
-        private bool IsDeviceInfoMatching(ModuleInfo moduleInfo, Dictionary<string, string> deviceAttributes)
+        internal bool IsDeviceInfoMatching(ModuleInfo moduleInfo, Dictionary<string, string> deviceAttributes)
         {
             // Compare device name
             if (!string.Equals(moduleInfo.Model.Name, deviceAttributes["TypeName"]?.ToString(), StringComparison.OrdinalIgnoreCase))
@@ -1714,76 +1875,12 @@ namespace PLC.Commissioning.Lib.Siemens
         }
 
         /// <summary>
-        /// Handles the safety parameters by retrieving and optionally logging the safety module data.
-        /// </summary>
-        /// <param name="module">The GSD device item representing the safety module.</param>
-        /// <param name="parameterSelections">A list of parameter selections for the safety module.</param>
-        /// <returns>
-        /// A <see cref="Dictionary{string, object}"/> of retrieved safety parameters if successful; <c>null</c> otherwise.
-        /// </returns>
-        private Dictionary<string, object> HandleSafetyParameters(
-            GsdDeviceItem module,
-            List<string> parameterSelections)
-        {
-            var safetyHandler = new SafetyParameterHandler();
-
-            // Retrieve the safety module data; returns null if something fails
-            var moduleData = safetyHandler.GetSafetyModuleData(module, parameterSelections);
-            if (moduleData == null)
-            {
-                Log.Error("Safety parameter reading failed due to invalid or unsupported parameters. Aborting operation.");
-                return null;
-            }
-    
-            // Optionally log them
-            foreach (var kvp in moduleData)
-            {
-                Log.Debug($"Safety Parameter: {kvp.Key}, Value: {kvp.Value}");
-            }
-
-            // Return the dictionary for further processing
-            return moduleData;
-        }
-
-        /// <summary>
-        /// Handles the regular parameters by retrieving and logging the module data for the provided module item.
-        /// </summary>
-        /// <param name="moduleItem">The item representing the module, either a regular module or a DAP.</param>
-        /// <param name="module">The GSD device item representing the module or DAP.</param>
-        /// <param name="parameterSelections">A list of parameter selections to be retrieved for the module or DAP.</param>
-        /// <returns><c>true</c> if the regular parameters were handled successfully; otherwise, <c>false</c>.</returns>
-        private Dictionary<string, object> HandleRegularParameters(
-            IDeviceItem moduleItem,
-            GsdDeviceItem module,
-            List<string> parameterSelections)
-        {
-            var parameterHandler = new ParameterHandler(moduleItem);
-            var moduleData = parameterHandler.GetModuleData(module, parameterSelections);
-            if (moduleData is null)
-            {
-                Log.Error("Parameter reading failed due to invalid parameters. Aborting operation.");
-                return null;
-            }
-
-            // Build a dictionary from the retrieved moduleData
-            var resultDict = new Dictionary<string, object>();
-            foreach (var parsedValue in moduleData)
-            {
-                resultDict[parsedValue.Parameter] = parsedValue.Value;
-                Log.Debug($"Parameter: {parsedValue.Parameter}, Value: {parsedValue.Value}");
-            }
-
-            return resultDict;
-        }
-
-        /// <summary>
         /// Sets the safety parameters for the provided module.
         /// </summary>
         /// <param name="module">The GSD device item representing the module.</param>
         /// <param name="parametersToSet">A dictionary of parameters to be set for the safety module.</param>
         /// <returns><c>true</c> if the safety parameters were set successfully; otherwise, <c>false</c>.</returns>
         private bool SetSafetyParameters(GsdDeviceItem module, Dictionary<string, object> parametersToSet)
-
         {
             var safetyHandler = new SafetyParameterHandler();
             if (!safetyHandler.SetSafetyModuleData(module, parametersToSet))
@@ -1805,35 +1902,6 @@ namespace PLC.Commissioning.Lib.Siemens
         {
             var parameterHandler = new ParameterHandler(moduleItem);
             return parameterHandler.SetModuleData(module, parametersToSet);
-        }
-
-        /// <summary>
-        /// Initializes the RPCController for PLC communication.
-        /// </summary>
-        /// <param name="cpuIP">The IP address of the CPU.</param>
-        /// <returns>An initialized instance of <see cref="RPCController"/> or null if required methods are missing.</returns>
-        private RPCController InitializeRpcController(string cpuIP)
-        {
-            try
-            {
-                var rpcController = RPCController.InitializeAsync(cpuIP, "Everybody", "")
-                    .GetAwaiter().GetResult();
-                Log.Information("RPCController initialized successfully.");
-
-                // Validate the required methods within the RPCController instance
-                if (!rpcController.HasRequiredMethods(new[] { "Plc.ReadOperatingMode", "Plc.RequestChangeOperatingMode" }))
-                {
-                    Log.Warning("Required methods for RPCController are missing. Falling back to standard use case.");
-                    return null; // Perform fallback if required methods are not available
-                }
-
-                return rpcController;
-            }
-            catch (Exception ex)
-            {
-                Log.Error($"Failed to initialize RPCController: {ex.Message}");
-                return null;
-            }
         }
         
         /// <summary>

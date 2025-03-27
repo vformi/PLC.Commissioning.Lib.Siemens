@@ -10,7 +10,7 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject
     /// <summary>
     /// Logs detailed information about operation results, including state, warnings, errors, and messages.
     /// </summary>
-    public class OperationLogger
+    public class OperationLogger : IOperationLogger
     {
         /// <summary>
         /// The result object containing operation details to be logged.
@@ -27,10 +27,7 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject
             _result = result ?? throw new ArgumentException("Unsupported result type", nameof(result));
         }
 
-        /// <summary>
-        /// Logs the results of an operation, including state, warning count, error count, and detailed messages.
-        /// </summary>
-        /// <param name="operationName">The name of the operation to include in the log.</param>
+        /// <inheritdoc/>
         public void LogResults(string operationName)
         {
             if (_result != null)
