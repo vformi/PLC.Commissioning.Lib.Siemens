@@ -9,29 +9,74 @@
 
 ### Example usage
 ```csharp
-Dictionary<string, object> parametersToSet = new Dictionary<string, object>
-{
-    {"Mode", "With ACK"},
-};
+using System;
+using System.Collections.Generic;
+using PLC.Commissioning.Lib.Abstractions;
+using PLC.Commissioning.Lib.Enums;
+using Siemens.Engineering.Download;
 
-// Begin PLC commissioning
-using (var plc = PLCFactory.CreateController<IPLCControllerSiemens>(Manufacturer.Siemens))
+namespace PLC.Commissioning.Lib.App
 {
-    // Step 1: Load PLC configuration
-    plc.Configure("configuration.json");
-    // Step 2: Initialize the PLC without safety features
-    plc.Initialize(safety: false);
-    // Step 3: Import the device configuration into the PLC
-    var device = plc.ImportDevice("device.aml");
-    // Step 4: Retrieve specific device parameters for verification
-    plc.GetDeviceParameters(device, gsdPath, "[M10] Activation");
-    // Step 5: Apply specific parameters to the device
-    plc.SetDeviceParameters(device, gsdPath, "[M10] Activation", parametersToSet);
-    // Step 6: Compile the configuration to prepare for download
-    plc.Compile();
-    // Step 7: Download the configuration to the PLC with specified options
-    plc.Download(downloadOptions);
-    // Step 8: Start the PLC to finalize commissioning
-    plc.Start();
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            try
+            {
+                // Configure logging (console + file, debug level)
+                PLCFactory.ConfigureLogger(
+                    pythonCallback: null,
+                    writeToConsole: true,
+                    writeToFile: true,
+                    logLevel: LogLevel.Debug);
+
+                // Create and use a Siemens PLC controller
+                using var plc = PLCFactory.CreateController<IPLCControllerSiemens>(Manufacturer.Siemens);
+                {
+                    // 1. Load PLC configuration from a JSON file
+                    plc.Configure("configuration.json");
+
+                    // 2. Initialize the PLC with safety features enabled
+                    plc.Initialize(safety: true);
+
+                    // 3. Import PROFINET devices with GSDML files
+                    var gsdmlFiles = new List<string>
+                    {
+                        "example_gsdml_file.xml"
+                    };
+                    var devicesResult = plc.ImportDevices("example_aml_file.aml", gsdmlFiles);
+                    if (devicesResult.IsFailed)
+                    {
+                        Console.WriteLine($"Import failed: {devicesResult.Errors[0].Message}");
+                        return;
+                    }
+                    var device = devicesResult.Value.First().Value;
+
+                    // 4. Set device parameters (e.g., barcode scanner settings)
+                    var parametersToSet = new Dictionary<string, object>
+                    {
+                        { "Code type 1", "2/5 Interleaved" },
+                        { "Number of digits 1", 10 }
+                    };
+                    var setParamsResult = plc.SetDeviceParameters(device, "DAP", parametersToSet);
+                    if (setParamsResult.IsFailed)
+                    {
+                        Console.WriteLine($"Set parameters failed: {setParamsResult.Errors[0].Message}");
+                        return;
+                    }
+
+                    // 5. Compile and download the configuration to the PLC
+                    plc.Compile();
+                    plc.Download(DownloadOptions.Hardware | DownloadOptions.Software);
+
+                    Console.WriteLine("PLC commissioning completed successfully!");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error during commissioning: {ex.Message}");
+            }
+        }
+    }
 }
 ```
