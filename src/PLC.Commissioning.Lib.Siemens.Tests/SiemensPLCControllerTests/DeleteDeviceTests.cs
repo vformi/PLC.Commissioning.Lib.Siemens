@@ -82,14 +82,14 @@ namespace PLC.Commissioning.Lib.Siemens.Tests.SiemensPLCControllerTests
             Assert.That(File.Exists(amlFilePath), $"AML file should exist: {amlFilePath}");
             Assert.That(gsdFiles.All(File.Exists), "GSDML files should exist for device import.");
 
-            var importResult = _plc.ImportDevices(amlFilePath, gsdFiles);
+            var importResult = _plc.ImportDevices(amlFilePath);
             Assert.That(importResult, Is.Not.Null, "ImportDevices should not return null.");
 
             var importedDevices = importResult.Value as Dictionary<string, object>;
             Assert.That(importedDevices, Is.Not.Null, "ImportDevices should return a valid Dictionary<string, object>.");
             Assert.That(importedDevices.Count, Is.GreaterThan(0), "Expected at least one device to have been imported.");
 
-            var deviceToDelete = importedDevices.Values.FirstOrDefault() as ImportedDevice;
+            var deviceToDelete = importedDevices.Values.FirstOrDefault() as ProjectDevice;
             Assert.That(deviceToDelete, Is.Not.Null, "No valid ImportedDevice found in the imported devices.");
 
             var deviceCheck = _plc.GetDeviceByName(deviceToDelete.DeviceName);

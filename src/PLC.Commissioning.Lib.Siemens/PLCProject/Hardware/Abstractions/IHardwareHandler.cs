@@ -24,8 +24,8 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.Abstractions
         /// Gets a device by its name from the project.
         /// </summary>
         /// <param name="deviceName">The name of the device to search for.</param>
-        /// <returns>The <see cref="Device"/> if found; otherwise, <c>null</c>.</returns>
-        Device GetDeviceByName(string deviceName);
+        /// <returns>The <see cref="ProjectDevice"/> if found; otherwise, <c>null</c>.</returns>
+        ProjectDevice GetDeviceByName(string deviceName);
 
         /// <summary>
         /// Gets a specific module by its name from a given device.
@@ -51,7 +51,7 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.Abstractions
         /// Retrieves all non-CPU devices in the current project, including both grouped and ungrouped devices.
         /// </summary>
         /// <returns>A list of all non-CPU <see cref="Device"/> objects in the project.</returns>
-        List<Device> GetDevices();
+        List<ProjectDevice> GetDevices();
 
         /// <summary>
         /// Enumerates device modules, identifies modules, and retrieves address information.

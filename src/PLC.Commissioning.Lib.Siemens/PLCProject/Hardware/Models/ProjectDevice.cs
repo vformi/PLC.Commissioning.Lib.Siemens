@@ -12,7 +12,7 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware
     /// Represents an imported device in the Siemens PLC project.
     /// Holds both the hardware (IOModuleInfo) and the detailed GSDML module data.
     /// </summary>
-    public class ImportedDevice
+    public class ProjectDevice
     {
         /// <summary>
         /// Gets the unique name of the device instance in the TIA project.
@@ -23,29 +23,49 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware
         /// Gets the TIA Portal device object.
         /// </summary>
         public Device Device { get; private set; }
+        
+        /// <summary>
+        /// Gets the TIA Portal device object.
+        /// </summary>
+        public string GsdName { get; set; }
 
+        /// <summary>
+        /// Gets the merged device model containing GSDML definitions.
+        /// </summary>
+        public ImportedDeviceGSDMLModel DeviceGsdmlModel { get; set; }
+        
         /// <summary>
         /// Gets the list of hardware modules parsed from the TIA project.
         /// </summary>
         public List<IOModuleInfoModel> Modules { get; private set; } = new List<IOModuleInfoModel>();
 
         /// <summary>
-        /// Gets the merged device model containing GSDML definitions.
-        /// </summary>
-        public ImportedDeviceGSDMLModel DeviceGsdmlModel { get; private set; }
-
-        /// <summary>
         /// Constructs an ImportedDevice with an already‑initialized GSDML model.
         /// </summary>
         /// <param name="deviceName">The unique TIA device instance name.</param>
         /// <param name="tiaDevice">The TIA device object.</param>
+        /// <param name="gsdName">The gsdName attribute.</param>
         /// <param name="deviceGsdmlModel">The pre‑built GSDML model (ImportedDeviceGSDMLModel).</param>
-        public ImportedDevice(string deviceName, Device tiaDevice, ImportedDeviceGSDMLModel deviceGsdmlModel)
+        public ProjectDevice(string deviceName, Device tiaDevice, string gsdName, ImportedDeviceGSDMLModel deviceGsdmlModel = null)
         {
             DeviceName = deviceName ?? throw new ArgumentNullException(nameof(deviceName));
             Device = tiaDevice ?? throw new ArgumentNullException(nameof(tiaDevice));
-            DeviceGsdmlModel = deviceGsdmlModel ?? throw new ArgumentNullException(nameof(deviceGsdmlModel));
+            GsdName = gsdName ?? throw new ArgumentNullException(nameof(gsdName));
+            DeviceGsdmlModel = deviceGsdmlModel;
+            if (deviceGsdmlModel != null)
+            {
+                Log.Information("GSDML Model assigned for device: {DeviceName}", DeviceName);
+            }
 
+            Log.Information("GSDML Model assigned for device: {DeviceName}", DeviceName);
+        }
+        
+        public void SetDeviceGsdmlModel(ImportedDeviceGSDMLModel deviceGsdmlModel)
+        {
+            if (deviceGsdmlModel == null)
+                throw new ArgumentNullException(nameof(deviceGsdmlModel));
+
+            DeviceGsdmlModel = deviceGsdmlModel;
             Log.Information("GSDML Model assigned for device: {DeviceName}", DeviceName);
         }
 

@@ -8,5 +8,6 @@
         void DeleteFile(string path); 
         bool DirectoryExists(string path);
         void DeleteDirectory(string path, bool recursive); 
+        string[] GetDirectoryFiles(string path, string searchPattern);
     }
 }

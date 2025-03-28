@@ -41,11 +41,7 @@ namespace PLC.Commissioning.Lib.Siemens.Tests.SiemensPLCControllerTests
 
             // Import devices from an AML file
             string validFilePath = Path.Combine(_testDataPath, "aml", "valid_multiple_devices.aml");
-            var importResult = _plc.ImportDevices(validFilePath, new List<string>()
-            {
-                Path.Combine(_testDataPath, "gsd", "GSDML-V2.41-LEUZE-BCL248i-20211213.xml"),
-                Path.Combine(_testDataPath, "gsd", "GSDML-V2.42-LEUZE-RSL400P CU 4M12-20230816.xml")
-            });
+            var importResult = _plc.ImportDevices(validFilePath);
 
             // Ensure it’s actually a Dictionary<string, object>
             _importedDevices = importResult.Value;
@@ -68,7 +64,7 @@ namespace PLC.Commissioning.Lib.Siemens.Tests.SiemensPLCControllerTests
         public void SetDeviceParameters_ShouldPass_WhenValidParametersAreProvided()
         {
             // Arrange
-            var importedDevice = _importedDevices.Values.FirstOrDefault() as ImportedDevice;
+            var importedDevice = _importedDevices.Values.FirstOrDefault() as ProjectDevice;
             Assert.That(importedDevice, Is.Not.Null, "No valid ImportedDevice in dictionary.");
 
             string moduleName = "[M11] Reading gate control";
@@ -93,7 +89,7 @@ namespace PLC.Commissioning.Lib.Siemens.Tests.SiemensPLCControllerTests
         public void SetDeviceParameters_ShouldFail_WhenInvalidParameterValues()
         {
             // Arrange
-            var importedDevice = _importedDevices.Values.FirstOrDefault() as ImportedDevice;
+            var importedDevice = _importedDevices.Values.FirstOrDefault() as ProjectDevice;
             Assert.That(importedDevice, Is.Not.Null);
 
             string moduleName = "[M11] Reading gate control";
@@ -121,7 +117,7 @@ namespace PLC.Commissioning.Lib.Siemens.Tests.SiemensPLCControllerTests
         public void SetDeviceParameters_ShouldFail_WhenInvalidModuleNameIsProvided()
         {
             // Arrange
-            var importedDevice = _importedDevices.Values.FirstOrDefault() as ImportedDevice;
+            var importedDevice = _importedDevices.Values.FirstOrDefault() as ProjectDevice;
             Assert.That(importedDevice, Is.Not.Null);
 
             string invalidModuleName = "[M999] Invalid module";
@@ -142,7 +138,7 @@ namespace PLC.Commissioning.Lib.Siemens.Tests.SiemensPLCControllerTests
         public void SetDeviceParameters_ShouldFail_WhenParametersAreNull()
         {
             // Arrange
-            var importedDevice = _importedDevices.Values.FirstOrDefault() as ImportedDevice;
+            var importedDevice = _importedDevices.Values.FirstOrDefault() as ProjectDevice;
             Assert.That(importedDevice, Is.Not.Null);
 
             string moduleName = "[M11] Reading gate control";
@@ -162,7 +158,7 @@ namespace PLC.Commissioning.Lib.Siemens.Tests.SiemensPLCControllerTests
         public void SetDeviceParameters_ShouldPass_WhenSafetyParametersAreSet()
         {
             // Grab second device. Adjust if your actual device name differs.
-            var importedDevice = _importedDevices.Last().Value as ImportedDevice;
+            var importedDevice = _importedDevices.Last().Value as ProjectDevice;
             Assert.That(importedDevice, Is.Not.Null, "Could not find a second ImportedDevice.");
 
             string moduleName = "[M1] Safe signal";

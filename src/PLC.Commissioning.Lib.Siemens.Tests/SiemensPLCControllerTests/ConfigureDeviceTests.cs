@@ -40,7 +40,7 @@ namespace PLC.Commissioning.Lib.Siemens.Tests.SiemensPLCControllerTests
             string validFilePath = Path.Combine(_testDataPath, "aml", "valid_multiple_devices.aml");
 
             // Use ImportDevices method
-            var importResult = _plc.ImportDevices(validFilePath, gsdFilePaths);
+            var importResult = _plc.ImportDevices(validFilePath);
             _importedDevices = importResult.Value;
 
             Log.Information("Test setup completed. Test data directory: {Path}", _testDataPath);

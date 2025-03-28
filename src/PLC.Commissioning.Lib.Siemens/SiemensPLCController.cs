@@ -299,7 +299,7 @@ namespace PLC.Commissioning.Lib.Siemens
         }
         
         /// <inheritdoc />
-        public Result<Dictionary<string, object>> ImportDevices(string filePath, List<string> gsdmlFiles)
+        public Result<Dictionary<string, object>> ImportDevices(string filePath)
         {
             try
             {
@@ -347,7 +347,7 @@ namespace PLC.Commissioning.Lib.Siemens
                     return Result.Fail<Dictionary<string, object>>(error);
                 }
 
-                // Enumerate devices
+                // Enumerate devices in the TIA project
                 HardwareHandler.EnumerateProjectDevices();
 
                 var ioSystemHandler = IoSystemHandler;
@@ -365,6 +365,24 @@ namespace PLC.Commissioning.Lib.Siemens
                 var (subnet, ioSystem) = ioSystemHandler.FindSubnetAndIoSystem();
                 var devices = HardwareHandler.GetDevices();
 
+                // Print out the devices
+                foreach (var device in devices)
+                {
+                    Log.Information("Device Name: {DeviceName}, Device: {Device}, GSD Name: {GsdName}",
+                        device.DeviceName, device.Device, device.GsdName);
+                }
+
+                // (1) Gather all *.gsdml files in AdditionalFiles\GSD
+                List<string> gsdmlFileList = _projectHandler.GetGsdmlFiles();
+                foreach (var file in gsdmlFileList)
+                {
+                    Log.Debug("Found GSDML file at: {FilePath}", file);
+                }
+
+                // (2) Prepare final device dictionary
+                var deviceDictionary = new Dictionary<string, object>();
+                var missingGsdNames = new List<string>();
+
                 // Check PLC software
                 if (_plcSoftware == null)
                 {
@@ -377,70 +395,91 @@ namespace PLC.Commissioning.Lib.Siemens
                     return Result.Fail<Dictionary<string, object>>(error);
                 }
 
-                // Initialize IOTagsHandler
+                // Initialize IOTagsHandler and OPCHandler
                 IOTagsHandler ioTagsHandler = IOTagsHandler;
                 OPCHandler opcHandler = OPCHandler;
 
-                // Build a map of GSDML models keyed by device model (TypeName)
-                var gsdModelMap = BuildGsdModelMap(gsdmlFiles);
-                var deviceDictionary = new Dictionary<string, object>();
-                var missingGsdTypes = new List<string>(); 
-                
-                // We'll keep a list of all ImportedDevice objects to build a single NodeSet
-                var allDeviceTagTables = new List<(ImportedDevice device, List<TagTableModel> tagTables)>();
+                // We'll keep a list of all devices for creating a single OPC UA NodeSet
+                var allDeviceTagTables = new List<(ProjectDevice device, List<TagTableModel> tagTables)>();
 
+                // For each TIA device, try to find its GSD file
                 foreach (var device in devices)
                 {
-                    // Use TIA device’s TypeName for matching (e.g. "BCL248i")
-                    string typeName = device.DeviceItems[1].GetAttribute("TypeName").ToString();
-                    // Use TIA device’s unique Name for dictionary indexing (e.g. "BCL248i" or "BCL248i_1")
-                    string deviceName = device.DeviceItems[1].Name;
+                    // We already have device.DeviceName and device.GsdName
+                    string deviceName = device.DeviceName;
+                    string gsdFileName = device.GsdName;
+                    // e.g. "GSDML-V2.41-LEUZE-BCL248I-20211213.XML"
 
-                    if (string.IsNullOrEmpty(typeName) || string.IsNullOrEmpty(deviceName))
+                    if (string.IsNullOrEmpty(deviceName) || string.IsNullOrEmpty(gsdFileName))
                     {
-                        Log.Warning("Device has an invalid TypeName or Name. Skipping device.");
+                        Log.Warning("Device '{DeviceName}' has invalid or empty GsdName. Skipping device.", deviceName);
                         continue;
                     }
 
-                    if (!gsdModelMap.TryGetValue(typeName, out var importedDeviceGsdmlModel))
+                    // Directly find the matching GSD file (case-insensitive)
+                    string matchingGsdFile = gsdmlFileList
+                        .FirstOrDefault(file => Path.GetFileName(file).Equals(gsdFileName, StringComparison.OrdinalIgnoreCase));
+
+                    if (matchingGsdFile == null)
                     {
-                        // Accumulate the missing device info if any 
-                        missingGsdTypes.Add($"{deviceName} (Type: {typeName})");
+                        missingGsdNames.Add($"{deviceName} (GSD: {gsdFileName})");
+                        continue;
+                    }
+                    
+                    // Log the successful match
+                    Log.Information("Successfully matched device '{DeviceName}' with GSD file: {GsdFile}", deviceName, matchingGsdFile);
+
+                    // Initialize the GSDML model for the matched file
+                    var gsdHandler = new GSDHandler();
+                    if (!gsdHandler.Initialize(matchingGsdFile))
+                    {
+                        Log.Warning("Failed to initialize GSDHandler for file {FilePath}", matchingGsdFile);
                         continue;
                     }
 
-                    // Create the ImportedDevice using the pre-built GSDML model.
-                    var importedDevice = new ImportedDevice(deviceName, device, importedDeviceGsdmlModel);
+                    // Create the model directly
+                    var importedDeviceGsdmlModel = new ImportedDeviceGSDMLModel
+                    {
+                        ModuleInfo = new ModuleInfo(gsdHandler),
+                        Dap = new DeviceAccessPointList(gsdHandler),
+                        ModuleList = new ModuleList(gsdHandler)
+                    };
+
+                    // Attach the GSDML model to the device
+                    device.DeviceGsdmlModel = importedDeviceGsdmlModel;
 
                     // Connect the device to the IO system
-                    ioSystemHandler.ConnectDeviceToIoSystem(device, subnet, ioSystem);
-                    Log.Information("Device '{DeviceName}' (Type: {TypeName}) connected to IO system.", deviceName, typeName);
+                    ioSystemHandler.ConnectDeviceToIoSystem(device.Device, subnet, ioSystem);
+                    Log.Information("Device '{DeviceName}' connected to IO system with GSD '{GsdFile}'",
+                        deviceName, gsdFileName);
 
-                    // Enumerate hardware modules.
-                    List<IOModuleInfoModel> modules = HardwareHandler.EnumerateDeviceModules(device);
+                    // Enumerate hardware modules for this device
+                    List<IOModuleInfoModel> modules = HardwareHandler.EnumerateDeviceModules(device.Device);
                     foreach (var module in modules)
                     {
-                        importedDevice.AddModule(module);
-                    }   
-                    
-                    var tagTableDefinitions = importedDevice.GetTagTableDefinitions();
+                        device.AddModule(module);
+                    }
 
-                    // Create tag tables in TIA Portal
-                    ioTagsHandler.CreateTagTables(importedDevice, tagTableDefinitions);
+                    // Build tag table definitions from the GSD + enumerated modules
+                    var tagTableDefinitions = device.GetTagTableDefinitions();
 
-                    // Add the device to the dictionary
-                    deviceDictionary[deviceName] = importedDevice;
-                    
-                    // gather all devices for OPC import
-                    allDeviceTagTables.Add((importedDevice, tagTableDefinitions));
+                    // Create these tag tables in TIA Portal
+                    ioTagsHandler.CreateTagTables(device, tagTableDefinitions);
+
+                    // Add to dictionary for final returning
+                    deviceDictionary[deviceName] = device;
+
+                    // Gather for OPC UA
+                    allDeviceTagTables.Add((device, tagTableDefinitions));
                 }
-                
-                // If there are missing GSDML types, fail and do not proceed with OPC UA import
-                if (missingGsdTypes.Count > 0)
+
+                // If there are missing GSD devices, fail early and log them
+                if (missingGsdNames.Count > 0)
                 {
-                    var errorMessage = "The following device(s) could not be imported because their GSD file(s) " +
-                                       "were not provided: " + string.Join(", ", missingGsdTypes) +
-                                       ". Please supply the missing GSDML files.";
+                    var errorMessage = 
+                        "The following device(s) could not be imported because no matching GSD file was found: " 
+                        + string.Join(", ", missingGsdNames) 
+                        + ". Please supply the missing GSDML files or update the GSD Name accordingly.";
                     Log.Error(errorMessage);
                     return Result.Fail<Dictionary<string, object>>(new Error(errorMessage)
                     {
@@ -448,7 +487,7 @@ namespace PLC.Commissioning.Lib.Siemens
                     });
                 }
 
-                // Now that everything succeeded, create OPC UA server interface
+                // Now create the OPC UA server interface for all imported devices
                 bool success = opcHandler.GenerateAndImportServerInterface(allDeviceTagTables, "DevicesInterface");
                 if (!success)
                 {
@@ -459,7 +498,7 @@ namespace PLC.Commissioning.Lib.Siemens
                         Metadata = { ["ErrorCode"] = OperationErrorCode.ImportFailed }
                     });
                 }
-                
+
                 Log.Information("Device import was successful.");
                 return Result.Ok(deviceDictionary);
             }
@@ -474,6 +513,7 @@ namespace PLC.Commissioning.Lib.Siemens
                 return Result.Fail<Dictionary<string, object>>(error);
             }
         }
+
         
         /// <inheritdoc />
         public Result ConfigureDevice(object device, Dictionary<string, object> parametersToConfigure)
@@ -503,7 +543,7 @@ namespace PLC.Commissioning.Lib.Siemens
                 }
 
                 // Check that device is an ImportedDevice
-                if (!(device is ImportedDevice importedDevice))
+                if (!(device is ProjectDevice importedDevice))
                 {
                     var errorMessage = "Invalid device type. Expected an ImportedDevice.";
                     Log.Error(errorMessage);
@@ -598,6 +638,7 @@ namespace PLC.Commissioning.Lib.Siemens
         {
             try
             {
+                // Step 1: Get the ProjectDevice from the hardware handler
                 var device = HardwareHandler.GetDeviceByName(deviceName);
                 if (device == null)
                 {
@@ -611,6 +652,65 @@ namespace PLC.Commissioning.Lib.Siemens
                 }
 
                 Log.Information($"Device named '{deviceName}' found successfully.");
+
+                // (1) Gather all *.gsdml files from AdditionalFiles\GSD
+                List<string> gsdmlFileList = _projectHandler.GetGsdmlFiles();
+                foreach (var file in gsdmlFileList)
+                {
+                    Log.Debug("Found GSDML file at: {FilePath}", file);
+                }
+
+                // (2) Directly find the matching GSD file (case-insensitive)
+                string gsdFileName = device.GsdName;
+                string matchingGsdFile = gsdmlFileList
+                    .FirstOrDefault(file => Path.GetFileName(file).Equals(gsdFileName, StringComparison.OrdinalIgnoreCase));
+
+                if (matchingGsdFile == null)
+                {
+                    var errorMessage = $"No matching GSDML file found for device '{deviceName}' with GSD name '{gsdFileName}'.";
+                    Log.Warning(errorMessage);
+                    var error = new Error(errorMessage)
+                    {
+                        Metadata = { ["ErrorCode"] = OperationErrorCode.GetDeviceFailed }
+                    };
+                    return Result.Fail<object>(error);
+                }
+
+                // Log the successful match
+                Log.Information("Successfully matched device '{DeviceName}' with GSD file: {GsdFile}", deviceName, matchingGsdFile);
+
+                // (3) Initialize the GSDML model for the matched file
+                var gsdHandler = new GSDHandler();
+                if (!gsdHandler.Initialize(matchingGsdFile))
+                {
+                    var errorMessage = $"Failed to initialize GSDHandler for file '{matchingGsdFile}'.";
+                    Log.Warning(errorMessage);
+                    var error = new Error(errorMessage)
+                    {
+                        Metadata = { ["ErrorCode"] = OperationErrorCode.GetDeviceFailed }
+                    };
+                    return Result.Fail<object>(error);
+                }
+
+                // (4) Create the GSDML model directly
+                var importedDeviceGsdmlModel = new ImportedDeviceGSDMLModel
+                {
+                    ModuleInfo = new ModuleInfo(gsdHandler),
+                    Dap = new DeviceAccessPointList(gsdHandler),
+                    ModuleList = new ModuleList(gsdHandler)
+                };
+
+                // Attach the GSDML model to the device
+                device.DeviceGsdmlModel = importedDeviceGsdmlModel;
+
+                // Enumerate hardware modules for this device
+                List<IOModuleInfoModel> modules = HardwareHandler.EnumerateDeviceModules(device.Device);
+                foreach (var module in modules)
+                {
+                    device.AddModule(module);
+                }
+
+                Log.Information("Device '{DeviceName}' has been fully initialized with its GSD model.", deviceName);
                 return Result.Ok<object>(device);
             }
             catch (Exception ex)
@@ -624,6 +724,7 @@ namespace PLC.Commissioning.Lib.Siemens
                 return Result.Fail<object>(error);
             }
         }
+
         
         /// <inheritdoc/>
         public Result<Dictionary<string, object>> GetDeviceParameters(
@@ -658,7 +759,7 @@ namespace PLC.Commissioning.Lib.Siemens
                 }
 
                 // Ensure the object is an ImportedDevice
-                if (!(device is ImportedDevice importedDevice))
+                if (!(device is ProjectDevice projectDevice))
                 {
                     const string errorMsg = "Invalid device type. Expected an ImportedDevice.";
                     Log.Error(errorMsg);
@@ -669,13 +770,13 @@ namespace PLC.Commissioning.Lib.Siemens
                     return Result.Fail(error);
                 }
 
-                Device specificDevice = importedDevice.Device;
+                Device specificDevice = projectDevice.Device;
 
                 // *** Use the pre-built GSDML model from the imported device ***
-                var gsdModel = importedDevice.DeviceGsdmlModel;
+                var gsdModel = projectDevice.DeviceGsdmlModel;
                 if (gsdModel == null)
                 {
-                    var errorMsg = $"DeviceGsdmlModel is not initialized for device '{importedDevice.DeviceName}'.";
+                    var errorMsg = $"DeviceGsdmlModel is not initialized for device '{projectDevice.DeviceName}'.";
                     Log.Error(errorMsg);
                     var error = new Error(errorMsg)
                     {
@@ -779,7 +880,6 @@ namespace PLC.Commissioning.Lib.Siemens
                 {
                     // For non-DAP modules, use the ModuleList from the pre-built model
                     var moduleList = gsdModel.ModuleList;
-                    Console.WriteLine(moduleList.ToString());
                     var (moduleItem, hasChangeableParameters) = moduleList.GetModuleItemByName(moduleName);
                     
                     if (moduleItem == null)
@@ -885,7 +985,7 @@ namespace PLC.Commissioning.Lib.Siemens
                     return Result.Fail(error);
                 }
 
-                if (!(device is ImportedDevice importedDevice))
+                if (!(device is ProjectDevice projectDevice))
                 {
                     const string errorMsg = "Invalid device type. Expected an ImportedDevice.";
                     Log.Error(errorMsg);
@@ -896,11 +996,11 @@ namespace PLC.Commissioning.Lib.Siemens
                     return Result.Fail(error);
                 }
 
-                Device specificDevice = importedDevice.Device;
-                var gsdModel = importedDevice.DeviceGsdmlModel;
+                Device specificDevice = projectDevice.Device;
+                var gsdModel = projectDevice.DeviceGsdmlModel;
                 if (gsdModel == null)
                 {
-                    var errorMsg = $"DeviceGsdmlModel is not initialized for device '{importedDevice.DeviceName}'.";
+                    var errorMsg = $"DeviceGsdmlModel is not initialized for device '{projectDevice.DeviceName}'.";
                     Log.Error(errorMsg);
                     var error = new Error(errorMsg)
                     {
@@ -1539,7 +1639,7 @@ namespace PLC.Commissioning.Lib.Siemens
                     return Result.Fail(error);
                 }
 
-                if (!(device is ImportedDevice importedDevice))
+                if (!(device is ProjectDevice importedDevice))
                 {
                     const string errorMsg = "DeleteDevice: Invalid device type. Expected an ImportedDevice.";
                     Log.Error(errorMsg);
@@ -1902,55 +2002,6 @@ namespace PLC.Commissioning.Lib.Siemens
         {
             var parameterHandler = new ParameterHandler(moduleItem);
             return parameterHandler.SetModuleData(module, parametersToSet);
-        }
-        
-        /// <summary>
-        /// Builds a dictionary of pre‐initialized GSDML models keyed by device model (TypeName).
-        /// Each model is built by initializing a single GSDHandler per file and then extracting the
-        /// relevant data into an ImportedDeviceGSDMLModel.
-        /// </summary>
-        /// <param name="gsdmlFiles">List of GSDML file paths.</param>
-        /// <returns>A dictionary mapping device model to the corresponding ImportedDeviceGSDMLModel.</returns>
-        private Dictionary<string, ImportedDeviceGSDMLModel> BuildGsdModelMap(IEnumerable<string> gsdmlFiles)
-        {
-            var map = new Dictionary<string, ImportedDeviceGSDMLModel>(StringComparer.OrdinalIgnoreCase);
-
-            foreach (var filePath in gsdmlFiles)
-            {
-                var gsdHandler = new GSDHandler();
-                if (!gsdHandler.Initialize(filePath))
-                {
-                    Log.Warning("Failed to initialize GSDHandler for file {FilePath}", filePath);
-                    continue;
-                }
-
-                // Use the existing ModuleInfo class to extract the device model (TypeName)
-                var moduleInfo = new ModuleInfo(gsdHandler);
-                string deviceModel = moduleInfo.Model.Name;
-                if (string.IsNullOrEmpty(deviceModel))
-                {
-                    Log.Warning("No valid device model found in GSD file {FilePath}", filePath);
-                    continue;
-                }
-
-                if (map.ContainsKey(deviceModel))
-                {
-                    Log.Warning("Duplicate device model {DeviceModel} found in file {FilePath}. Skipping duplicate.", deviceModel, filePath);
-                    continue;
-                }
-
-                // Build the merged GSDML model once.
-                var importedDeviceGSDMLModel = new ImportedDeviceGSDMLModel
-                {
-                    ModuleInfo = moduleInfo,
-                    Dap = new DeviceAccessPointList(gsdHandler),
-                    ModuleList = new ModuleList(gsdHandler)
-                };
-
-                map[deviceModel] = importedDeviceGSDMLModel;
-            }
-
-            return map;
         }
         #endregion
     }

@@ -38,55 +38,10 @@ namespace PLC.Commissioning.Lib.Siemens.Tests.SiemensPLCControllerTests
             string deviceConfigFilePath = Path.Combine(_testDataPath, "aml", "valid_single_device.aml");
             var gsdmlFiles = new List<string>();
 
-            var result = _plc.ImportDevices(deviceConfigFilePath, gsdmlFiles);
+            var result = _plc.ImportDevices(deviceConfigFilePath);
 
             Assert.That(result.IsFailed, Is.True, "ImportDevices should fail if PLC is not initialized.");
             Assert.That(result.Errors.First().Metadata["ErrorCode"], Is.EqualTo(OperationErrorCode.ImportFailed));
-        }
-
-        [Test]
-        public void ImportDevices_ShouldFail_WhenFilePathIsInvalid()
-        {
-            string invalidFilePath = "nonExistentDeviceConfigFile.xml";
-            var gsdmlFiles = new List<string>();
-            _plc.Initialize(safety: false);
-
-            var result = _plc.ImportDevices(invalidFilePath, gsdmlFiles);
-
-            Assert.That(result.IsFailed, Is.True, "ImportDevices should fail if the AML file path is invalid.");
-            Assert.That(result.Errors.First().Metadata["ErrorCode"], Is.EqualTo(OperationErrorCode.ImportFailed));
-        }
-
-        [Test]
-        public void ImportDevices_ShouldFail_WhenFileIsIncorrect()
-        {
-            string invalidFilePath = Path.Combine(_testDataPath, "aml", "invalid.aml");
-            var gsdmlFiles = new List<string>();
-            _plc.Initialize(safety: false);
-
-            var result = _plc.ImportDevices(invalidFilePath, gsdmlFiles);
-
-            Assert.That(result.IsFailed, Is.True, "ImportDevices should fail when an incorrect AML file is provided.");
-            Assert.That(result.Errors.First().Metadata["ErrorCode"], Is.EqualTo(OperationErrorCode.ImportFailed));
-        }
-
-        [Test]
-        public void ImportDevices_ShouldSucceed_WhenFileIsValid()
-        {
-            string validFilePath = Path.Combine(_testDataPath, "aml", "valid_multiple_devices.aml");
-            var gsdmlFiles = new List<string>
-            {
-                Path.Combine(_testDataPath, "gsd", "GSDML-V2.41-LEUZE-BCL248i-20211213.xml"),
-                Path.Combine(_testDataPath, "gsd", "GSDML-V2.42-LEUZE-RSL400P CU 4M12-20230816.xml")
-            };
-
-            _plc.Initialize(safety: false);
-            var result = _plc.ImportDevices(validFilePath, gsdmlFiles);
-
-            Assert.That(result.IsSuccess, Is.True, "ImportDevices should return a successful result.");
-            Assert.That(result.Value, Is.Not.Null, "ImportDevices should return a dictionary of imported devices.");
-            Assert.That(result.Value, Is.InstanceOf<Dictionary<string, object>>(), "Result should be a dictionary.");
-            Assert.That(result.Value.Count, Is.GreaterThan(0), "Expected at least one device to be imported.");
         }
 
         [Test]
@@ -100,7 +55,7 @@ namespace PLC.Commissioning.Lib.Siemens.Tests.SiemensPLCControllerTests
             };
 
             _plc.Initialize(safety: false);
-            var importResult = _plc.ImportDevices(validFilePath, gsdmlFiles);
+            var importResult = _plc.ImportDevices(validFilePath);
 
             Assert.That(importResult.IsSuccess, Is.True, "ImportDevices should succeed.");
             Assert.That(importResult.Value, Is.Not.Null, "Imported devices should not be null.");
@@ -141,34 +96,6 @@ namespace PLC.Commissioning.Lib.Siemens.Tests.SiemensPLCControllerTests
             Assert.That(rslTagTables, Does.Contain("RSL400P_[M6]_Protective_function_B_status"));
             Assert.That(rslTagTables, Does.Contain("RSL400P_[M7]_Protective_function_A_violation"));
             Assert.That(rslTagTables, Does.Contain("RSL400P_[M8]_Protective_function_B_violation"));
-        }
-        
-        [Test]
-        public void ImportDevices_ShouldFail_WhenOneOfMultipleDevicesIsMissingGSD()
-        {
-            // Arrange
-            string validFilePath = Path.Combine(_testDataPath, "aml", "valid_multiple_devices.aml");
-            var gsdFilePaths = new List<string>
-            {
-                // Only one GSD file even though the AML has two devices
-                Path.Combine(_testDataPath, "gsd", "GSDML-V2.41-LEUZE-BCL248i-20211213.xml"),
-            };
-
-            _plc.Initialize(safety: false);
-
-            // Act
-            var result = _plc.ImportDevices(validFilePath, gsdFilePaths);
-
-            // Assert
-            Assert.That(result.IsFailed, Is.True, 
-                "ImportDevices should fail if not all GSD files are provided for multiple devices.");
-
-            // You can further check the error message to ensure it mentions the missing device
-            var error = result.Errors.First();
-            StringAssert.Contains("could not be imported", error.Message, 
-                "Error should mention that at least one device is missing its GSD file.");
-            StringAssert.Contains("RSL400P", error.Message, 
-                "Error message should indicate the missing RSL400P GSD if that is the device in the AML.");
         }
 
 

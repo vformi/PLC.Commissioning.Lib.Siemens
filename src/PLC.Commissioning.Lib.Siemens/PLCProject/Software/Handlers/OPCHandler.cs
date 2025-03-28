@@ -70,7 +70,7 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Software.Handlers
         /// <param name="deviceTagTables">List of tuples containing devices and their tag table definitions.</param>
         /// <param name="interfaceName">Name of the server interface in TIA Portal.</param>
         /// <returns>true on success; false otherwise</returns>
-        public bool GenerateAndImportServerInterface(IList<(ImportedDevice device, List<TagTableModel> tagTables)> deviceTagTables, string interfaceName)
+        public bool GenerateAndImportServerInterface(IList<(ProjectDevice device, List<TagTableModel> tagTables)> deviceTagTables, string interfaceName)
         {
             // Check if we should generate OPC UA server interface based on CPU attribute
             if (_cpuDeviceItem != null && !ShouldGenerateOpcUaInterface())
@@ -187,7 +187,7 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Software.Handlers
         /// <returns>true if successful; false otherwise</returns>
         public bool GenerateServerInterfaceXmlForDevices(
             string outputXmlPath,
-            IList<(ImportedDevice device, List<TagTableModel> tagTables)> deviceTagTables)
+            IList<(ProjectDevice device, List<TagTableModel> tagTables)> deviceTagTables)
         {
             XDocument doc;
             try

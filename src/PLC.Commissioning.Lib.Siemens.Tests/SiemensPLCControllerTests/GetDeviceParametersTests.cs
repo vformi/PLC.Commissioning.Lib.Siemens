@@ -45,7 +45,7 @@ namespace PLC.Commissioning.Lib.Siemens.Tests.SiemensPLCControllerTests
             string validFilePath = Path.Combine(_testDataPath, "aml", "valid_multiple_devices.aml");
 
             // Pass the list of GSD file paths instead of a single path
-            var importResult = _plc.ImportDevices(validFilePath, gsdFilePaths);
+            var importResult = _plc.ImportDevices(validFilePath);
             _devices = importResult.Value;
 
             Log.Information("Test setup completed. Test data directory: {Path}", _testDataPath);
@@ -63,7 +63,7 @@ namespace PLC.Commissioning.Lib.Siemens.Tests.SiemensPLCControllerTests
         public void GetDeviceParameters_ShouldPass_WhenValidModuleNameIsProvided()
         {
             // Arrange
-            var device = _devices.First().Value as ImportedDevice;
+            var device = _devices.First().Value as ProjectDevice;
             Assert.That(device, Is.Not.Null);
 
             // Act
@@ -79,7 +79,7 @@ namespace PLC.Commissioning.Lib.Siemens.Tests.SiemensPLCControllerTests
         public void GetDeviceParameters_ShouldPass_WhenSpecificValidParametersAreProvided()
         {
             // Arrange
-            var device = _devices.First().Value as ImportedDevice;
+            var device = _devices.First().Value as ProjectDevice;
             Assert.That(device, Is.Not.Null);
             List<string> parametersToRead = new List<string>
             {
@@ -101,7 +101,7 @@ namespace PLC.Commissioning.Lib.Siemens.Tests.SiemensPLCControllerTests
         public void GetDeviceParameters_ShouldFail_WhenSpecificInvalidParametersAreProvided()
         {
             // Arrange
-            var device = _devices.First().Value as ImportedDevice;
+            var device = _devices.First().Value as ProjectDevice;
             Assert.That(device, Is.Not.Null);
             List<string> invalidParameters = new List<string>
             {
@@ -124,7 +124,7 @@ namespace PLC.Commissioning.Lib.Siemens.Tests.SiemensPLCControllerTests
         public void GetDeviceParameters_ShouldFail_WhenInvalidModuleNameIsProvided()
         {
             // Arrange
-            var device = _devices.First().Value as ImportedDevice;
+            var device = _devices.First().Value as ProjectDevice;
             Assert.That(device, Is.Not.Null);
             // Act
             var result = _plc.GetDeviceParameters(device, "[M999] Non-existent module");

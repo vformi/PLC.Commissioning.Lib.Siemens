@@ -70,7 +70,7 @@ namespace PLC.Commissioning.Lib.Siemens.Tests.SiemensPLCControllerTests
                 Path.Combine(_testDataPath, "gsd", "GSDML-V2.42-LEUZE-RSL400P CU 4M12-20230816.xml"),
             };
             // Pass the list of GSD file paths instead of a single path
-            var importResult = _plc.ImportDevices(validFilePath, gsdFilePaths);
+            var importResult = _plc.ImportDevices(validFilePath);
 
             // Act 
             var compileResult = _plc.Compile();

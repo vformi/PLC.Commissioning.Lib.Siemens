@@ -2,6 +2,7 @@
 using Siemens.Engineering;
 using Siemens.Engineering.Cax;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using Serilog;
 using System.Linq;
@@ -24,6 +25,9 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject
         /// </summary>
         private Project _project;
         
+        private string _currentProjectPath;
+        public string CurrentProjectPath => _currentProjectPath;
+        
         private readonly IFileSystem _fileSystem; // Added IFileSystem
        
         private bool _disposed;
@@ -38,6 +42,7 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject
         {
             _tiaPortal = tiaPortal ?? throw new ArgumentNullException(nameof(tiaPortal));
             _fileSystem = fileSystem ?? throw new ArgumentNullException(nameof(fileSystem));
+            
         }
 
         /// <inheritdoc />
@@ -163,6 +168,53 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject
                 Log.Information("No project is currently loaded.");
             }
         }
+        
+        /// <inheritdoc />
+        public List<string> GetGsdmlFiles()
+        {
+            // If no project has been loaded, we can’t locate GSDML files.
+            if (string.IsNullOrEmpty(_currentProjectPath))
+            {
+                Log.Warning("Cannot retrieve GSDML files because no project is loaded or path is not set.");
+                return new List<string>();
+            }
+
+            // The .apNN file is in the project directory. Let's get that directory:
+            string projectDirectory = Path.GetDirectoryName(_currentProjectPath);
+            if (string.IsNullOrEmpty(projectDirectory))
+            {
+                Log.Warning("Unable to determine the project directory from the current project path.");
+                return new List<string>();
+            }
+
+            // Construct the path to "AdditionalFiles\GSD"
+            string gsdFolder = Path.Combine(projectDirectory, "AdditionalFiles", "GSD");
+
+            // Check if this folder exists
+            if (!_fileSystem.DirectoryExists(gsdFolder))
+            {
+                Log.Warning("The GSD folder does not exist at: {FolderPath}", gsdFolder);
+                return new List<string>();
+            }
+
+            // Retrieve the files
+            string[] foundFiles = _fileSystem.GetDirectoryFiles(gsdFolder, "*.xml");
+
+            // Convert to a List<string> for convenience
+            var gsdmlFiles = foundFiles.ToList();
+
+            if (!gsdmlFiles.Any())
+            {
+                Log.Information("No .gsdml files were found in folder: {FolderPath}", gsdFolder);
+            }
+            else
+            {
+                Log.Information("Found {Count} GSDML file(s) in folder: {FolderPath}", gsdmlFiles.Count, gsdFolder);
+            }
+
+            return gsdmlFiles;
+        }
+
 
         #region IDisposable Implementation
 
@@ -241,6 +293,7 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject
                 Log.Debug("No project to close.");
             }
         }
+        
         #endregion
         
         # region Private methods 
@@ -254,6 +307,19 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject
             {
                 _project = _tiaPortal.Projects.Open(new FileInfo(projectPath));
                 Log.Information($"Project '{projectPath}' opened successfully.");
+
+                // Store the actual path from the TIA Project object, if available
+                if (_project.Path != null)
+                {
+                    _currentProjectPath = _project.Path.FullName;
+                    Log.Debug($"TIA Portal reported project path as '{_currentProjectPath}'.");
+                }
+                else
+                {
+                    // If TIA doesn't give a Path, fallback to the provided file path
+                    _currentProjectPath = projectPath;
+                    Log.Debug($"TIA Portal did not provide a Path. Using '{_currentProjectPath}'.");
+                }
             }
             catch (Exception ex)
             {
@@ -261,11 +327,12 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject
                 throw;
             }
         }
+
         
         private void RetrieveAndOpenProject(string archivePath)
         {
             string absoluteArchivePath = Path.GetFullPath(archivePath);
-            if (!_fileSystem.FileExists(absoluteArchivePath)) // Use IFileSystem
+            if (!_fileSystem.FileExists(absoluteArchivePath))
             {
                 Log.Error($"Project archive file not found at '{absoluteArchivePath}'.");
                 throw new FileNotFoundException("Project archive file not found.", absoluteArchivePath);
@@ -275,12 +342,12 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject
             string projectName = Path.GetFileNameWithoutExtension(absoluteArchivePath);
             string targetDirectory = Path.Combine(retrievedProjectsDirectory, projectName);
 
-            if (_fileSystem.DirectoryExists(targetDirectory)) // Use IFileSystem
+            if (_fileSystem.DirectoryExists(targetDirectory))
             {
                 Log.Information($"Project directory '{targetDirectory}' already exists. Deleting...");
                 try
                 {
-                    _fileSystem.DeleteDirectory(targetDirectory, true); // Add DeleteDirectory to IFileSystem interface
+                    _fileSystem.DeleteDirectory(targetDirectory, true);
                     Log.Information($"Existing project directory '{targetDirectory}' deleted successfully.");
                 }
                 catch (Exception ex)
@@ -292,9 +359,24 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject
 
             try
             {
+                // TIA retrieves the archive into the 'retrievedDir'
                 DirectoryInfo retrievedDir = new DirectoryInfo(retrievedProjectsDirectory);
                 _project = _tiaPortal.Projects.Retrieve(new FileInfo(absoluteArchivePath), retrievedDir);
+
                 Log.Information($"Project '{absoluteArchivePath}' retrieved and opened successfully in directory '{targetDirectory}'.");
+
+                // Now store the *actual* TIA Portal project path
+                if (_project.Path != null)
+                {
+                    _currentProjectPath = _project.Path.FullName;
+                    Log.Debug($"TIA Portal reported project path as '{_currentProjectPath}'.");
+                }
+                else
+                {
+                    // If TIA doesn't provide a path, fallback to what we know
+                    _currentProjectPath = targetDirectory;
+                    Log.Debug($"TIA Portal did not provide a Path. Using '{_currentProjectPath}'.");
+                }
             }
             catch (Exception ex)
             {

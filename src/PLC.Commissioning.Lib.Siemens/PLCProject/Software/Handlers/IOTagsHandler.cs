@@ -86,7 +86,7 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Software.Handlers
         /// </summary>
         /// <param name="device">The imported device.</param>
         /// <param name="tagTableDefinitions">The precomputed tag table definitions for the device.</param>
-        public void CreateTagTables(ImportedDevice device, List<TagTableModel> tagTableDefinitions)
+        public void CreateTagTables(ProjectDevice device, List<TagTableModel> tagTableDefinitions)
         {
             if (_plcSoftware == null)
             {
@@ -117,7 +117,7 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Software.Handlers
         /// Assumes that the group was created using the device's unique DeviceName.
         /// </summary>
         /// <param name="device">The ImportedDevice whose tags are to be deleted.</param>
-        public void DeleteDeviceTagTables(ImportedDevice device)
+        public void DeleteDeviceTagTables(ProjectDevice device)
         {
             if (_plcSoftware == null)
             {

@@ -67,16 +67,15 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.Handlers
         }
 
         /// <inheritdoc />
-        public Device GetDeviceByName(string deviceName)
+        public ProjectDevice GetDeviceByName(string deviceName)
         {
             var project = _projectHandler.Project;
-            Device device = null;
-            Log.Information($"Searching for device named {deviceName} in project {project?.Name}.");
             if (project is null)
             {
                 Log.Error("Error, project is not provided.");
                 return null;
             }
+
             if (string.IsNullOrWhiteSpace(deviceName))
             {
                 Log.Error("Error, device name is not provided.");
@@ -85,44 +84,59 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.Handlers
 
             try
             {
-                foreach (Device projectDevice in project.Devices)
+                // Search for grouped devices, excluding CPUs
+                foreach (Device device in project.Devices)
                 {
-                    if (projectDevice.DeviceItems.Any(d => d.Name == deviceName))
+                    if (device.DeviceItems.Any(item => item.Classification == DeviceItemClassifications.CPU))
                     {
-                        device = projectDevice;
-                        break;
+                        Log.Debug($"Skipping CPU Device: {device.DeviceItems[1].Name}");
+                        continue;
+                    }
+
+                    // Get the device name and GSD name
+                    string currentDeviceName = device.DeviceItems[1].Name;
+                    string gsdName = device.GetAttribute("GsdName")?.ToString();
+
+                    // Check if the device name matches (case-insensitive)
+                    if (currentDeviceName.Equals(deviceName, StringComparison.OrdinalIgnoreCase))
+                    {
+                        // Create the ProjectDevice with the gathered information
+                        var projectDevice = new ProjectDevice(currentDeviceName, device, gsdName, null);
+                        Log.Information($"Successfully found grouped device '{currentDeviceName}' with GSD Name '{gsdName}' in project '{project.Name}'.");
+                        return projectDevice;
                     }
                 }
 
-                // try to search for ungrouped device, if its not a Siemens native device! 
-                if (device is null)
+                // Search for ungrouped devices, excluding CPUs
+                foreach (Device ungroupedDevice in project.UngroupedDevicesGroup.Devices)
                 {
-                    foreach (Device ungroupedDevice in project.UngroupedDevicesGroup.Devices)
+                    if (ungroupedDevice.DeviceItems.Any(item => item.Classification == DeviceItemClassifications.CPU))
                     {
-                        if (ungroupedDevice.DeviceItems.Any(d => d.Name == deviceName))
-                        {
-                            device = ungroupedDevice;
-                            break;
-                        }
+                        Log.Debug($"Skipping CPU Device: {ungroupedDevice.DeviceItems[1].Name}");
+                        continue;
+                    }
+
+                    // Get the device name and GSD name
+                    string currentDeviceName = ungroupedDevice.DeviceItems[1].Name;
+                    string gsdName = ungroupedDevice.GetAttribute("GsdName")?.ToString();
+
+                    // Check if the device name matches (case-insensitive)
+                    if (currentDeviceName.Equals(deviceName, StringComparison.OrdinalIgnoreCase))
+                    {
+                        // Create the ProjectDevice with the gathered information
+                        var projectDevice = new ProjectDevice(currentDeviceName, ungroupedDevice, gsdName, null);
+                        Log.Information($"Successfully found ungrouped device '{currentDeviceName}' with GSD Name '{gsdName}' in project '{project.Name}'.");
+                        return projectDevice;
                     }
                 }
             }
             catch (EngineeringException ex)
             {
-                Log.Error($"Cannot find device item with {deviceName} name. {ex.Message}");
-                return null;
+                Log.Error($"An error occurred while retrieving the device named '{deviceName}': {ex.Message}");
             }
 
-            if (device != null)
-            {
-                Log.Information($"Successfully found {device.DeviceItems[1].Name} in project {project.Name}.");
-                return device;
-            }
-            else
-            {
-                Log.Warning($"Device named {deviceName} was not found in project {project.Name}.");
-                return null;
-            }
+            Log.Warning($"Device named '{deviceName}' was not found in project '{project.Name}'.");
+            return null;
         }
 
         /// <inheritdoc />
@@ -267,15 +281,15 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.Handlers
         }
 
         /// <inheritdoc />
-        public List<Device> GetDevices()
+        public List<ProjectDevice> GetDevices()
         {
-            var devices = new List<Device>();
+            var projectDevices = new List<ProjectDevice>();
             var project = _projectHandler.Project;
 
             if (project is null)
             {
                 Log.Error("Error, project is not provided.");
-                return devices;
+                return projectDevices;
             }
 
             try
@@ -289,8 +303,14 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.Handlers
                         continue;
                     }
 
-                    devices.Add(device);
-                    Log.Information($"Grouped Device: {device.DeviceItems[1].Name}");
+                    // Get the device name and GSD name
+                    string deviceName = device.DeviceItems[1].Name;
+                    string gsdName = device.GetAttribute("GsdName")?.ToString();
+
+                    // Create ProjectDevice with the gathered information
+                    var projectDevice = new ProjectDevice(deviceName, device, gsdName, null);
+                    projectDevices.Add(projectDevice);
+                    Log.Information($"Grouped Device: {deviceName} with GSD Name: {gsdName}");
                 }
 
                 // Add ungrouped devices, excluding CPUs
@@ -302,8 +322,15 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.Handlers
                         continue;
                     }
 
-                    devices.Add(ungroupedDevice);
-                    Log.Information($"Ungrouped Device: \"{ungroupedDevice.DeviceItems[1].Name}\"");
+                    // Get the device name and GSD name
+                    string deviceName = ungroupedDevice.DeviceItems[1].Name;
+                    string gsdName = ungroupedDevice.GetAttribute("GsdName")?.ToString();
+
+                    // Create ProjectDevice with the gathered information
+                    var projectDevice =
+                        new ProjectDevice(deviceName, ungroupedDevice, gsdName, null);
+                    projectDevices.Add(projectDevice);
+                    Log.Information($"Ungrouped Device: \"{deviceName}\" with GSD Name: {gsdName}");
                 }
             }
             catch (EngineeringException ex)
@@ -311,8 +338,9 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.Handlers
                 Log.Error($"An error occurred while retrieving devices: {ex.Message}");
             }
 
-            return devices;
+            return projectDevices;
         }
+
         
         /// <inheritdoc />
         public List<IOModuleInfoModel> EnumerateDeviceModules(Device device)

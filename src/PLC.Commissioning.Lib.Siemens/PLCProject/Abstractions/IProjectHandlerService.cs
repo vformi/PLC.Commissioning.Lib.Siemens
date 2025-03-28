@@ -1,5 +1,6 @@
 ﻿using Siemens.Engineering;
 using System;
+using System.Collections.Generic;
 using System.IO;
 
 namespace PLC.Commissioning.Lib.Siemens.PLCProject.Abstractions
@@ -9,6 +10,11 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Abstractions
     /// </summary>
     public interface IProjectHandlerService : IDisposable
     {
+        /// <summary>
+        /// Gets the current path of the opened TIA Portal project.
+        /// </summary>
+        string CurrentProjectPath { get; }
+        
         /// <summary>
         /// Attempts to open or retrieve and open a TIA Portal project based on the file extension.
         /// </summary>
@@ -47,5 +53,11 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Abstractions
         /// Gets the current TIA Portal instance associated with the service.
         /// </summary>
         TiaPortal TiaPortal { get; }
+
+        /// <summary>
+        /// Retrieves the list of all GSDML files found in the project's "AdditionalFiles\GSD" directory.
+        /// </summary>
+        /// <returns>A list of absolute paths to the GSDML files found; empty if none found.</returns>
+        List<string> GetGsdmlFiles();
     }
 }

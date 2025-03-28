@@ -11,5 +11,6 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject
         public void DeleteFile(string path) => File.Delete(path);
         public bool DirectoryExists(string path) => Directory.Exists(path);
         public void DeleteDirectory(string path, bool recursive) => Directory.Delete(path, recursive);
+        public string[] GetDirectoryFiles(string path, string searchPattern) => Directory.GetFiles(path, searchPattern);
     }
 }
