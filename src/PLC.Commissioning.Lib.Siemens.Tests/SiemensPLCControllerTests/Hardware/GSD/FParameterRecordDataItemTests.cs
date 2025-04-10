@@ -4,6 +4,7 @@ using System.Xml;
 using System.Collections.Generic;
 using System.IO;
 using PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.GSD;
+using PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.GSD.Models;
 
 namespace PLC.Commissioning.Lib.Siemens.Tests.SiemensPLCControllerTests.Hardware.GSD
 {
@@ -21,53 +22,58 @@ namespace PLC.Commissioning.Lib.Siemens.Tests.SiemensPLCControllerTests.Hardware
         }
 
         [Test]
-        [TestCase("GSDML-V2.42-LEUZE-RSL400P CU 4M12-20230816.xml")] // Future test cases can be added here
-        public void ParseFParameterRecordDataItem_FromConcreteGSDML(string fileName)
+        [TestCase("GSDML-V2.42-LEUZE-RSL400P CU 4M12-20230816.xml")]
+        public void ParseFParameterRecordDataItem_ParsesAllExpectedAttributes(string fileName)
         {
             string filePath = Path.Combine(_testDataPath, fileName);
-            
             Assert.IsTrue(File.Exists(filePath), $"Test file not found: {filePath}");
 
             var gsdHandler = new GSDHandler();
-            bool initSuccess = gsdHandler.Initialize(filePath);
-            Assert.IsTrue(initSuccess, $"Failed to initialize GSDHandler for {fileName}");
+            Assert.IsTrue(gsdHandler.Initialize(filePath), "GSDHandler failed to initialize.");
 
-            // Load the GSDML file
             XmlDocument gsdmlDoc = new XmlDocument();
             gsdmlDoc.Load(filePath);
 
-            // Find the first FParameterRecordDataItem in M1_SAFE_SIGNAL ModuleItem
             XmlNode fParameterNode = gsdmlDoc.SelectSingleNode("//gsd:ModuleItem[@ID='M1_SAFE_SIGNAL']//gsd:F_ParameterRecordDataItem", gsdHandler.nsmgr);
-            Assert.IsNotNull(fParameterNode, $"No FParameterRecordDataItem found in {fileName} for module M1_SAFE_SIGNAL");
+            Assert.IsNotNull(fParameterNode, "F_ParameterRecordDataItem node not found.");
 
-            // Parse the FParameterRecordDataItem
             var fParamItem = new FParameterRecordDataItem(gsdHandler);
             fParamItem.ParseFParameterRecordDataItem(fParameterNode);
 
-            // Perform Assertions
-            Assert.IsNotNull(fParamItem, "FParameterRecordDataItem should not be null.");
-            
-            Assert.IsNotNull(fParamItem.F_ParamDescCRC, "F_ParamDescCRC should be parsed.");
-            Assert.IsNotNull(fParamItem.F_SIL, "F_SIL should be parsed.");
-            Assert.IsNotNull(fParamItem.F_CRC_Length, "F_CRC_Length should be parsed.");
-            Assert.IsNotNull(fParamItem.F_Block_ID, "F_Block_ID should be parsed.");
-            Assert.IsNotNull(fParamItem.F_Par_Version, "F_Par_Version should be parsed.");
-            Assert.IsNotNull(fParamItem.F_Source_Add, "F_Source_Add should be parsed.");
-            Assert.IsNotNull(fParamItem.F_Dest_Add, "F_Dest_Add should be parsed.");
-            Assert.IsNotNull(fParamItem.F_WD_Time, "F_WD_Time should be parsed.");
-            Assert.IsNotNull(fParamItem.F_Par_CRC, "F_Par_CRC should be parsed.");
+            // General integrity checks
+            Assert.IsNotNull(fParamItem.F_ParamDescCRC, "F_ParamDescCRC must not be null.");
+            Assert.IsNotEmpty(fParamItem.Parameters, "Parameters dictionary should not be empty.");
 
-            // Check expected values for safety parameters (Update with real expected values)
+            // List of expected parameter keys to validate
+            string[] expectedParams = new[]
+            {
+                "F_SIL",
+                "F_CRC_Length",
+                "F_Block_ID",
+                "F_Par_Version",
+                "F_Source_Add",
+                "F_Dest_Add",
+                "F_WD_Time",
+                "F_Par_CRC",
+            };
+
+            foreach (string paramName in expectedParams)
+            {
+                Assert.IsTrue(fParamItem.Parameters.ContainsKey(paramName), $"Missing expected F-Parameter: {paramName}");
+                Assert.IsNotNull(fParamItem.Parameters[paramName], $"{paramName} should not be null.");
+            }
+
+            // Specific value checks (you should adjust these based on actual GSD content)
             Assert.AreEqual("65037", fParamItem.F_ParamDescCRC);
-            Assert.AreEqual("SIL2", fParamItem.F_SIL);
-            Assert.AreEqual("3-Byte-CRC", fParamItem.F_CRC_Length);
-            Assert.AreEqual("0", fParamItem.F_Block_ID);
-            Assert.AreEqual("1..65534", fParamItem.F_Source_Add);
-            Assert.AreEqual("1..65534", fParamItem.F_Dest_Add);
-            Assert.AreEqual("100", fParamItem.F_WD_Time);
-            Assert.AreEqual("49406", fParamItem.F_Par_CRC);
+            Assert.AreEqual("SIL2", fParamItem.Parameters["F_SIL"].DefaultValue);
+            Assert.AreEqual("3-Byte-CRC", fParamItem.Parameters["F_CRC_Length"].DefaultValue);
+            Assert.AreEqual("0", fParamItem.Parameters["F_Block_ID"].DefaultValue);
+            Assert.AreEqual("1..65534", fParamItem.Parameters["F_Source_Add"].AllowedValues);
+            Assert.AreEqual("1..65534", fParamItem.Parameters["F_Dest_Add"].AllowedValues);
+            Assert.AreEqual("100", fParamItem.Parameters["F_WD_Time"].DefaultValue);
+            Assert.AreEqual("49406", fParamItem.Parameters["F_Par_CRC"].DefaultValue);
 
-            Console.WriteLine(fParamItem.ToString());
+            TestContext.Out.WriteLine(fParamItem.ToString());
         }
     }
 }

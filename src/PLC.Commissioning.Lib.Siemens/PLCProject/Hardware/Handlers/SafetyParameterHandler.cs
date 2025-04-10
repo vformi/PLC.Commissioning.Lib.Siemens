@@ -26,13 +26,17 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.Handlers
             {"F_Source_Add", "Failsafe_FSourceAddress"},
             {"F_Dest_Add", "Failsafe_FDestinationAddress"},
             {"F_Par_CRC_WithoutAddresses", "Failsafe_FParameterSignatureWithoutAddresses"},
-            {"F_WD_Time", "Failsafe_FMonitoringtime"},
             {"F_Par_CRC", "Failsafe_FParameterSignatureWithAddresses"},
+            {"F_iPar_CRC", "Failsafe_FParameterSignatureIndividualParameters"},
+            {"F_CRC_Length", "Failsafe_F_CRC_Length"},
+            {"F_WD_Time", "Failsafe_FMonitoringtime"},
             {"F_IO_DB_number", "Failsafe_FIODBNumber"},
             {"F_IO_DB_name", "Failsafe_FIODBName"},
+            {"F_Passivation", "Failsafe_FPassivation"},
             {"Manual_assignment_of_f-monitoring_time", "Failsafe_ManualAssignmentFMonitoringtime"},
             {"F_IO_DB_manual_number_assignment", "Failsafe_ManualAssignmentFIODBNumber"}
         };
+
 
         // Internal to TIA parameter mapping
         private static readonly Dictionary<string, string> InternalToTiaMapping = new Dictionary<string, string>();
@@ -198,6 +202,12 @@ namespace PLC.Commissioning.Lib.Siemens.PLCProject.Hardware.Handlers
                                 manualIodbEnabled = value == 1;
                             else if (mappedParam == "Failsafe_ManualAssignmentFMonitoringtime")
                                 manualMonitoringEnabled = value == 1;
+                            break;
+                        
+                        case "Failsafe_FParameterSignatureWithAddresses":
+                        case "Failsafe_FParameterSignatureWithoutAddresses":
+                        case "Failsafe_FParameterSignatureIndividualParameters":
+                            gsdDeviceItem.SetAttribute(mappedParam, ConvertToUInt64(param.Value));
                             break;
 
                         default:
